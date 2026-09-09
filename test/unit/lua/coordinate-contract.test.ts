@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import type { CmAdapter } from '../../../src/types/vim-api';
+import oracle from '../../fixtures/neovim-coordinate-oracle.json';
 import { destroyState } from '../../../src/lua/engine';
 import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
 import {
@@ -9,6 +10,9 @@ import {
     COORD_SPANS,
     OFFSET_CASES,
     BYTE_LINE_CASES,
+    COLUMN_BOUNDARIES,
+    INTERIOR_CURSOR_DEVIATIONS,
+    DISPLAY_LOOKUPS,
 } from '../../fixtures/neovim-coordinate-contract';
 import {
     createCoordinateState,
@@ -17,6 +21,290 @@ import {
     runLuaError,
     readBuffer,
 } from './coordinate-harness';
+
+describe('coordinate contract A2', () => {
+    let state: ReturnType<typeof createCoordinateState>;
+    beforeEach(() => {
+        state = createCoordinateState();
+        state.host.cursor = { line: 3, col: 7 };
+    });
+    afterEach(() => destroyState(state.L));
+    it.each(['col', 'charcol'] as const)(
+        'col resolves all argument forms / charcol counts astral once [%s]',
+        (fn) => {
+            const actual = COLUMN_BOUNDARIES.map(([host, , byte, char]) => {
+                state.host.cursor = { line: 3, col: host + 1 };
+                state.host.marks.set('a', { line: 2, ch: host });
+                return runLuaString(
+                    state.L,
+                    `return table.concat({vim.fn.${fn}('.'),vim.fn.${fn}({3,${fn === 'col' ? byte : char}}),vim.fn.${fn}("'a")}, ':')`,
+                );
+            });
+            expect(actual).toEqual(
+                fn === 'col'
+                    ? [
+                          '1:1:1',
+                          '3:3:3',
+                          '6:6:6',
+                          '10:10:10',
+                          '13:13:13',
+                          '14:14:14',
+                          '15:15:15',
+                      ]
+                    : [
+                          '1:1:1',
+                          '2:2:2',
+                          '3:3:3',
+                          '4:4:4',
+                          '5:5:5',
+                          '6:6:6',
+                          '7:7:7',
+                      ],
+            );
+        },
+    );
+    it('virtcol list precedes winid', () => {
+        expect(
+            runLuaString(
+                state.L,
+                'return table.concat(vim.fn.virtcol({1,13},1,0), ":")',
+            ),
+        ).toBe('6:8');
+    });
+    it.each(oracle.profiles)(
+        'virtcol honors six window profiles [$name]',
+        (profile) => {
+            state.host.lines = [profile.text, '', profile.text];
+            state.host.cm = {
+                cm6: {
+                    defaultCharacterWidth: 8,
+                    defaultLineHeight: 20,
+                    scrollDOM: {
+                        clientWidth: profile.options.width * 8,
+                        clientHeight: 200,
+                    },
+                },
+            } as unknown as CmAdapter;
+            for (const [key, val] of Object.entries(profile.options)) {
+                if (key === 'width') continue;
+                const scope =
+                    key === 'tabstop' || key === 'fileformat' ? 'bo' : 'wo';
+                runLuaString(
+                    state.L,
+                    `vim.${scope}[${JSON.stringify(key)}] = ${JSON.stringify(val)}; return 'set'`,
+                );
+            }
+            const actual = profile.boundaries.map((row) => {
+                const offset =
+                    COLUMN_BOUNDARIES.find(
+                        (boundary) => boundary[1] === row.byte % 14,
+                    )?.[0] ?? 0;
+                state.host.cursor = {
+                    line: 1,
+                    col: Math.floor(row.byte / 14) * 7 + offset + 1,
+                };
+                const numbers = runLuaString(
+                    state.L,
+                    `return table.concat({vim.fn.col({1,${row.byte + 1}}),vim.fn.charcol({1,${row.byte + 1}}),vim.fn.virtcol({1,${row.byte + 1}}),table.unpack(vim.fn.virtcol({1,${row.byte + 1}},true))}, ':')`,
+                )
+                    .split(':')
+                    .map(Number);
+                const expressions = runLuaString(
+                    state.L,
+                    `return table.concat({vim.fn.col('.'),vim.fn.charcol('.'),vim.fn.virtcol('.'),table.unpack(vim.fn.virtcol('.',true))}, ':')`,
+                )
+                    .split(':')
+                    .map(Number);
+                const inverse = row.cells.map((cell) =>
+                    runLuaNumber(
+                        state.L,
+                        `return vim.fn.virtcol2col(0,1,${cell})`,
+                    ),
+                );
+                return {
+                    byte: row.byte,
+                    col: numbers[0],
+                    charcol: numbers[1],
+                    virtcol: numbers[2],
+                    cells: numbers.slice(3),
+                    expressions: {
+                        col: expressions[0],
+                        charcol: expressions[1],
+                        virtcol: expressions[2],
+                        cells: expressions.slice(3),
+                    },
+                    virtcol2col: inverse,
+                };
+            });
+            const occupied = profile.occupied.map((row) => {
+                const byte = runLuaNumber(
+                    state.L,
+                    `return vim.fn.virtcol2col(0,1,${row.cell})`,
+                );
+                const offset =
+                    COLUMN_BOUNDARIES.find(
+                        (boundary) => boundary[1] === (byte - 1) % 14,
+                    )?.[0] ?? 0;
+                state.host.cursor = {
+                    line: 1,
+                    col: Math.floor((byte - 1) / 14) * 7 + offset + 1,
+                };
+                const fields = runLuaString(
+                    state.L,
+                    `return table.concat({vim.fn.col({1,${byte}}),vim.fn.charcol({1,${byte}}),vim.fn.virtcol({1,${byte}}),table.unpack(vim.fn.virtcol({1,${byte}},true))}, ':')`,
+                )
+                    .split(':')
+                    .map(Number);
+                const expr = runLuaString(
+                    state.L,
+                    `return table.concat({vim.fn.col('.'),vim.fn.charcol('.')}, ':')`,
+                )
+                    .split(':')
+                    .map(Number);
+                return {
+                    cell: row.cell,
+                    byte_col: byte,
+                    col: fields[0],
+                    charcol: fields[1],
+                    virtcol: fields[2],
+                    cells: fields.slice(3),
+                    expressions: { col: expr[0], charcol: expr[1] },
+                };
+            });
+            const eol = runLuaString(
+                state.L,
+                `return table.concat({vim.fn.col('$'),vim.fn.charcol('$'),vim.fn.virtcol('$'),table.unpack(vim.fn.virtcol('$',true))}, ':')`,
+            )
+                .split(':')
+                .map(Number);
+            const expressions = {
+                col_eol: eol[0],
+                charcol_eol: eol[1],
+                virtcol_eol: eol[2],
+                cells_eol: eol.slice(3),
+            };
+            expect({ boundaries: actual, occupied, expressions }).toEqual({
+                boundaries: profile.boundaries,
+                occupied: profile.occupied,
+                expressions: profile.expressions,
+            });
+        },
+    );
+    it('virtcol honors six window profiles [options mutate between calls]', () => {
+        const actual: string[] = [];
+        for (const tabstop of [8, 2, 8]) {
+            actual.push(
+                runLuaString(
+                    state.L,
+                    `vim.bo.tabstop=${tabstop}; return table.concat(vim.fn.virtcol({1,13},true), ':')`,
+                ),
+            );
+        }
+        expect(actual).toEqual(['6:8', '6:6', '6:8']);
+    });
+    it('virtcol honors six window profiles [nowrap wide edge transformation]', () => {
+        state.host.lines = ['é'.repeat(76) + COORD_LINE, '', COORD_LINE];
+        state.host.cm = {
+            cm6: {
+                defaultCharacterWidth: 8,
+                defaultLineHeight: 20,
+                scrollDOM: { clientWidth: 640, clientHeight: 200 },
+            },
+        } as unknown as CmAdapter;
+        expect(
+            runLuaString(
+                state.L,
+                `vim.wo.wrap=false; return table.concat(vim.fn.virtcol({1,162},true), ':')`,
+            ),
+        ).toBe('80:81');
+    });
+    it.each(['math.huge', '1e100', '0.5', '0', '-1'])(
+        'virtcol rejects unsafe tabstop [%s]',
+        (tabstop) => {
+            state.host.cm = {
+                cm6: {
+                    defaultCharacterWidth: 8,
+                    defaultLineHeight: 20,
+                    scrollDOM: { clientWidth: 640, clientHeight: 200 },
+                },
+            } as unknown as CmAdapter;
+            expect(
+                runLuaString(
+                    state.L,
+                    `vim.bo.tabstop=${tabstop}; return table.concat(vim.fn.virtcol({1,13},true), ':')`,
+                ),
+            ).toBe('6:8');
+        },
+    );
+    it('virtcol2col collapses and clamps', () => {
+        expect(
+            DISPLAY_LOOKUPS.map(([win, line, col]) =>
+                runLuaNumber(
+                    state.L,
+                    `return vim.fn.virtcol2col(${win},${line},${col})`,
+                ),
+            ),
+        ).toEqual([10, 10, 13, 13, 13, 14, 14, 14, 1, -1, -1, 1, -1, 0, -1]);
+    });
+    it.each(INTERIOR_CURSOR_DEVIATIONS)(
+        'cursor middle-byte normalization deviation [byte %s]',
+        (byte, host, normalized, col, charcol) => {
+            const result = runLuaString(
+                state.L,
+                `vim.api.nvim_win_set_cursor(0,{3,${byte}}); local p=vim.api.nvim_win_get_cursor(0); return table.concat({p[1],p[2],vim.fn.col('.'),vim.fn.charcol('.')}, ':')`,
+            );
+            expect([state.host.cursor, result]).toEqual([
+                { line: 3, col: host },
+                `3:${normalized}:${col}:${charcol}`,
+            ]);
+        },
+    );
+    it('cursor past EOL clamps natively', () => {
+        expect(
+            runLuaString(
+                state.L,
+                `vim.api.nvim_win_set_cursor(0,{3,15}); local p=vim.api.nvim_win_get_cursor(0); return table.concat({p[1],p[2],vim.fn.col('.'),vim.fn.charcol('.')}, ':')`,
+            ),
+        ).toBe('3:14:15:7');
+    });
+    it.each(['infinity', 'visual metadata', 'ordinary EOL'])(
+        'linewise mark preserves maxcol [%s]',
+        (kind) => {
+            state.host.marks.set('>', {
+                line: 2,
+                ch: kind === 'infinity' ? Infinity : 7,
+            });
+            state.host.visualMode = kind === 'visual metadata' ? 'V' : 'v';
+            expect(
+                runLuaString(
+                    state.L,
+                    `local p=vim.api.nvim_buf_get_mark(0,'>'); return table.concat({p[1],p[2],vim.v.maxcol,vim.api.nvim_get_vvar('maxcol')}, ':')`,
+                ),
+            ).toBe(
+                kind === 'ordinary EOL'
+                    ? '3:14:2147483647:2147483647'
+                    : '3:2147483647:2147483647:2147483647',
+            );
+        },
+    );
+    it.each([
+        'nil',
+        '{}',
+        '{3}',
+        '{0,1}',
+        '{4,1}',
+        '{3,-1}',
+        '{3,1.5}',
+        '{3,"1"}',
+    ])('invalid positions do not masquerade as valid coverage [%s]', (pos) => {
+        expect(
+            runLuaError(
+                state.L,
+                `return vim.api.nvim_win_set_cursor(0,${pos})`,
+            ),
+        ).toContain('nvim_win_set_cursor:');
+    });
+});
 
 describe('coordinate contract Windows', () => {
     let state: ReturnType<typeof createCoordinateState>;

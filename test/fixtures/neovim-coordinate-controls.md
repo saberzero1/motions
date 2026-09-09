@@ -646,3 +646,454 @@ nix develop --command npx tsx test/neovim/coordinate-oracle.ts --check-version -
 Both failures occur before writing the artifact and after clean process
 shutdown. They are feature-gate failures, not missing-fixture, import, or
 timeout failures. No weakened version check or missing-profile skip remains.
+
+# Phase 3 coordinate negative controls
+
+Executed 2026-09-09 against the Phase 3 working tree based on `3546847`.
+These are observed executions, not predicted failures. The records below cover
+**217 unit assertions and all 5 public e2e assertions (222 distinct assertions)**.
+Supplementary rows preserve additional mandatory mutations of the same assertions.
+Existing A1/Windows assertions were not changed; their earlier records remain above.
+
+Each full case name is the group heading plus its case/parameter cell. Every unit
+case has one reached assertion; parameter rows ran as separate Vitest cases, so
+one failure did not mask another. Error matchers shown as `StringContaining`
+require that substring. Vector assertions check the entire recorded vector.
+For six-profile oracle objects, the recorded first differing cell tuple identifies
+the failure; the assertion compares all boundary, occupied-cell, and EOL fields.
+
+## Phase 3 fixtures and mutations
+
+- **F**: `COORD_LINES = ['é→𝄞界\tZ', '', 'é→𝄞界\tZ']`, containing actual tabs.
+  The usual host cursor is `{line:3,col:7}` (1-based UTF-16); named ordinary marks
+  are `{line:2,ch:6}` (0-based UTF-16). Boundary cases set the tabulated positions.
+- **F → unloaded**: initialize F, then set `host.loaded=false`.
+- **F → empty**: either address F's empty second line (the `empty list position`
+  cases), or replace F with that line (`['']`) for the empty-buffer cases.
+- **P**: the named profile and literal results in `neovim-coordinate-oracle.json`.
+  Narrow-showbreak repeats the first line four times. No expected result was
+  regenerated from the shim, `strlen`, `strpart`, or the adapter.
+- **76é + F[1]**: prefix the canonical line with 76 copies of `é`. A separate
+  native 0.12.5 probe measured the wide character at byte column 162 as `[80,81]`
+  under nowrap and `[81,82]` under wrap, with width 80. This is the discriminating
+  nowrap control; the short nowrap profile alone is invariant at that width.
+- **Named mark state**: `>` at infinity, finite `ch=7` with visual metadata `V`,
+  or ordinary finite EOL with visual metadata `v`, as named by the case.
+- Structural fixtures contain the canonical Unicode line and the shipped
+  callback shapes. Production suppression inventory checks actual AST handler
+  identities, separately from the structural scanner's diagnostics.
+
+Every mutation was applied and removed with **`apply_patch`**, never a git undo
+command. The `+` restoration IDs below mean: remove exactly that cohort's mutation
+with `apply_patch`, then run the stated restoration command. Every restoration
+exited **0**. Cohorts combine only independent defects; parameter assertions still
+execute separately. No mutation remains in production or tests.
+
+| ID  | Mutation applied                                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B   | Erroneously add 1 while marshaling scalar/tuple coordinate results, at the three fn offset/inverse outputs, and at the host cursor setter. This also exposes incorrect base adjustment of invalid/unset values.                                                     |
+| E   | Swallow adapter errors as successful `0`; bypass positive nonzero handle rejection in the guard definitions (no call sites changed); replace offset/line numeric checks with unchecked reads; default a malformed mark name to `a`.                                 |
+| G   | Remove only `vim.fn.col` from the manifest; change cursor output line base to 2; invert the already-correct Lua seam expectations to `7` and `\tZ`.                                                                                                                 |
+| I   | Bypass only mark conversion (`byteColumn(pos.ch)`); change manifest cursor column base to -1; disable the rule's member-access branch; add an unauthorized suppression in active `col`; erase the byte input brand; pass `{}` to Lua's number-accepting type probe. |
+| V   | Disable the rule's bracket-access branch; insert one direct mark reference into the otherwise clean host fixture; give the valid directional type snippet a host column.                                                                                            |
+| S   | Make `byteToUtf16` return the raw byte number, removing conversion, middle-byte normalization, and host EOL clamping.                                                                                                                                               |
+| T   | Treat each ordinary tab as one display cell rather than advancing to the tab stop. This is the approved `list-tab-glyph` implementation control.                                                                                                                    |
+| O   | Swap resolved tabstop 2 and 8. Base and tabstop-2 each receive the other setting; the between-calls case observes the swap on every call.                                                                                                                           |
+| W   | Disable `list`, force `wrap=true`, and clear `showbreak`. Each affected profile differs in only its own setting: list-no-tab-glyph, nowrap wide-edge, and narrow-showbreak respectively.                                                                            |
+| C   | Cursor getter returns host units only; character conversion counts UTF-16; swap `virtcol` list/window arguments; inverse lookup returns a tab's ending byte. These defects are independently observed by separate cases.                                            |
+| M   | Convert the linewise-end alternative to the line's byte length instead of preserving `MAXCOL`.                                                                                                                                                                      |
+| H   | Change the safe fallback for invalid tabstop values from 8 to 1, keeping the finite bounded path. This produces a feature failure, not a hung test.                                                                                                                 |
+| L   | Restore the string-only, dot-only `col` handler and remove the canonical `virtcol2col` registration by temporarily renaming it.                                                                                                                                     |
+| U   | Leak UTF-16 through `utf16ToByte` (`Math.min(col,text.length)`); used for the public cursor/ordinary-mark controls and the additional `col('.')` witness.                                                                                                           |
+| P0  | Change both public test setup cursor positions from host `ch=6` to `ch=5`, leaving the expected precondition unchanged.                                                                                                                                             |
+
+## Phase 3 exact commands and restoration results
+
+All commands ran from `/home/saberzero1/Repos/motions`. The temporary custom
+Vitest reporter only collected each case's `result()` into JSON and printed its
+actual/expected values; it did not change tests or assertions. The permanent
+tables below transcribe those results. Reporter artifacts were named by cohort.
+
+```bash
+# B
+EVIDENCE_FILE=/tmp/opencode/coord-wire-bases.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts test/unit/lua/api.test.ts -t 'coordinate manifest|coordinate contract A2|coordinate contract cursor|coordinate contract mark' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# E
+EVIDENCE_FILE=/tmp/opencode/coord-error-policies.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts -t 'coordinate manifest|coordinate contract A2' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# G
+EVIDENCE_FILE=/tmp/opencode/coord-manifest-controls.json npx vitest run test/unit/lua/coordinate-manifest.test.ts -t 'coverage|byte-string seam|nvim_win_get_cursor cursor Z' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# I
+EVIDENCE_FILE=/tmp/opencode/coord-isolated-gates.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/api.test.ts test/unit/lua/coordinate-types.test.ts test/unit/lua/coordinate-boundary-rule.test.ts -t 'mark after astral|mark returns byte|nvim_win_get_cursor cursor Z|coordinate adapter directionality|coordinate boundary' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# V
+EVIDENCE_FILE=/tmp/opencode/coord-bracket-valid.json npx vitest run test/unit/lua/coordinate-types.test.ts test/unit/lua/coordinate-boundary-rule.test.ts --reporter=/tmp/opencode/coordinate-reporter.mjs
+# S
+EVIDENCE_FILE=/tmp/opencode/coord-set-leak.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts test/unit/lua/api.test.ts -t 'nvim_win_set_cursor|cursor middle-byte|cursor past EOL|cursor set converts' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# T
+EVIDENCE_FILE=/tmp/opencode/coord-tab-one-cell.json npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'virtcol' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# O
+EVIDENCE_FILE=/tmp/opencode/coord-tabstop-toggle.json npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'virtcol honors' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# W
+EVIDENCE_FILE=/tmp/opencode/coord-window-toggles.json npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'virtcol honors' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# C
+EVIDENCE_FILE=/tmp/opencode/coord-specific-semantics.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/api.test.ts -t 'nvim_win_get_cursor cursor Z|cursor get uses bytes|charcol cursor Z|list precedes winid|virtcol2col 0,1,7' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# M
+EVIDENCE_FILE=/tmp/opencode/coord-sentinel.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts -t 'linewise' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# H
+EVIDENCE_FILE=/tmp/opencode/coord-unsafe-options.json npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'unsafe tabstop' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# L
+EVIDENCE_FILE=/tmp/opencode/coord-legacy-handlers.json npx vitest run test/unit/lua/coordinate-manifest.test.ts -t 'vim.fn.col expression EOL|vim.fn.col list column 14|vim.fn.virtcol2col 0,1,7' --reporter=/tmp/opencode/coordinate-reporter.mjs
+# U
+EVIDENCE_FILE=/tmp/opencode/coord-host-leak.json npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts test/unit/lua/api.test.ts -t coordinate --reporter=/tmp/opencode/coordinate-reporter.mjs
+```
+
+The restoration commands actually executed, after `apply_patch` removed each
+mutation, were:
+
+```bash
+# B+ — 199 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts test/unit/lua/api.test.ts -t 'coordinate manifest|coordinate contract A2|coordinate contract cursor|coordinate contract mark'
+# E+ — 196 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts -t 'coordinate manifest|coordinate contract A2'
+# G+ — 4 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts -t 'coverage|byte-string seam|nvim_win_get_cursor cursor Z'
+# I+ — 16 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/api.test.ts test/unit/lua/coordinate-types.test.ts test/unit/lua/coordinate-boundary-rule.test.ts -t 'mark after astral|mark returns byte|nvim_win_get_cursor cursor Z|coordinate adapter directionality|coordinate boundary'
+# V+ — 13 passed
+npx vitest run test/unit/lua/coordinate-types.test.ts test/unit/lua/coordinate-boundary-rule.test.ts
+# S+ — 23 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts test/unit/lua/api.test.ts -t 'nvim_win_set_cursor|cursor middle-byte|cursor past EOL|cursor set converts'
+# T+ — 33 passed
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t virtcol
+# O+ and W+ — 8 passed each
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'virtcol honors'
+# C+ — 5 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/api.test.ts -t 'nvim_win_get_cursor cursor Z|cursor get uses bytes|charcol cursor Z|list precedes winid|virtcol2col 0,1,7'
+# M+ — 4 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts -t linewise
+# H+ — 32 passed
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'coordinate contract A2'
+# L+ — 3 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts -t 'vim.fn.col expression EOL|vim.fn.col list column 14|vim.fn.virtcol2col 0,1,7'
+# U+ — 304 passed
+npx vitest run test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-contract.test.ts test/unit/lua/api.test.ts -t coordinate
+```
+
+Cases excluded by a targeted `-t` selection are not counted as controls or
+passing cases. Every negative row below exited 1 on its stated feature assertion;
+every restoration exited 0. The scanner's expected error-level diagnostics on
+isolated defective fixtures are not production lint failures.
+
+## Phase 3 per-assertion unit records
+
+### test/unit/lua/api.test.ts — vim api > vim.api — Wave 1: Cursor + line + marks
+
+| Full case/parameter within group                                          | Fixture | Assertion                          | Observed actual | Expected      | Command / exit | Restoration |
+| ------------------------------------------------------------------------- | ------- | ---------------------------------- | --------------- | ------------- | -------------- | ----------- |
+| `coordinate contract cursor get uses bytes`                               | F       | Lua status and cursor tuple        | `[0,"3:6"]`     | `[0,"3:13"]`  | C / 1          | C+ / 0      |
+| `coordinate contract cursor set converts bytes to host units`             | F       | Lua status and host callback calls | `[0,[[3,14]]]`  | `[0,[[3,7]]]` | S / 1          | S+ / 0      |
+| `coordinate contract mark returns byte column without changing line base` | F       | Lua status and mark tuple          | `[0,"3:6"]`     | `[0,"3:13"]`  | I / 1          | I+ / 0      |
+
+### test/unit/lua/coordinate-contract.test.ts — coordinate contract A2
+
+| Full case/parameter within group                                         | Fixture              | Assertion                             | Observed actual                                                         | Expected                                                                | Command / exit | Restoration |
+| ------------------------------------------------------------------------ | -------------------- | ------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------- | ----------- |
+| `col resolves all argument forms / charcol counts astral once [col]`     | F                    | All boundary cursor/list/mark triples | `["2:2:2","4:4:4","7:7:7","11:11:11","14:14:14","15:15:15","16:16:16"]` | `["1:1:1","3:3:3","6:6:6","10:10:10","13:13:13","14:14:14","15:15:15"]` | B / 1          | B+ / 0      |
+| `col resolves all argument forms / charcol counts astral once [charcol]` | F                    | All boundary cursor/list/mark triples | `["2:2:2","3:3:3","4:4:4","5:5:5","6:6:6","7:7:7","8:8:8"]`             | `["1:1:1","2:2:2","3:3:3","4:4:4","5:5:5","6:6:6","7:7:7"]`             | B / 1          | B+ / 0      |
+| `virtcol list precedes winid`                                            | F                    | Inclusive cell range                  | `"7:9"`                                                                 | `"6:8"`                                                                 | B / 1          | B+ / 0      |
+| `virtcol honors six window profiles ['base']`                            | P                    | Oracle object; cells at byte 12       | `[6,6]`                                                                 | `[6,8]`                                                                 | O / 1          | O+ / 0      |
+| `virtcol honors six window profiles ['tabstop-2']`                       | P                    | Oracle object; cells at byte 12       | `[6,8]`                                                                 | `[6,6]`                                                                 | O / 1          | O+ / 0      |
+| `virtcol honors six window profiles ['list-tab-glyph']`                  | P                    | Oracle object; cells at byte 12       | `[6,6]`                                                                 | `[6,8]`                                                                 | T / 1          | T+ / 0      |
+| `virtcol honors six window profiles ['list-no-tab-glyph']`               | P                    | Oracle object; cells at byte 12       | `[6,8]`                                                                 | `[6,7]`                                                                 | W / 1          | W+ / 0      |
+| `virtcol honors six window profiles ['nowrap']`                          | P                    | Oracle object; cells at byte 12       | `[6,6]`                                                                 | `[6,8]`                                                                 | T / 1          | T+ / 0      |
+| `virtcol honors six window profiles ['narrow-showbreak']`                | P(narrow), F×4       | Oracle object; cells at byte 13       | `[9,9]`                                                                 | `[11,11]`                                                               | W / 1          | W+ / 0      |
+| `virtcol honors six window profiles [options mutate between calls]`      | F                    | Option changes are live               | `["6:6","6:8","6:6"]`                                                   | `["6:8","6:6","6:8"]`                                                   | O / 1          | O+ / 0      |
+| `virtcol honors six window profiles [nowrap wide edge transformation]`   | 76é + F[1]           | Wide edge cells                       | `"81:82"`                                                               | `"80:81"`                                                               | W / 1          | W+ / 0      |
+| `virtcol2col collapses and clamps`                                       | F                    | Entire lookup vector                  | `[11,11,14,14,14,15,15,15,2,0,0,2,0,1,0]`                               | `[10,10,13,13,13,14,14,14,1,-1,-1,1,-1,0,-1]`                           | B / 1          | B+ / 0      |
+| `cursor middle-byte normalization deviation [byte 1]`                    | F                    | Host cursor and wire vector           | `[{"col":2,"line":3},"3:2:3:2"]`                                        | `[{"col":1,"line":3},"3:0:1:1"]`                                        | S / 1          | S+ / 0      |
+| `cursor middle-byte normalization deviation [byte 3]`                    | F                    | Host cursor and wire vector           | `[{"col":4,"line":3},"3:5:6:3"]`                                        | `[{"col":2,"line":3},"3:2:3:2"]`                                        | S / 1          | S+ / 0      |
+| `cursor middle-byte normalization deviation [byte 6]`                    | F                    | Host cursor and wire vector           | `[{"col":7,"line":3},"3:13:14:6"]`                                      | `[{"col":3,"line":3},"3:5:6:3"]`                                        | S / 1          | S+ / 0      |
+| `cursor past EOL clamps natively`                                        | F                    | Cursor/col/charcol vector             | `"4:15:16:8"`                                                           | `"3:14:15:7"`                                                           | B / 1          | B+ / 0      |
+| `linewise mark preserves maxcol [infinity]`                              | F + named mark state | Mark and both maxcol routes           | `"3:14:2147483647:2147483647"`                                          | `"3:2147483647:2147483647:2147483647"`                                  | M / 1          | M+ / 0      |
+| `linewise mark preserves maxcol [visual metadata]`                       | F + named mark state | Mark and both maxcol routes           | `"3:14:2147483647:2147483647"`                                          | `"3:2147483647:2147483647:2147483647"`                                  | M / 1          | M+ / 0      |
+| `linewise mark preserves maxcol [ordinary EOL]`                          | F + named mark state | Mark and both maxcol routes           | `"4:15:2147483647:2147483647"`                                          | `"3:14:2147483647:2147483647"`                                          | B / 1          | B+ / 0      |
+| `invalid positions do not masquerade as valid coverage [nil]`            | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{}]`             | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{3}]`            | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{0,1}]`          | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{4,1}]`          | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{3,-1}]`         | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{3,1.5}]`        | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `invalid positions do not masquerade as valid coverage [{3,"1"}]`        | F                    | Required Lua error                    | `"success: 0"`                                                          | contains `nvim_win_set_cursor:`                                         | E / 1          | E+ / 0      |
+| `virtcol rejects unsafe tabstop [math.huge]`                             | F                    | Safe fallback cells                   | `"6:6"`                                                                 | `"6:8"`                                                                 | H / 1          | H+ / 0      |
+| `virtcol rejects unsafe tabstop [1e100]`                                 | F                    | Safe fallback cells                   | `"6:6"`                                                                 | `"6:8"`                                                                 | H / 1          | H+ / 0      |
+| `virtcol rejects unsafe tabstop [0.5]`                                   | F                    | Safe fallback cells                   | `"6:6"`                                                                 | `"6:8"`                                                                 | H / 1          | H+ / 0      |
+| `virtcol rejects unsafe tabstop [0]`                                     | F                    | Safe fallback cells                   | `"6:6"`                                                                 | `"6:8"`                                                                 | H / 1          | H+ / 0      |
+| `virtcol rejects unsafe tabstop [-1]`                                    | F                    | Safe fallback cells                   | `"6:6"`                                                                 | `"6:8"`                                                                 | H / 1          | H+ / 0      |
+
+### test/unit/lua/coordinate-manifest.test.ts — coordinate manifest conformance
+
+For every row, the assertion is the exact real-handler return (or host setter
+position), or the required Lua error substring. All argument forms dispatch the
+registered handler; none invokes the adapter directly.
+
+| Full case/parameter within group                     | Fixture              | Observed actual                                         | Expected                               | Command / exit | Restoration |
+| ---------------------------------------------------- | -------------------- | ------------------------------------------------------- | -------------------------------------- | -------------- | ----------- |
+| `vim.api.nvim_buf_get_offset index 0`                | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset index 1`                | F                    | `16`                                                    | `15`                                   | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset index 2`                | F                    | `17`                                                    | `16`                                   | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset index 3`                | F                    | `32`                                                    | `31`                                   | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset DOS ignores fileformat` | F, DOS               | `32`                                                    | `31`                                   | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset unloaded`               | F → unloaded         | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset empty`                  | F → empty            | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.line2byte line 1`                            | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.line2byte line 2`                            | F                    | `17`                                                    | `16`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte line 3`                            | F                    | `18`                                                    | `17`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte line 4`                            | F                    | `33`                                                    | `32`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte DOS final boundary`                | F, DOS               | `36`                                                    | `35`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte invalid 0`                         | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte invalid 5`                         | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte invalid 1.5`                       | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte unloaded`                          | F → unloaded         | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.line2byte empty`                             | F → empty            | `3`                                                     | `2`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 0`                            | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 1`                            | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 15`                           | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 16`                           | F                    | `3`                                                     | `2`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 17`                           | F                    | `4`                                                     | `3`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 31`                           | F                    | `4`                                                     | `3`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line byte 32`                           | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.byte2line DOS byte 16`                       | F, DOS               | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line DOS byte 17`                       | F, DOS               | `3`                                                     | `2`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line DOS byte 18`                       | F, DOS               | `3`                                                     | `2`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line DOS byte 19`                       | F, DOS               | `4`                                                     | `3`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line DOS byte 34`                       | F, DOS               | `4`                                                     | `3`                                    | B / 1          | B+ / 0      |
+| `vim.fn.byte2line DOS byte 35`                       | F, DOS               | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.byte2line unloaded`                          | F → unloaded         | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.byte2line empty`                             | F → empty            | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.api.nvim_win_get_cursor cursor Z`               | F                    | `"3:6"`                                                 | `"3:13"`                               | C / 1          | C+ / 0      |
+| `vim.api.nvim_win_get_cursor no cursor fallback`     | F → unloaded         | `"2:1"`                                                 | `"1:0"`                                | B / 1          | B+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 0`                 | F                    | `"3:2"`                                                 | `"3:1"`                                | B / 1          | B+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 2`                 | F                    | `"3:3"`                                                 | `"3:2"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 5`                 | F                    | `"3:6"`                                                 | `"3:3"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 9`                 | F                    | `"3:10"`                                                | `"3:5"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 12`                | F                    | `"3:13"`                                                | `"3:6"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 13`                | F                    | `"3:14"`                                                | `"3:7"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor byte 14`                | F                    | `"3:15"`                                                | `"3:8"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor past EOL`               | F                    | `"3:16"`                                                | `"3:8"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_win_set_cursor empty`                  | F → empty            | `"1:100"`                                               | `"1:1"`                                | S / 1          | S+ / 0      |
+| `vim.api.nvim_buf_get_mark mark after astral`        | F                    | `"3:6"`                                                 | `"3:13"`                               | I / 1          | I+ / 0      |
+| `vim.api.nvim_buf_get_mark unset`                    | F                    | `"1:1"`                                                 | `"0:0"`                                | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_mark linewise sentinel`        | F + named mark state | `"3:14"`                                                | `"3:2147483647"`                       | M / 1          | M+ / 0      |
+| `vim.fn.col cursor Z`                                | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col expression EOL`                          | F                    | `0`                                                     | `15`                                   | L / 1          | L+ / 0      |
+| `vim.fn.col list EOL`                                | F                    | `16`                                                    | `15`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col list column 1`                           | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 2`                           | F                    | `3`                                                     | `2`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 3`                           | F                    | `4`                                                     | `3`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 4`                           | F                    | `5`                                                     | `4`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 5`                           | F                    | `6`                                                     | `5`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 6`                           | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 7`                           | F                    | `8`                                                     | `7`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 8`                           | F                    | `9`                                                     | `8`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 9`                           | F                    | `10`                                                    | `9`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col list column 10`                          | F                    | `11`                                                    | `10`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col list column 11`                          | F                    | `12`                                                    | `11`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col list column 12`                          | F                    | `13`                                                    | `12`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col list column 13`                          | F                    | `14`                                                    | `13`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col list column 14`                          | F                    | `bad argument #1 to 'col' (string expected, got table)` | `14`                                   | L / 1          | L+ / 0      |
+| `vim.fn.col list column 15`                          | F                    | `16`                                                    | `15`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col list column 16`                          | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col mark a`                                  | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col mark [`                                  | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col mark ]`                                  | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col mark <`                                  | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col mark >`                                  | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {0,1}`                           | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {4,1}`                           | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {1,0}`                           | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {}`                              | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {1}`                             | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {1,'x'}`                         | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid {'$',1}`                         | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid 'unknown'`                       | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col invalid "'z"`                            | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col empty list position`                     | F → empty            | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.col unloaded expression`                     | F → unloaded         | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol cursor Z`                            | F                    | `7`                                                     | `6`                                    | C / 1          | C+ / 0      |
+| `vim.fn.charcol expression EOL`                      | F                    | `8`                                                     | `7`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list EOL`                            | F                    | `8`                                                     | `7`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 1`                       | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 2`                       | F                    | `3`                                                     | `2`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 3`                       | F                    | `4`                                                     | `3`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 4`                       | F                    | `5`                                                     | `4`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 5`                       | F                    | `6`                                                     | `5`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 6`                       | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 7`                       | F                    | `8`                                                     | `7`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 8`                       | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 9`                       | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 10`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 11`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 12`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 13`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 14`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 15`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol list column 16`                      | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol mark a`                              | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol mark [`                              | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol mark ]`                              | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol mark <`                              | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol mark >`                              | F                    | `7`                                                     | `6`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {0,1}`                       | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {4,1}`                       | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {1,0}`                       | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {}`                          | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {1}`                         | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {1,'x'}`                     | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid {'$',1}`                     | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid 'unknown'`                   | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol invalid "'z"`                        | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol empty list position`                 | F → empty            | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.charcol unloaded expression`                 | F → unloaded         | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol cursor Z`                            | F                    | `10`                                                    | `9`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol EOL`                                 | F                    | `11`                                                    | `10`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol list precedes winid`                 | F                    | `table.concat: table expected, got number`              | `"6:8"`                                | C / 1          | C+ / 0      |
+| `vim.fn.virtcol invalid line list`                   | F                    | `"1:1"`                                                 | `"0:0"`                                | B / 1          | B+ / 0      |
+| `vim.fn.virtcol invalid column list`                 | F                    | `"1:1"`                                                 | `"0:0"`                                | B / 1          | B+ / 0      |
+| `vim.fn.virtcol invalid window list`                 | F                    | `"1:1"`                                                 | `"0:0"`                                | B / 1          | B+ / 0      |
+| `vim.fn.virtcol malformed list flag`                 | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol unloaded expression`                 | F → unloaded         | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,4`                           | F                    | `11`                                                    | `10`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,5`                           | F                    | `11`                                                    | `10`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,6`                           | F                    | `14`                                                    | `13`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,7`                           | F                    | `14`                                                    | `13`                                   | C / 1          | C+ / 0      |
+| `vim.fn.virtcol2col 0,1,8`                           | F                    | `14`                                                    | `13`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,9`                           | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,10`                          | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,999`                         | F                    | `15`                                                    | `14`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,0,1`                           | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,-1,1`                          | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,99,1`                          | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,0`                           | F                    | `2`                                                     | `1`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,1,-1`                          | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 0,2,1`                           | F                    | `1`                                                     | `0`                                    | B / 1          | B+ / 0      |
+| `vim.fn.virtcol2col 99,1,1`                          | F                    | `0`                                                     | `-1`                                   | B / 1          | B+ / 0      |
+| `vim.api.nvim_buf_get_offset invalid negative index` | F                    | `success: 0`                                            | contains `index out of bounds`         | E / 1          | E+ / 0      |
+| `vim.api.nvim_buf_get_offset invalid high index`     | F                    | `success: 0`                                            | contains `index out of bounds`         | E / 1          | E+ / 0      |
+| `vim.api.nvim_buf_get_offset fractional index`       | F                    | `success: 0`                                            | contains `integer`                     | E / 1          | E+ / 0      |
+| `vim.api.nvim_buf_get_offset invalid handle`         | F                    | `success: 0`                                            | contains `buffer numbers other than 0` | E / 1          | E+ / 0      |
+| `vim.fn.line2byte malformed`                         | F                    | `success: -1`                                           | contains `number expected`             | E / 1          | E+ / 0      |
+| `vim.fn.byte2line malformed`                         | F                    | `success: -1`                                           | contains `number expected`             | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_get_cursor invalid handle`         | F                    | `success: nil`                                          | contains `window numbers other than 0` | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid nil`            | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {}`             | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {3}`            | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {3,1.5}`        | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {3,"1"}`        | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {3,-1}`         | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {0,1}`          | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid {4,1}`          | F                    | `success: 0`                                            | contains `nvim_win_set_cursor:`        | E / 1          | E+ / 0      |
+| `vim.api.nvim_win_set_cursor invalid handle`         | F                    | `success: nil`                                          | contains `window numbers other than 0` | E / 1          | E+ / 0      |
+| `vim.api.nvim_buf_get_mark invalid handle`           | F                    | `success: nil`                                          | contains `buffer numbers other than 0` | E / 1          | E+ / 0      |
+| `vim.api.nvim_buf_get_mark invalid name`             | F                    | `success: 0`                                            | contains `invalid mark name`           | E / 1          | E+ / 0      |
+| `vim.api.nvim_buf_get_mark malformed name`           | F                    | `success: nil`                                          | contains `single-character`            | E / 1          | E+ / 0      |
+| `vim.fn.col type 42`                                 | F                    | `success: 0`                                            | contains `String or List required`     | E / 1          | E+ / 0      |
+| `vim.fn.col type true`                               | F                    | `success: 0`                                            | contains `String or List required`     | E / 1          | E+ / 0      |
+| `vim.fn.col type nil`                                | F                    | `success: 0`                                            | contains `String or List required`     | E / 1          | E+ / 0      |
+| `vim.fn.col fractional list column`                  | F                    | `success: 0`                                            | contains `Float`                       | E / 1          | E+ / 0      |
+| `vim.fn.charcol type 42`                             | F                    | `success: 0`                                            | contains `String or List required`     | E / 1          | E+ / 0      |
+| `vim.fn.charcol type true`                           | F                    | `success: 0`                                            | contains `String or List required`     | E / 1          | E+ / 0      |
+| `vim.fn.charcol type nil`                            | F                    | `success: 0`                                            | contains `String or List required`     | E / 1          | E+ / 0      |
+| `vim.fn.charcol fractional list column`              | F                    | `success: 0`                                            | contains `Float`                       | E / 1          | E+ / 0      |
+
+### test/unit/lua/coordinate-manifest.test.ts — coordinate manifest coverage
+
+| Full case/parameter within group                                 | Fixture | Assertion             | Observed actual                                                                                               | Expected                                                                                          | Command / exit | Restoration |
+| ---------------------------------------------------------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------- | ----------- |
+| `requires exactly ten real registrations with complete metadata` | F       | Full inventory object | `{"deferredOverlap":[],"duplicate":[],"extra":[],"incomplete":[],"missing":["vim.fn.col"],"unregistered":[]}` | `{"deferredOverlap":[],"duplicate":[],"extra":[],"incomplete":[],"missing":[],"unregistered":[]}` | G / 1          | G+ / 0      |
+
+### test/unit/lua/coordinate-manifest.test.ts — coordinate manifest Lua byte-string seam
+
+These are the approved weakest controls for the already-correct native Lua seam:
+only the literal expectation is inverted; the actual Lua result remains correct.
+
+| Full case/parameter within group | Fixture | Assertion                                     | Observed actual | Expected under mutation | Command / exit | Restoration |
+| -------------------------------- | ------- | --------------------------------------------- | --------------- | ----------------------- | -------------- | ----------- |
+| `#"é→𝄞界\tZ"`                    | F       | Literal Lua byte length, serialized as string | `"14"`          | `"7"`                   | G / 1          | G+ / 0      |
+| `string.sub("é→𝄞界\tZ",6,9)`     | F       | Literal Lua byte slice                        | `"𝄞"`           | `"\tZ"`                 | G / 1          | G+ / 0      |
+
+### test/unit/lua/coordinate-boundary-rule.test.ts — coordinate boundary shipped defects
+
+| Full case/parameter within group                       | Fixture                 | Assertion         | Observed actual   | Expected                                                                                       | Command / exit | Restoration |
+| ------------------------------------------------------ | ----------------------- | ----------------- | ----------------- | ---------------------------------------------------------------------------------------------- | -------------- | ----------- |
+| `reports three shipped callback leaks by name`         | Unicode source fixtures | Named diagnostics | `[]` (0 findings) | `["callbacks.getCursorCol","callbacks.getCursorPosition","callbacks.getMarkPos"]` (3 findings) | I / 1          | I+ / 0      |
+| `restoring the old mark alone produces one diagnostic` | Old mark source fixture | Diagnostic count  | `0`               | `1`                                                                                            | I / 1          | I+ / 0      |
+
+### test/unit/lua/coordinate-boundary-rule.test.ts — coordinate boundary directional and host exceptions
+
+| Full case/parameter within group                                     | Fixture                      | Assertion        | Observed actual | Expected | Command / exit | Restoration |
+| -------------------------------------------------------------------- | ---------------------------- | ---------------- | --------------- | -------- | -------------- | ----------- |
+| `matches callbacks.getCursorCol()`                                   | Unicode source fixture       | Diagnostic count | `0`             | `1`      | I / 1          | I+ / 0      |
+| `matches callbacks?.getCursorPosition?.()`                           | Unicode source fixture       | Diagnostic count | `0`             | `1`      | I / 1          | I+ / 0      |
+| `matches const get = callbacks.getCursorCol`                         | Unicode source fixture       | Diagnostic count | `0`             | `1`      | I / 1          | I+ / 0      |
+| `matches callbacks["getMarkPos"](name)`                              | Unicode source fixture       | Diagnostic count | `0`             | `1`      | V / 1          | V+ / 0      |
+| `matches callbacks?.["setCursorPosition"]?.(1,2)`                    | Unicode source fixture       | Diagnostic count | `0`             | `1`      | V / 1          | V+ / 0      |
+| `adapter-backed handlers and host definitions have zero diagnostics` | Adapter-backed/host fixtures | Diagnostic count | `1`             | `0`      | V / 1          | V+ / 0      |
+
+### test/unit/lua/coordinate-boundary-rule.test.ts — coordinate boundary suppression inventory
+
+| Full case/parameter within group                    | Fixture        | Assertion              | Observed actual                                                                                                                                                                          | Expected                                                                                                                                                                           | Command / exit | Restoration |
+| --------------------------------------------------- | -------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ----------- |
+| `permits only enumerated actual handler identities` | Production AST | Exact owner list       | `["col","get_cursor","getcurpos","getcurpos","getpos","getpos","nvim_del_current_line","nvim_get_current_line","nvim_set_current_line","searchpos","set_cursor","wincol","winsaveview"]` | `["get_cursor","getcurpos","getcurpos","getpos","getpos","nvim_del_current_line","nvim_get_current_line","nvim_set_current_line","searchpos","set_cursor","wincol","winsaveview"]` | I / 1          | I+ / 0      |
+| `has zero unauthorized active-handler exceptions`   | Production AST | Invalid exception list | `["col"]` (1 invalid exception)                                                                                                                                                          | `[]` (0)                                                                                                                                                                           | I / 1          | I+ / 0      |
+
+### test/unit/lua/coordinate-types.test.ts — coordinate adapter directionality
+
+| Full case/parameter within group         | Fixture             | Assertion        | Observed actual | Expected | Command / exit | Restoration |
+| ---------------------------------------- | ------------------- | ---------------- | --------------- | -------- | -------------- | ----------- |
+| `wrong direction`                        | F, compiler snippet | Diagnostic codes | `[]`            | `[2345]` | I / 1          | I+ / 0      |
+| `Lua accepts the wrong unit as a number` | F, compiler snippet | Diagnostic codes | `[2345]`        | `[]`     | I / 1          | I+ / 0      |
+| `valid direction`                        | F, compiler snippet | Diagnostic codes | `[2345]`        | `[]`     | V / 1          | V+ / 0      |
+
+## Supplementary mandatory Phase 3 witnesses
+
+These are additional controls of assertions already counted above, not additional
+assertions. The source mutations, exact commands, and restorations use the same
+cohort definitions.
+
+| Test file / full case                                                                                    | Fixture | Assertion                    | Mutation                          | Observed actual                       | Expected | Command / exit | Restoration |
+| -------------------------------------------------------------------------------------------------------- | ------- | ---------------------------- | --------------------------------- | ------------------------------------- | -------- | -------------- | ----------- |
+| `coordinate-manifest.test.ts` / `coordinate manifest conformance > vim.fn.col cursor Z`                  | F       | Byte column at Z             | U: bypass host-to-byte conversion | `7`                                   | `14`     | U / 1          | U+ / 0      |
+| `coordinate-manifest.test.ts` / `coordinate manifest conformance > vim.api.nvim_win_get_cursor cursor Z` | F       | Cursor tuple                 | G: manifest line base 2           | `"2:13"`                              | `"3:13"` | G / 1          | G+ / 0      |
+| `coordinate-manifest.test.ts` / `coordinate manifest conformance > vim.api.nvim_win_get_cursor cursor Z` | F       | Cursor tuple                 | I: manifest column base -1        | `"3:14"`                              | `"3:13"` | I / 1          | I+ / 0      |
+| `coordinate-manifest.test.ts` / `coordinate manifest conformance > vim.fn.virtcol2col 0,1,7`             | F       | Tab interior containing byte | L: absent canonical registration  | `vim.fn.virtcol2col is not available` | `13`     | L / 1          | L+ / 0      |
+
+## Public Phase 3 e2e controls
+
+File: **`test/specs/lua-coordinate-contract.e2e.ts`**, group **`Lua coordinate contract`**.
+Every invocation below used the Bash tool's **900000 ms** timeout, under
+`nix develop`, with one explicitly enumerated spec. No process was aborted.
+
+```bash
+# Public U and M controls, and each restored run after apply_patch:
+npm run build:dev && time nix develop --command bash -c 'npx wdio run ./wdio.conf.mts --spec test/specs/lua-coordinate-contract.e2e.ts'
+# P0 precondition control and restored run (only test setup changed):
+time nix develop --command bash -c 'npx wdio run ./wdio.conf.mts --spec test/specs/lua-coordinate-contract.e2e.ts'
+```
+
+In this table **TEXT** denotes the exact `COORD_LINES.join('\n')` string, including
+the empty middle line and literal tabs, not a trim or substring. These are all
+five assertions in the public spec; the two assertions within the mark case are
+identified separately so the earlier ordinary-mark failure cannot hide the
+linewise sentinel assertion. U and M were run separately for this reason.
+
+| Full case / assertion                                                    | Fixture                 | Mutation                        | Observed actual                    | Expected                             | Exit | Restoration command/result                                                       |
+| ------------------------------------------------------------------------ | ----------------------- | ------------------------------- | ---------------------------------- | ------------------------------------ | ---- | -------------------------------------------------------------------------------- |
+| `coordinate contract public byte cursor roundtrip` / precondition        | F, source mode          | P0: setup ch 5                  | `[TEXT,{line:2,ch:5},true]`        | `[TEXT,{line:2,ch:6},true]`          | 1    | `apply_patch` restore ch 6; exact P0 command above: 2 passing, exit 0            |
+| `coordinate contract public byte cursor roundtrip` / roundtrip result    | F, source mode          | U: host-unit leak               | `["3:6:7:3:3",{line:2,ch:6},TEXT]` | `["3:13:14:6:9",{line:2,ch:6},TEXT]` | 1    | `apply_patch` restore converter; exact public U command above: 2 passing, exit 0 |
+| `coordinate contract public mark after astral character` / precondition  | F, source mode          | P0: setup ch 5                  | `[TEXT,{line:2,ch:5},true]`        | `[TEXT,{line:2,ch:6},true]`          | 1    | `apply_patch` restore ch 6; exact P0 command above: 2 passing, exit 0            |
+| `coordinate contract public mark after astral character` / ordinary mark | F, real `ma`            | U: host-unit leak               | `["3:6",TEXT]`                     | `["3:13",TEXT]`                      | 1    | `apply_patch` restore converter; exact public U command above: 2 passing, exit 0 |
+| `coordinate contract public mark after astral character` / linewise mark | F, real `V` then Escape | M: sentinel through line length | `["3:14",TEXT]`                    | `["3:2147483647",TEXT]`              | 1    | `apply_patch` restore MAXCOL; exact public M command above: 2 passing, exit 0    |
+
+Measured public control/restoration elapsed times: U **11.437s / 12.209s**;
+M **12.175s / 12.344s**; P0 **10.371s / 12.235s**. U and P0 each produced
+2 failing cases; M produced 1 passing and 1 failing case. These were feature
+and precondition failures, not import errors, missing fixtures, or timeouts.

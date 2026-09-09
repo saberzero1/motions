@@ -1,0 +1,24 @@
+id: neovim-coordinate-boundary
+language: typescript
+severity: error
+message: Route host cursor and mark coordinates through the directional adapter.
+note: |
+    Host columns are UTF-16, not Lua UTF-8 bytes. Use createNeovimCoordinateAdapter.
+    This catches the shipped col/cursor/mark leaks, including optional access,
+    bracket access, and references. It does not prove units or sentinel semantics:
+    the ten-entry coordinate manifest is the authoritative conformance gate.
+    Named host-native/deferred exceptions are checked by coordinate-boundary-rule.test.ts.
+files:
+    - 'src/lua/**/*.ts'
+ignores:
+    - 'src/lua/coordinates.ts'
+rule:
+    any:
+        - kind: member_expression
+          has:
+              field: property
+              regex: '^(getCursorCol|getCursorPosition|getMarkPos|setCursorPosition)$'
+        - kind: subscript_expression
+          has:
+              field: index
+              regex: ^['"](getCursorCol|getCursorPosition|getMarkPos|setCursorPosition)['"]$

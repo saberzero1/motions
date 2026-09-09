@@ -760,6 +760,28 @@ export async function loadInitLua(
                 null
             );
         },
+        getLastVisualMode: () => {
+            const view = app.workspace.getActiveViewOfType(MarkdownView);
+            if (!view) return '';
+            const cm = getCmAdapter(view);
+            if (!cm) return '';
+            const vimState = (
+                cm as {
+                    state?: {
+                        vim?: {
+                            lastSelection?: {
+                                visualLine?: boolean;
+                                visualBlock?: boolean;
+                            };
+                        };
+                    };
+                }
+            ).state?.vim;
+            if (!vimState) return '';
+            if (vimState.lastSelection?.visualLine) return 'V';
+            if (vimState.lastSelection?.visualBlock) return '\x16';
+            return 'v';
+        },
         getMarkPos: (name) => {
             const view = app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return null;
@@ -1632,29 +1654,7 @@ export async function loadInitLua(
                 stopline,
             );
         },
-        getLastVisualMode: () => {
-            const view = app.workspace.getActiveViewOfType(MarkdownView);
-            if (!view) return '';
-            const cm = getCmAdapter(view);
-            if (!cm) return '';
-            const vimState = (
-                cm as {
-                    state?: {
-                        vim?: { lastSelection?: { visualMode?: string } };
-                    };
-                }
-            ).state?.vim;
-            if (!vimState) return '';
-            if (!vimState.lastSelection) return 'v';
-            const sel = vimState.lastSelection as {
-                visualMode?: string;
-                visualLine?: boolean;
-                visualBlock?: boolean;
-            };
-            if (sel.visualLine) return 'V';
-            if (sel.visualBlock) return '\x16';
-            return 'v';
-        },
+        getLastVisualMode: callbacks.getLastVisualMode,
         getScrollInfo: () => {
             const view = app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) return null;

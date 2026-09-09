@@ -1184,6 +1184,8 @@ export function injectObsidianApi(
     lua.lua_setfield(L, obsidianIndex, to_luastring('get_selection'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        // Host-unit allowlist: vim.obsidian.get_cursor intentionally exposes UTF-16.
+        // ast-grep-ignore: neovim-coordinate-boundary
         const pos = callbacks.getCursorPosition?.() ?? null;
         if (!pos) {
             lua.lua_pushnil(state);
@@ -1209,6 +1211,8 @@ export function injectObsidianApi(
         }
         const line = lua.lua_tonumber(state, 1);
         const col = lua.lua_tonumber(state, 2);
+        // Host-unit allowlist: vim.obsidian.set_cursor intentionally accepts UTF-16.
+        // ast-grep-ignore: neovim-coordinate-boundary
         callbacks.setCursorPosition?.(line, col);
         return 0;
     });

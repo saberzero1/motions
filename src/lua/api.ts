@@ -26,7 +26,12 @@ import type { DecorationProviderManager } from './decoration-provider';
 import { injectRegex } from './regex';
 import { injectOnKey } from './on-key';
 import { replaceTermcodes, termcodesToNotation } from './termcodes';
-import { utf8Length } from './coordinates';
+import { createNeovimCoordinateAdapter, MAXCOL } from './coordinates';
+import {
+    readCoordinateArgument,
+    pushCoordinateResult,
+    pushCoordinateTuple,
+} from './coordinate-wire';
 import { getWindowDimensions } from './window-info';
 import {
     dispatchSetExtmark,
@@ -268,7 +273,9 @@ export interface VimApiCallbacks {
     ) => Array<{ text: string; line: number; indent: number }>;
     // Phase 7 — Editor state
     getSelection?: () => string | null;
+    /** Host-native: line and UTF-16 column are both 1-based. */
     getCursorPosition?: () => { line: number; col: number } | null;
+    /** Host-native: line and UTF-16 column are both 1-based. */
     setCursorPosition?: (line: number, col: number) => void;
     getMode?: () => string;
     // Phase 7 — Vault filesystem
@@ -304,7 +311,9 @@ export interface VimApiCallbacks {
     getCmAdapter?: () => CmAdapter | null;
     getEditorView?: () => import('@codemirror/view').EditorView | null;
     // Tier 1 — Mark operations (for nvim_buf_get/set/del_mark)
+    /** Host-native: line and UTF-16 ch are both 0-based; infinity is a linewise end. */
     getMarkPos?: (name: string) => { line: number; ch: number } | null;
+    getLastVisualMode?: () => string;
     setMark?: (name: string, line: number, ch: number) => void;
     delMark?: (name: string) => boolean;
     // Tier 1 — Line operations (for nvim_get/set_current_line)
@@ -1285,6 +1294,10 @@ export function injectVimApi(
     L: lua_State,
     callbacks: VimApiCallbacks,
 ): VimApiState {
+    const coordinates = createNeovimCoordinateAdapter(callbacks, {
+        getBufferOption: (name) => readBufferOption(callbacks, name),
+        getWindowOption: (name) => readWindowOption(callbacks, name),
+    });
     const globals = new Map<string, unknown>();
     const bufferVars = new Map<string, Map<string, unknown>>();
     const bufferKeymaps = new Map<string, LuaKeymap[]>();
@@ -1760,6 +1773,9 @@ export function injectVimApi(
                 return 1;
             case 'numbermax':
                 lua.lua_pushinteger(state, 9007199254740991);
+                return 1;
+            case 'maxcol':
+                lua.lua_pushinteger(state, MAXCOL);
                 return 1;
             case 'numbermin':
                 lua.lua_pushinteger(state, -9007199254740991);
@@ -2932,26 +2948,7 @@ export function injectVimApi(
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireBufferZero(state, 1, 'nvim_buf_get_offset');
         const index = lauxlib.luaL_checkinteger(state, 2);
-        // Host editors have at least one line, even when empty. Zero means
-        // there is no loaded current buffer, not a zero-line text document.
-        const lineCount = callbacks.getLineCount?.() ?? 0;
-        if (lineCount === 0) {
-            lua.lua_pushinteger(state, -1);
-            return 1;
-        }
-        if (index < 0 || index > lineCount) {
-            return lauxlib.luaL_error(
-                state,
-                to_luastring('nvim_buf_get_offset: index out of bounds'),
-            );
-        }
-        let offset = 0;
-        for (const line of callbacks.getLines?.(0, index) ?? []) {
-            // Unlike line2byte(), this API always counts a single-byte EOL.
-            offset += utf8Length(line) + 1;
-        }
-        lua.lua_pushinteger(state, offset);
-        return 1;
+        return pushCoordinateResult(state, coordinates.bufferOffset(index));
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_offset'));
 
@@ -3111,6 +3108,8 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_mode'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        // Host-unit allowlist: nvim_get_current_line reads only the line.
+        // ast-grep-ignore: neovim-coordinate-boundary
         const pos = callbacks.getCursorPosition?.();
         if (!pos) {
             lua.lua_pushstring(state, to_luastring(''));
@@ -3124,6 +3123,8 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_get_current_line'));
 
     lua.lua_pushjsfunction(L, (_state: lua_State) => {
+        // Host-unit allowlist: nvim_del_current_line reads only the line.
+        // ast-grep-ignore: neovim-coordinate-boundary
         const pos = callbacks.getCursorPosition?.();
         if (!pos) return 0;
         const line = pos.line - 1;
@@ -3140,6 +3141,8 @@ export function injectVimApi(
                 to_luastring('nvim_set_current_line: expected string'),
             );
         }
+        // Host-unit allowlist: nvim_set_current_line reads only the line.
+        // ast-grep-ignore: neovim-coordinate-boundary
         const pos = callbacks.getCursorPosition?.();
         if (!pos) return 0;
         const zeroLine = pos.line - 1;
@@ -3176,48 +3179,17 @@ export function injectVimApi(
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireWindowZero(state, 1, 'nvim_win_get_cursor');
-        const pos = callbacks.getCursorPosition?.();
-        if (!pos) {
-            lua.lua_newtable(state);
-            lua.lua_pushnumber(state, 1);
-            lua.lua_rawseti(state, -2, 1);
-            lua.lua_pushnumber(state, 0);
-            lua.lua_rawseti(state, -2, 2);
-            return 1;
-        }
-        lua.lua_newtable(state);
-        lua.lua_pushnumber(state, pos.line);
-        lua.lua_rawseti(state, -2, 1);
-        lua.lua_pushnumber(state, pos.col - 1);
-        lua.lua_rawseti(state, -2, 2);
+        pushCoordinateTuple(state, coordinates.readCursor());
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_get_cursor'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
         requireWindowZero(state, 1, 'nvim_win_set_cursor');
-        if (!lua.lua_istable(state, 2)) {
-            return lauxlib.luaL_error(
-                state,
-                to_luastring('nvim_win_set_cursor: expected {line, col} table'),
-            );
-        }
-        lua.lua_rawgeti(state, 2, 1);
-        const line = lua.lua_tonumber(state, -1);
-        lua.lua_pop(state, 1);
-        lua.lua_rawgeti(state, 2, 2);
-        const col = lua.lua_tonumber(state, -1);
-        lua.lua_pop(state, 1);
-        if (Number.isNaN(line) || Number.isNaN(col)) {
-            return lauxlib.luaL_error(
-                state,
-                to_luastring(
-                    'nvim_win_set_cursor: expected {line, col} with numbers',
-                ),
-            );
-        }
-        callbacks.setCursorPosition?.(line, col + 1);
-        return 0;
+        return pushCoordinateResult(
+            state,
+            coordinates.writeCursor(readCoordinateArgument(state, 2)),
+        );
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_win_set_cursor'));
 
@@ -3232,20 +3204,7 @@ export function injectVimApi(
                 ),
             );
         }
-        const pos = callbacks.getMarkPos?.(name);
-        lua.lua_newtable(state);
-        if (pos) {
-            lua.lua_pushnumber(state, pos.line + 1);
-            lua.lua_rawseti(state, -2, 1);
-            lua.lua_pushnumber(state, pos.ch);
-            lua.lua_rawseti(state, -2, 2);
-        } else {
-            lua.lua_pushnumber(state, 0);
-            lua.lua_rawseti(state, -2, 1);
-            lua.lua_pushnumber(state, 0);
-            lua.lua_rawseti(state, -2, 2);
-        }
-        return 1;
+        return pushCoordinateResult(state, coordinates.readMark(name));
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_mark'));
 
@@ -3693,6 +3652,9 @@ export function injectVimApi(
                 return 1;
             case 'numbermin':
                 lua.lua_pushinteger(state, -9007199254740991);
+                return 1;
+            case 'maxcol':
+                lua.lua_pushinteger(state, MAXCOL);
                 return 1;
             case 'numbersize':
                 lua.lua_pushinteger(state, 53);

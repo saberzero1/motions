@@ -9,6 +9,7 @@ import { createSandboxedState, destroyState } from '../../../src/lua/engine';
 import { injectVimApi } from '../../../src/lua/api';
 import { injectStdlib } from '../../../src/lua/stdlib';
 import { AutocmdManager } from '../../../src/lua/autocmd';
+import { COORD_LINES } from '../../fixtures/neovim-coordinate-contract';
 
 type LuaState = ReturnType<typeof createSandboxedState>;
 
@@ -381,46 +382,60 @@ describe('vim api', () => {
             destroyState(L);
         });
 
-        it('nvim_win_get_cursor returns {line_1indexed, col_0indexed}', () => {
+        it('coordinate contract cursor get uses bytes', () => {
             const L = createSandboxedState();
-            injectApi(L, {
-                onSettingOverride: () => {},
-                handleExCommand: () => {},
-                getVaultName: () => 'vault',
-                onKeymap: () => {},
-                onKeymapDel: () => {},
-                getCursorPosition: () => ({ line: 3, col: 5 }),
-            });
-            const status = lauxlib.luaL_dostring(
-                L,
-                to_luastring(
-                    'local pos = vim.api.nvim_win_get_cursor(0)\nreturn string.format("%d:%d", pos[1], pos[2])',
-                ),
-            );
-            expect(status).toBe(lua.LUA_OK);
-            const value = lua.lua_tolstring(L, -1);
-            expect(value ? to_jsstring(value) : '').toBe('3:4');
-            destroyState(L);
+            try {
+                injectApi(L, {
+                    onSettingOverride: () => {},
+                    handleExCommand: () => {},
+                    getVaultName: () => 'vault',
+                    onKeymap: () => {},
+                    onKeymapDel: () => {},
+                    getCursorPosition: () => ({ line: 3, col: 7 }),
+                    getLineCount: () => COORD_LINES.length,
+                    getLines: (start, end) => COORD_LINES.slice(start, end),
+                });
+                const status = lauxlib.luaL_dostring(
+                    L,
+                    to_luastring(
+                        'local pos = vim.api.nvim_win_get_cursor(0)\nreturn string.format("%d:%d", pos[1], pos[2])',
+                    ),
+                );
+                const value = lua.lua_tolstring(L, -1);
+                expect([status, value ? to_jsstring(value) : '']).toEqual([
+                    lua.LUA_OK,
+                    '3:13',
+                ]);
+            } finally {
+                destroyState(L);
+            }
         });
 
-        it('nvim_win_set_cursor calls setCursorPosition(line, col+1)', () => {
+        it('coordinate contract cursor set converts bytes to host units', () => {
             const L = createSandboxedState();
-            const setCursorPosition = vi.fn();
-            injectApi(L, {
-                onSettingOverride: () => {},
-                handleExCommand: () => {},
-                getVaultName: () => 'vault',
-                onKeymap: () => {},
-                onKeymapDel: () => {},
-                setCursorPosition,
-            });
-            const status = lauxlib.luaL_dostring(
-                L,
-                to_luastring('vim.api.nvim_win_set_cursor(0, {5, 3})'),
-            );
-            expect(status).toBe(lua.LUA_OK);
-            expect(setCursorPosition).toHaveBeenCalledWith(5, 4);
-            destroyState(L);
+            try {
+                const setCursorPosition = vi.fn();
+                injectApi(L, {
+                    onSettingOverride: () => {},
+                    handleExCommand: () => {},
+                    getVaultName: () => 'vault',
+                    onKeymap: () => {},
+                    onKeymapDel: () => {},
+                    setCursorPosition,
+                    getLineCount: () => COORD_LINES.length,
+                    getLines: (start, end) => COORD_LINES.slice(start, end),
+                });
+                const status = lauxlib.luaL_dostring(
+                    L,
+                    to_luastring('vim.api.nvim_win_set_cursor(0, {3, 13})'),
+                );
+                expect([status, setCursorPosition.mock.calls]).toEqual([
+                    lua.LUA_OK,
+                    [[3, 7]],
+                ]);
+            } finally {
+                destroyState(L);
+            }
         });
 
         it('nvim_win_get_cursor errors with non-zero window', () => {
@@ -444,27 +459,34 @@ describe('vim api', () => {
             destroyState(L);
         });
 
-        it('nvim_buf_get_mark returns {line+1, ch} for set mark', () => {
+        it('coordinate contract mark returns byte column without changing line base', () => {
             const L = createSandboxedState();
-            injectApi(L, {
-                onSettingOverride: () => {},
-                handleExCommand: () => {},
-                getVaultName: () => 'vault',
-                onKeymap: () => {},
-                onKeymapDel: () => {},
-                getMarkPos: (name) =>
-                    name === 'a' ? { line: 2, ch: 3 } : null,
-            });
-            const status = lauxlib.luaL_dostring(
-                L,
-                to_luastring(
-                    'local m = vim.api.nvim_buf_get_mark(0, "a")\nreturn string.format("%d:%d", m[1], m[2])',
-                ),
-            );
-            expect(status).toBe(lua.LUA_OK);
-            const value = lua.lua_tolstring(L, -1);
-            expect(value ? to_jsstring(value) : '').toBe('3:3');
-            destroyState(L);
+            try {
+                injectApi(L, {
+                    onSettingOverride: () => {},
+                    handleExCommand: () => {},
+                    getVaultName: () => 'vault',
+                    onKeymap: () => {},
+                    onKeymapDel: () => {},
+                    getMarkPos: (name) =>
+                        name === 'a' ? { line: 2, ch: 6 } : null,
+                    getLineCount: () => COORD_LINES.length,
+                    getLines: (start, end) => COORD_LINES.slice(start, end),
+                });
+                const status = lauxlib.luaL_dostring(
+                    L,
+                    to_luastring(
+                        'local m = vim.api.nvim_buf_get_mark(0, "a")\nreturn string.format("%d:%d", m[1], m[2])',
+                    ),
+                );
+                const value = lua.lua_tolstring(L, -1);
+                expect([status, value ? to_jsstring(value) : '']).toEqual([
+                    lua.LUA_OK,
+                    '3:13',
+                ]);
+            } finally {
+                destroyState(L);
+            }
         });
 
         it('nvim_buf_get_mark returns {0, 0} for unset mark', () => {

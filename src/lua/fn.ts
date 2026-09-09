@@ -7,7 +7,16 @@ import type { CmAdapter } from '../types/vim-api';
 import { getCursorWinCol, getWindowInfo } from './window-info';
 import type { KeyWait } from './key-broker';
 import { vimRegExp } from './vim-regex';
-import { buildCharSpans, utf8Length } from './coordinates';
+import {
+    buildCharSpans,
+    utf8Length,
+    createNeovimCoordinateAdapter,
+    isWideCodePoint,
+} from './coordinates';
+import {
+    readCoordinateArgument,
+    pushCoordinateResult,
+} from './coordinate-wire';
 
 export interface VimFnCallbacks {
     getCmAdapter?: () => CmAdapter | null;
@@ -17,6 +26,7 @@ export interface VimFnCallbacks {
     isDirectory: (path: string) => boolean;
     getMode: () => string;
     getCursorLine: () => number;
+    /** Host-native UTF-16 column, 1-based. Legacy consumers retain these units. */
     getCursorCol: () => number;
     getLine: (line: number) => string | null;
     getLineCount: () => number;
@@ -63,6 +73,7 @@ export interface VimFnCallbacks {
         };
     } | null;
     setCursor?: (line: number, col: number) => void;
+    /** Host-native: line and UTF-16 ch are both 0-based. */
     getMarkPos?: (name: string) => { line: number; ch: number } | null;
     setMark?: (name: string, line: number, ch: number) => void;
     setLine?: (line: number, text: string) => void;
@@ -181,6 +192,7 @@ function errorUnsupported(
 }
 
 export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
+    const coordinates = createNeovimCoordinateAdapter(callbacks, callbacks);
     const registry = new Map<string, VimFnHandler>();
     const warnedFns = new Set<string>();
     const warnOnce = (name: string): void => {
@@ -423,12 +435,40 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     });
 
     registry.set('col', (state) => {
-        const expr = readString(state, 1);
-        if (expr === '.') {
-            lua.lua_pushnumber(state, callbacks.getCursorCol());
-            return 1;
-        }
-        lua.lua_pushnumber(state, 0);
+        return pushCoordinateResult(
+            state,
+            coordinates.expressionByte(readCoordinateArgument(state, 1)),
+        );
+    });
+    registry.set('charcol', (state) => {
+        return pushCoordinateResult(
+            state,
+            coordinates.expressionCharacter(readCoordinateArgument(state, 1)),
+        );
+    });
+    registry.set('virtcol', (state) => {
+        return pushCoordinateResult(
+            state,
+            coordinates.expressionDisplay(
+                readCoordinateArgument(state, 1),
+                lua.lua_gettop(state) >= 2
+                    ? readCoordinateArgument(state, 2)
+                    : false,
+                lua.lua_gettop(state) >= 3
+                    ? readCoordinateArgument(state, 3)
+                    : 0,
+            ),
+        );
+    });
+    registry.set('virtcol2col', (state) => {
+        lua.lua_pushinteger(
+            state,
+            coordinates.displayToByte(
+                lauxlib.luaL_checknumber(state, 1),
+                lauxlib.luaL_checknumber(state, 2),
+                lauxlib.luaL_checknumber(state, 3),
+            ),
+        );
         return 1;
     });
 
@@ -682,9 +722,13 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         let col = 0;
         if (expr === '.') {
             line = callbacks.getCursorLine();
+            // Deferred getpos: neovim-api-coordinate-contract.md Out of scope.
+            // ast-grep-ignore: neovim-coordinate-boundary
             col = callbacks.getCursorCol();
         } else if (expr.startsWith("'")) {
             const markName = expr.substring(1);
+            // Deferred getpos: neovim-api-coordinate-contract.md Out of scope.
+            // ast-grep-ignore: neovim-coordinate-boundary
             const pos = callbacks.getMarkPos?.(markName);
             if (pos) {
                 line = pos.line + 1;
@@ -734,10 +778,14 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         lua.lua_rawseti(state, -2, 1);
         lua.lua_pushnumber(state, callbacks.getCursorLine());
         lua.lua_rawseti(state, -2, 2);
+        // Deferred getcurpos: neovim-api-coordinate-contract.md Out of scope.
+        // ast-grep-ignore: neovim-coordinate-boundary
         lua.lua_pushnumber(state, callbacks.getCursorCol());
         lua.lua_rawseti(state, -2, 3);
         lua.lua_pushnumber(state, 0);
         lua.lua_rawseti(state, -2, 4);
+        // Deferred getcurpos: neovim-api-coordinate-contract.md Out of scope.
+        // ast-grep-ignore: neovim-coordinate-boundary
         lua.lua_pushnumber(state, callbacks.getCursorCol());
         lua.lua_rawseti(state, -2, 5);
         return 1;
@@ -1335,6 +1383,8 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
 
     registry.set('winsaveview', (state) => {
         const line = callbacks.getCursorLine();
+        // Deferred winsaveview: neovim-api-coordinate-contract.md Out of scope.
+        // ast-grep-ignore: neovim-coordinate-boundary
         const col = callbacks.getCursorCol() - 1;
         const scroll = callbacks.getScrollInfo?.() ?? {
             topline: 1,
@@ -1416,17 +1466,7 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         let width = 0;
         for (const ch of s) {
             const cp = ch.codePointAt(0) ?? 0;
-            if (
-                (cp >= 0x1100 && cp <= 0x115f) ||
-                (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) ||
-                (cp >= 0xac00 && cp <= 0xd7a3) ||
-                (cp >= 0xf900 && cp <= 0xfaff) ||
-                (cp >= 0xfe10 && cp <= 0xfe6f) ||
-                (cp >= 0xff01 && cp <= 0xff60) ||
-                (cp >= 0xffe0 && cp <= 0xffe6) ||
-                (cp >= 0x20000 && cp <= 0x2fffd) ||
-                (cp >= 0x30000 && cp <= 0x3fffd)
-            ) {
+            if (isWideCodePoint(cp)) {
                 width += 2;
             } else if (ch === '\t') {
                 const tabstop =
@@ -1505,6 +1545,8 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         const cm = callbacks.getCmAdapter?.();
         lua.lua_pushnumber(
             state,
+            // Deferred wincol: neovim-api-coordinate-contract.md Out of scope.
+            // ast-grep-ignore: neovim-coordinate-boundary
             cm?.cm6 ? getCursorWinCol(cm) : callbacks.getCursorCol() + 1,
         );
         return 1;
@@ -1595,6 +1637,8 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
             ? lua.lua_tonumber(state, 3)
             : null;
         const cursorLine = callbacks.getCursorLine();
+        // Deferred searchpos: neovim-api-coordinate-contract.md Out of scope.
+        // ast-grep-ignore: neovim-coordinate-boundary
         const cursorCol = callbacks.getCursorCol();
         const result =
             callbacks.searchBuffer?.(
@@ -1652,46 +1696,13 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     ]);
     registry.set('line2byte', (state) => {
         const lineNumber = lauxlib.luaL_checknumber(state, 1);
-        const lineCount = callbacks.getLineCount();
-        if (
-            !Number.isInteger(lineNumber) ||
-            lineCount === 0 ||
-            lineNumber < 1 ||
-            lineNumber > lineCount + 1
-        ) {
-            lua.lua_pushinteger(state, -1);
-            return 1;
-        }
-        const eolBytes =
-            callbacks.getBufferOption?.('fileformat') === 'dos' ? 2 : 1;
-        let position = 1;
-        for (const line of callbacks.getLines(0, lineNumber - 1)) {
-            position += utf8Length(line) + eolBytes;
-        }
-        lua.lua_pushinteger(state, position);
+        lua.lua_pushinteger(state, coordinates.lineToByte(lineNumber));
         return 1;
     });
 
     registry.set('byte2line', (state) => {
         const position = lauxlib.luaL_checknumber(state, 1);
-        const lineCount = callbacks.getLineCount();
-        if (!Number.isInteger(position) || position < 1 || lineCount === 0) {
-            lua.lua_pushinteger(state, -1);
-            return 1;
-        }
-        const eolBytes =
-            callbacks.getBufferOption?.('fileformat') === 'dos' ? 2 : 1;
-        let end = 0;
-        let lineNumber = 0;
-        for (const line of callbacks.getLines(0, lineCount)) {
-            end += utf8Length(line) + eolBytes;
-            lineNumber++;
-            if (position <= end) {
-                lua.lua_pushinteger(state, lineNumber);
-                return 1;
-            }
-        }
-        lua.lua_pushinteger(state, -1);
+        lua.lua_pushinteger(state, coordinates.byteToLine(position));
         return 1;
     });
 
@@ -1751,8 +1762,6 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'bufnr',
         'tabpagenr',
         'changenr',
-        'virtcol',
-        'charcol',
         'screencol',
         'screenrow',
         'synID',

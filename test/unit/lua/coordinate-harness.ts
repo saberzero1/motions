@@ -18,6 +18,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
     const host = {
         lines: [...lines],
         loaded: true,
+        visualMode: 'v',
         cm: null as CmAdapter | null,
         cursor: { line: 1, col: 1 },
         marks: new Map<string, { line: number; ch: number }>(),
@@ -53,6 +54,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
                 host.cursor = { line, col };
             },
             getMarkPos: (name) => host.marks.get(name) ?? null,
+            getLastVisualMode: () => host.visualMode,
             getBufferOption: (name) =>
                 name === 'fileformat' ? 'unix' : undefined,
         });
@@ -73,6 +75,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
             getLines,
             setLines,
             getMarkPos: (name) => host.marks.get(name) ?? null,
+            getLastVisualMode: () => host.visualMode,
             getPlatform: () => ({
                 isMacOS: false,
                 isLinux: true,
