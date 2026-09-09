@@ -26,6 +26,7 @@ import type { DecorationProviderManager } from './decoration-provider';
 import { injectRegex } from './regex';
 import { injectOnKey } from './on-key';
 import { replaceTermcodes, termcodesToNotation } from './termcodes';
+import { utf8Length } from './coordinates';
 import {
     dispatchSetExtmark,
     dispatchDelExtmark,
@@ -794,6 +795,7 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_set_current_line',
     'nvim_buf_get_name',
     'nvim_buf_line_count',
+    'nvim_buf_get_offset',
     'nvim_win_get_cursor',
     'nvim_win_set_cursor',
     'nvim_win_get_buf',
@@ -1008,7 +1010,6 @@ const NVIM_API_RETURN_TYPES = {
         'nvim_open_term',
         'nvim_open_win',
         'nvim_buf_get_changedtick',
-        'nvim_buf_get_offset',
         'nvim_win_get_height',
         'nvim_win_get_number',
         'nvim_win_get_width',
@@ -1114,6 +1115,8 @@ const NVIM_API_RETURN_TYPES = {
 
 export interface VimApiState {
     globals: Map<string, unknown>;
+    getBufferOption: (name: string) => unknown;
+    getWindowOption: (name: string) => unknown;
 }
 
 interface OperatorfuncState {
@@ -2926,6 +2929,32 @@ export function injectVimApi(
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_line_count'));
 
     lua.lua_pushjsfunction(L, (state: lua_State) => {
+        requireBufferZero(state, 1, 'nvim_buf_get_offset');
+        const index = lauxlib.luaL_checkinteger(state, 2);
+        // Host editors have at least one line, even when empty. Zero means
+        // there is no loaded current buffer, not a zero-line text document.
+        const lineCount = callbacks.getLineCount?.() ?? 0;
+        if (lineCount === 0) {
+            lua.lua_pushinteger(state, -1);
+            return 1;
+        }
+        if (index < 0 || index > lineCount) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('nvim_buf_get_offset: index out of bounds'),
+            );
+        }
+        let offset = 0;
+        for (const line of callbacks.getLines?.(0, index) ?? []) {
+            // Unlike line2byte(), this API always counts a single-byte EOL.
+            offset += utf8Length(line) + 1;
+        }
+        lua.lua_pushinteger(state, offset);
+        return 1;
+    });
+    lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_get_offset'));
+
+    lua.lua_pushjsfunction(L, (state: lua_State) => {
         const buf = lua.lua_tonumber(state, 1);
         lua.lua_pushboolean(state, buf === 0);
         return 1;
@@ -4112,5 +4141,9 @@ export function injectVimApi(
     });
     lua.lua_setglobal(L, to_luastring('print'));
 
-    return { globals };
+    return {
+        globals,
+        getBufferOption: (name) => readBufferOption(callbacks, name),
+        getWindowOption: (name) => readWindowOption(callbacks, name),
+    };
 }

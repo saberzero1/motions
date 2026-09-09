@@ -7,6 +7,7 @@ import type { CmAdapter } from '../types/vim-api';
 import { getCursorWinCol, getWindowInfo } from './window-info';
 import type { KeyWait } from './key-broker';
 import { vimRegExp } from './vim-regex';
+import { buildCharSpans, utf8Length } from './coordinates';
 
 export interface VimFnCallbacks {
     getCmAdapter?: () => CmAdapter | null;
@@ -32,6 +33,9 @@ export interface VimFnCallbacks {
     getObsidianVersion: () => string;
     getGlobal: (name: string) => unknown;
     getOption: (name: string) => unknown;
+    /** Resolved readers from VimApiState, including vim.bo/vim.wo shadows. */
+    getBufferOption?: (name: string) => unknown;
+    getWindowOption?: (name: string) => unknown;
     getUndoTree?: () => ReturnType<UndoTree['toNeovimDict']> | null;
     getRegisterController?: () => {
         registers: Record<
@@ -120,49 +124,6 @@ function readOptionalFlag(L: lua_State, index: number): boolean {
     if (lua.lua_isnumber(L, index)) return lua.lua_tonumber(L, index) !== 0;
     if (lua.lua_isboolean(L, index)) return !!lua.lua_toboolean(L, index);
     return false;
-}
-
-const COMBINING_CHAR = /\p{Mn}|\p{Me}/u;
-
-function utf8Size(codePoint: number): number {
-    if (codePoint < 0x80) return 1;
-    if (codePoint < 0x800) return 2;
-    if (codePoint < 0x10000) return 3;
-    return 4;
-}
-
-interface CharSpan {
-    byteStart: number;
-    byteEnd: number;
-}
-
-/**
- * Maps each Vim "character" of `text` to its UTF-8 byte range.
- *
- * Vim's `charidx()`/`byteidx()` fold composing marks into the preceding base
- * character unless `countComposing` is set, so a span may cover several code
- * points.
- */
-function buildCharSpans(text: string, countComposing: boolean): CharSpan[] {
-    const spans: CharSpan[] = [];
-    let byte = 0;
-    for (const ch of text) {
-        const size = utf8Size(ch.codePointAt(0) ?? 0);
-        const previous = spans[spans.length - 1];
-        if (!countComposing && previous && COMBINING_CHAR.test(ch)) {
-            previous.byteEnd = byte + size;
-        } else {
-            spans.push({ byteStart: byte, byteEnd: byte + size });
-        }
-        byte += size;
-    }
-    return spans;
-}
-
-function utf8Length(text: string): number {
-    let total = 0;
-    for (const ch of text) total += utf8Size(ch.codePointAt(0) ?? 0);
-    return total;
 }
 
 function parseMajorMinor(
@@ -1689,9 +1650,52 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         'getcmdline',
         'getcmdwintype',
     ]);
+    registry.set('line2byte', (state) => {
+        const lineNumber = lauxlib.luaL_checknumber(state, 1);
+        const lineCount = callbacks.getLineCount();
+        if (
+            !Number.isInteger(lineNumber) ||
+            lineCount === 0 ||
+            lineNumber < 1 ||
+            lineNumber > lineCount + 1
+        ) {
+            lua.lua_pushinteger(state, -1);
+            return 1;
+        }
+        const eolBytes =
+            callbacks.getBufferOption?.('fileformat') === 'dos' ? 2 : 1;
+        let position = 1;
+        for (const line of callbacks.getLines(0, lineNumber - 1)) {
+            position += utf8Length(line) + eolBytes;
+        }
+        lua.lua_pushinteger(state, position);
+        return 1;
+    });
+
+    registry.set('byte2line', (state) => {
+        const position = lauxlib.luaL_checknumber(state, 1);
+        const lineCount = callbacks.getLineCount();
+        if (!Number.isInteger(position) || position < 1 || lineCount === 0) {
+            lua.lua_pushinteger(state, -1);
+            return 1;
+        }
+        const eolBytes =
+            callbacks.getBufferOption?.('fileformat') === 'dos' ? 2 : 1;
+        let end = 0;
+        let lineNumber = 0;
+        for (const line of callbacks.getLines(0, lineCount)) {
+            end += utf8Length(line) + eolBytes;
+            lineNumber++;
+            if (position <= end) {
+                lua.lua_pushinteger(state, lineNumber);
+                return 1;
+            }
+        }
+        lua.lua_pushinteger(state, -1);
+        return 1;
+    });
+
     const numberReturnFns = new Set([
-        'byte2line',
-        'line2byte',
         'search',
         'win_getid',
         'setbufline',

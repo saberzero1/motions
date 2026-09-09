@@ -1365,7 +1365,10 @@ export async function loadInitLua(
         setActiveDecorationProviderManager(null);
     });
     callbacks.decorationProviders = decorationProviders;
-    const { globals } = injectVimApi(L, callbacks);
+    const { globals, getBufferOption, getWindowOption } = injectVimApi(
+        L,
+        callbacks,
+    );
     injectUiApi(
         L,
         {
@@ -1405,6 +1408,8 @@ export async function loadInitLua(
     });
 
     injectVimFn(L, {
+        getBufferOption,
+        getWindowOption,
         getCmAdapter: callbacks.getCmAdapter,
         getActiveFilePath: () => app.workspace.getActiveFile()?.path ?? null,
         fileExists: (path) => app.vault.getAbstractFileByPath(path) !== null,
