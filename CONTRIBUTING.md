@@ -375,7 +375,8 @@ src/
     invariant.ts           # Runtime invariant system — invariant() (always-on, type-narrowing), devAssert() (dev-only), violation tracking + :violations ex command
     keymap.ts              # pushKeymapScope(), popKeymapScope() — typed access to app.keymap scope management
     around.ts              # Monkey-patching utility (around pattern)
-    external-fs.ts         # External filesystem access helpers
+    external-fs.ts         # External filesystem access helpers; openExternalPath()/revealExternalPath() reach the OS via Electron shell for out-of-vault paths
+    open-path.ts           # openPathInDefaultApp(), revealPathInSystemExplorer(), parentDirOf() — routes vault-relative paths to app.openWithDefaultApp()/app.showInFolder() and absolute ones to Electron; the Obsidian APIs join onto the vault base path and must never receive an absolute path
     subword.ts             # Shared subword boundary detection (camelCase/snake_case/kebab-case)
   vimrc/
     parser.ts              # Line-by-line .obsidian.vimrc parser
