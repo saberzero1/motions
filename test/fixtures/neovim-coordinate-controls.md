@@ -2117,3 +2117,56 @@ The unchanged demand assertions still report mini.surround BLOCKED with the
 same four core blockers and mini.splitjoin BLOCKED with load
 `string-expr-mapping` / core `local-comments`; no blocker besides
 `extmark-columns` has moved in Phase 3. The focused review now passes.
+
+## Remaining coordinate seams — Phase 4 re-audit and documentation
+
+Executed 2026-09-09 after `c0a7672`. No API implementation or assertion changed.
+The accepted cumulative Phases 1–3 delta is exactly core `set-text-bytes`,
+`getpos-bytes`, `extmark-columns`, plus optional `get-text-bytes`.
+Phase 1 repaired both text functions, so the optional removal is part of the
+same fix, not an unrelated promotion. Before → now (after the predecessor
+plan's five string-helper repairs):
+
+| Plugin         | Load blockers                       | Core blockers                                                                                                                                                           |
+| -------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mini.surround  | `[]` → `[]`                         | `[surround-highlight, echospace, getchar-context, input-context-and-form, set-text-bytes]` → `[surround-highlight, echospace, getchar-context, input-context-and-form]` |
+| mini.splitjoin | `[string-expr-mapping]` → unchanged | `[local-comments, set-text-bytes, getpos-bytes, extmark-columns]` → `[local-comments]`                                                                                  |
+
+mini.splitjoin optional `[get-text-bytes]` → `[]`; mini.surround optional
+blockers are unchanged. Both remain **BLOCKED**. `string-expr-mapping` needs
+unavailable Vimscript evaluation, an architectural constraint, not a missing
+function or a to-do item. No behavior suite was added or unblocked.
+
+At 18:14:46, this command exited **0**, **2 files / 160 tests passed**:
+
+```bash
+npx vitest run test/unit/lua/plugin-api-demand.test.ts test/unit/lua/api-status-counts.test.ts
+```
+
+The live audit reported mini.surround **61 names / 128 sites**, mini.splitjoin
+**33 names / 58 sites**, both **0 uncovered / 0 unresolved**; load counts **0 / 1**
+and core lists match the table above. The source-derived guard recomputed API
+**69 real / 88 stubs / 157 total**, fn **92 / 39 / 131**, and fn without async
+callbacks **89 / 39 / 128**. These are unchanged: Phases 1–3 repaired handlers
+already counted real. The count guard checks registered surface, not semantic
+correctness; the demand probes and coordinate contracts supply that evidence.
+
+### Documentation count negative control
+
+Fixture: current `NEOVIM_API_STATUS.md`. Using `apply_patch`, changed only
+`KNOWN_NVIM_API_FUNCTIONS holds 157 names total` to **158**, leaving the source,
+all assertions, authoritative table and other figures unchanged. Command:
+
+```bash
+npx vitest run test/unit/lua/api-status-counts.test.ts
+```
+
+At **18:19:10**, exit **1**, **1 failed / 3 passed**. Full failing case:
+`API status guard registration totals match source`. Observed **`apiTotal: 158`**
+versus source-derived expected **`apiTotal: 157`**; the authoritative API array
+remained **`[69,88,157]`**. This is a measured count mismatch, not an import or
+infrastructure failure.
+
+Restored **157** with `apply_patch` and ran the same command at **18:19:19**:
+exit **0**, **Test Files 1 passed (1)**, **Tests 4 passed (4)**. No mutation or
+assertion change remains; the guard did not need weakening or new expectations.

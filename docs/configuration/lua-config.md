@@ -178,7 +178,7 @@ The registered API surface includes 69 real `vim.api.nvim_*` implementations and
 Known API/fn names resolve to handlers or stubs; unknown names raise on read. Deliberately absent fields in plain namespaces read nil. There is no implemented `ABSENT_NVIM_API_FUNCTIONS` tier. Silent placeholders such as `iconv` and the six `uri_*` helpers are worse to diagnose than warn-once stubs: they leave no console trace.
 
 > [!warning]
-> mini.surround and mini.splitjoin remain audit-blocked; integration Phases 6/7 are cancelled pending a follow-up plan, not passed. See [[known-limitations#Audited third-party plugins remain blocked]]. The fork's built-in surround is a separate feature. mini.comment's existing tests fetch a moving `main` branch, not an immutable compatibility pin. flash.nvim is terminally blocked by LuaJIT FFI, not fixable by adding shim APIs.
+> mini.surround and mini.splitjoin remain audit-blocked after the text, legacy-position and extmark coordinate fixes; integration Phases 6/7 remain cancelled, not passed. mini.splitjoin's `string-expr-mapping` load blocker requires Vimscript evaluation, which this host does not have: an architectural constraint, not a missing-function to-do item, and it may never be unblockable here. See [[known-limitations#Audited third-party plugins remain blocked]]. The fork's built-in surround is a separate feature. mini.comment's existing tests now pin commit `27a29d6b949b9497f80a0a03421e89fed71d8c37`; coverage still establishes only the tested operations. flash.nvim is terminally blocked by LuaJIT FFI, not fixable by adding shim APIs.
 
 | API                                                  | Description                                                   | Example                                     |
 | ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------- |
@@ -639,16 +639,27 @@ Host editor callbacks remain UTF-16. The following enumerated boundaries convert
 | `charcol(expr)`                                                  | Expression forms resolve a byte position then return a 1-based character column; astral characters count once. **List `{lnum, char_col}` is already character-based**, validated and echoed, not converted from bytes. `$` means character count + 1; invalid positions return 0.                              |
 | `virtcol(expr, list?, win?)`                                     | Same byte-position expressions as `col`; scalar is the character's last display cell, `list = true`/nonzero gives inclusive `{first,last}`, all 1-based. Window must be 0; invalid position/window returns 0 or `{0,0}`. A malformed list flag returns 0.                                                      |
 | `virtcol2col(win, lnum, col)`                                    | Display column 1 → containing character's byte column 1. Invalid window, negative line/column, fractional coordinates or line past buffer return -1. **Line 0 and column 0 clamp up to 1**; empty line returns 0; past EOL clamps to the last character's first byte. It is not an exact inverse of `virtcol`. |
+| `nvim_buf_get_text(0, sr, sc, er, ec, {})`                       | Rows/byte columns 0-based, exclusive end column. Returns exact UTF-8 slices, including interior bytes; past-EOL columns clamp.                                                                                                                                                                                 |
+| `nvim_buf_set_text(0, sr, sc, er, ec, replacement)`              | Rows/byte columns 0-based, exclusive end column. Interior bytes normalize start-down/end-up (D5); past-EOL columns error. Empty ranges at character boundaries insert.                                                                                                                                         |
+| `getpos(expr)` / `setpos(expr, list)`                            | Current cursor `.` or mark: `{0, line, byte_col, 0}`, line/column 1-based. Unset position reads `{0,0,0,0}`; linewise end reads `v:maxcol`. Writes normalize interior bytes down; supported successful writes return 0.                                                                                        |
+| `getcurpos()`                                                    | `{0, line, byte_col, 0, curswant}`; first four elements use legacy-position units, fifth uses D6's sticky display goal.                                                                                                                                                                                        |
+| Extmark setter/getter columns                                    | Row and UTF-8 byte column 0-based; `end_col` exclusive. Valid columns `0..bytelen`; out-of-range writes error. Interior start normalizes down, end up; getters report normalized bytes.                                                                                                                        |
 
 `col`/`charcol`/`virtcol` require a string or list; malformed argument types raise rather than returning a position sentinel. Floating-point entries in position lists raise. The offset and inverse-display Lua bindings require numeric arguments.
 
 **D4 deviation:** an interior-byte cursor write normalizes to the containing character's first byte. Neovim preserves interior bytes, which the UTF-16 host cannot represent. This is not parity; past-EOL clamping remains native and unchanged.
 
+**D5 deviation:** text reads honor interior bytes exactly by slicing the UTF-8 encoding; fengari holds Lua strings as `Uint8Array`, so a split character is representable on the Lua side. Text writes normalize interior start-down/end-up because the host document is a JS UTF-16 string in which invalid UTF-8 has no representation. This asymmetry is deliberate, not parity.
+
+**D6 deviation:** `getcurpos` reads sticky `curswant` from the fork's `vim.lastHPos`, not pixel-valued `lastHSPos`. A stored goal survives shorter lines and is made 1-based; `Infinity` after `$` maps to `2147483647`. When `lastHPos` is `-1`, a positional fallback uses the first display cell of a wide character or last cell of a tab. This is the host's partial goal state, not full Neovim parity.
+
+**Extmark deviation:** CM6 cannot retain interior UTF-8 byte remainders in its offset model. Normalizing start-down/end-up follows D5 and preserves the full character's span; getters return the normalized columns, unlike Neovim's preserved interior bytes.
+
 Display columns use resolved buffer `tabstop` and window `list`, `listchars`, `wrap`, `showbreak`, plus measured CM6 viewport width. Tabs, composing marks, wide characters and wrapped continuation prefixes are covered for the tested profiles; this is not complete terminal/grid or Unicode-width emulation. Unsupported option shadows do not add display semantics. `vim.fn.strwidth` still returns UTF-16 `s.length`, a separate quarantined defect; do not use it as an oracle.
 
 `deletebufline(0, first, last?)` uses a 1-based inclusive range, defaults `last` to `first`, accepts `$` for the last line, clamps an oversized last line, and preserves an empty line after deleting everything. Invalid ranges/handles or unavailable editor mutation return 1, not success.
 
-Remaining non-byte seams include `nvim_buf_get_text`/`nvim_buf_set_text` (`set-text-bytes`), `getpos`/`setpos` (`getpos-bytes`), extmark columns, mark setters, `cursor`, `getcurpos`, view save/restore, `searchpos` and JS-backed `strlen`/`strpart`/`stridx`/`strridx`. See [[known-limitations#Lua API limitations]].
+Remaining coordinate seams include `nvim_buf_set_mark`, `cursor`, view save/restore, `wincol`, `searchpos` and JS-backed `strlen`/`strpart`/`stridx`/`strridx`. The repaired text, legacy-position and extmark handlers were already counted real; source-derived counts cannot detect semantic repair. The demand audit tests correctness of the probed calls, not just registration. See [[known-limitations#Lua API limitations]].
 
 ### String coordinate helpers
 
@@ -1221,8 +1232,8 @@ Read and modify editor content from Lua callbacks:
 | `vim.api.nvim_buf_line_count(0)`                                                    | Total line count                                                        | `vim.api.nvim_buf_line_count(0)`                     |
 | `vim.api.nvim_buf_get_lines(0, start, end, strict)`                                 | Get lines (0-based, end-exclusive, -1 = EOF)                            | `vim.api.nvim_buf_get_lines(0, 0, -1, true)`         |
 | `vim.api.nvim_buf_set_lines(0, start, end, strict, lines)`                          | Set lines (empty table = delete)                                        | `vim.api.nvim_buf_set_lines(0, 0, 0, true, {"new"})` |
-| `vim.api.nvim_buf_set_text(0, start_row, start_col, end_row, end_col, replacement)` | Set text in range (0-indexed)                                           | `vim.api.nvim_buf_set_text(0, 0, 0, 0, 0, {"hi"})`   |
-| `vim.api.nvim_buf_get_text(0, start_row, start_col, end_row, end_col, opts)`        | Get text in range (0-indexed)                                           | `vim.api.nvim_buf_get_text(0, 0, 0, 0, 5, {})`       |
+| `vim.api.nvim_buf_set_text(0, start_row, start_col, end_row, end_col, replacement)` | Set text: 0-based rows/byte columns, exclusive end; D5 normalization    | `vim.api.nvim_buf_set_text(0, 0, 0, 0, 0, {"hi"})`   |
+| `vim.api.nvim_buf_get_text(0, start_row, start_col, end_row, end_col, opts)`        | Read text: 0-based rows/byte columns, exclusive end; exact byte slices  | `vim.api.nvim_buf_get_text(0, 0, 0, 0, 5, {})`       |
 | `vim.api.nvim_get_current_line()`                                                   | Get current line content                                                | `local line = vim.api.nvim_get_current_line()`       |
 | `vim.api.nvim_set_current_line(line)`                                               | Set current line content                                                | `vim.api.nvim_set_current_line("new")`               |
 | `vim.api.nvim_del_current_line()`                                                   | Delete current line                                                     | `vim.api.nvim_del_current_line()`                    |
@@ -1999,7 +2010,7 @@ vim.api.nvim_set_hl(0, "MyHighlight", { fg = "#00ff00", bold = true })
 
 ## Extmarks
 
-Neovim-compatible extmark API for virtual text, highlights, and sign text. Extmarks are anchored to buffer positions and move with text edits.
+Extmark API subset for virtual text and highlights. Extmarks are anchored to buffer positions and move with text edits. Byte columns follow the normalization deviation in [[#Coordinate contract]]; sign text remains unsupported.
 
 | Function                                                             | Description                           | Example                                                                         |
 | -------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
@@ -2011,14 +2022,16 @@ Neovim-compatible extmark API for virtual text, highlights, and sign text. Extma
 
 ### nvim_buf_set_extmark options
 
-| Option          | Type                   | Description                                                                    |
-| --------------- | ---------------------- | ------------------------------------------------------------------------------ |
-| `virt_text`     | `{{text, hl_group}[]}` | Virtual text chunks (list of `{text, highlight_group}` pairs)                  |
-| `virt_text_pos` | string                 | Position: `"overlay"` (on top), `"eol"` (after line), `"inline"` (within text) |
-| `hl_group`      | string                 | Highlight group for the extmark range                                          |
-| `sign_text`     | string                 | Sign text (1-2 chars) shown in the sign column                                 |
-| `priority`      | number                 | Priority for ordering (higher = on top, default: 4096)                         |
-| `id`            | number                 | Reuse an existing extmark ID (update instead of create)                        |
+| Option          | Type                   | Description                                                                                       |
+| --------------- | ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `virt_text`     | `{{text, hl_group}[]}` | Virtual text chunks (list of `{text, highlight_group}` pairs)                                     |
+| `virt_text_pos` | string                 | Position: `"overlay"` (on top), `"eol"` (after line), `"inline"` (within text)                    |
+| `hl_group`      | string                 | Highlight group for the extmark range                                                             |
+| `end_row`       | number                 | Exclusive range end row (0-based)                                                                 |
+| `end_col`       | number                 | Exclusive range end byte column (0-based); interior bytes normalize up                            |
+| `hl_eol`        | boolean                | Extend the highlight to the end of the range's final line                                         |
+| `priority`      | number                 | Decoration ordering (default: 4096); not guaranteed visual precedence over native CM6 decorations |
+| `id`            | number                 | Reuse an existing extmark ID (update instead of create)                                           |
 
 ```lua
 local ns = vim.api.nvim_create_namespace("my-plugin")
@@ -2040,10 +2053,10 @@ vim.api.nvim_buf_clear_namespace(0, ns, 0, -1)
 ```
 
 > [!info] Buffer argument
-> Only `buffer = 0` (current buffer) is supported. Extmark positions are 0-indexed (line and column).
+> Only `buffer = 0` (current buffer) is supported. Extmark positions are 0-indexed rows and UTF-8 byte columns. Columns beyond the line's byte length error rather than clamp. Both getters now return modeled `details` as Lua tables with byte `end_col` and `virt_text` as `{text, highlight_group}` pairs; previously the scalar-only serializer silently returned nil for details.
 
 > [!info] Supported options subset
-> Only the options listed above are implemented. Other Neovim extmark options (`end_row`, `end_col`, `spell`, `conceal`, `undo_restore`, etc.) are not yet available.
+> This is a subset, not full Neovim extmark parity. `sign_text`, `virt_lines`, `line_hl_group`, `spell`, `conceal`, and `undo_restore` remain unavailable. The coordinate and serialization repairs do not add new options.
 
 ## vim.version
 

@@ -44,6 +44,8 @@ Both `vim.api` and `vim.fn` resolve names through a metatable with three tiers. 
 
 131 `vim.fn` names are registered in total. `getchar`, `getcharstr`, and `input` require the async coroutine runner and corresponding callbacks. Without the runner: 89 real / 39 stubs / 128 total.
 
+**Counts measure surface, not correctness.** The source-derived count guard cannot detect semantic repair: a function is counted real because it has a registered handler, even when that handler returns incorrect results. Closing the text, legacy-position and extmark coordinate seams repaired already-real handlers, so the counts remain **69/88/157** for API and **92/39/131** for fn (**89/39/128** without async callbacks). Counts measure the registered surface; the demand audit measures correctness of the probed calls. Neither substitutes for the other, and neither proves complete plugin compatibility.
+
 The audited historical baseline was 63/94/157 and 84/46/130 (API and fn real/stub/total, full callbacks), before the coordinate work. The earlier tier-2 prose said 97, not 94; the authoritative 157 total was already correct. Six API promotions: `nvim_buf_get_offset`, `nvim_win_is_valid`, `nvim_win_get_width`, `nvim_win_get_height`, `nvim_win_get_position`, `nvim_win_get_number`. Seven fn promotions: `line2byte`, `byte2line`, `win_getid`, `winnr`, `charcol`, `virtcol`, `deletebufline`; `virtcol2col` adds one previously absent name. Phase 5b's five string helpers are outside these two registries. The historical duplicate `getwininfo` stub declaration yielded 47 declared but only 46 effective stubs; it is not present in today's source.
 
 **Adding a function** is cheap in both cases: replace the stub registration with a real handler. For `vim.api`, also add the name to `SUPPORTED_NVIM_API_FUNCTIONS`. The lookup machinery never needs to change.
@@ -51,18 +53,33 @@ The audited historical baseline was 63/94/157 and 84/46/130 (API and fn real/stu
 **Plugin demand** is based on verified call sites in the source of the plugins analyzed (mini.comment, mini.surround, mini.pairs, mini.ai, nvim-autopairs, Comment.nvim, flash.nvim, leap.nvim, nvim-surround) — not on estimates.
 
 > [!note]
-> Only **mini.comment** has existing end-to-end embedded-runtime coverage (`test/specs/lua-plugin-mini-comment.e2e.ts`), subject to the moving-fixture risk below. **nvim-surround** is an _external golden reference_ via headless Neovim (`test/specs/vim-builtin/surround-golden.e2e.ts`), not a plugin running under the shim. Other named plugins have no passing end-to-end compatibility claim; mini.surround/mini.splitjoin have measured blocked audits.
+> Only **mini.comment** has existing end-to-end embedded-runtime coverage (`test/specs/lua-plugin-mini-comment.e2e.ts`), now using the immutable pin below. **nvim-surround** is an _external golden reference_ via headless Neovim (`test/specs/vim-builtin/surround-golden.e2e.ts`), not a plugin running under the shim. Other named plugins have no passing end-to-end compatibility claim; mini.surround/mini.splitjoin have measured blocked audits.
 
-The Phase 5/5b demand audit (`test/unit/lua/plugin-api-demand.test.ts`, `test/fixtures/mini-api-demand.json`) leaves **both suites BLOCKED**; integration Phases 6/7 are cancelled and deferred, not passed:
+The Phase 4 re-run of the Phase 5/5b demand audit (`test/unit/lua/plugin-api-demand.test.ts`, `test/fixtures/mini-api-demand.json`) leaves **both suites BLOCKED**; integration Phases 6/7 are cancelled and deferred, not passed:
 
-- **mini.surround:** `surround-highlight`, `echospace`, `getchar-context`, `input-context-and-form`, `set-text-bytes`.
-- **mini.splitjoin:** one load blocker (`string-expr-mapping`: string expr mappings require unavailable Vimscript evaluation), plus `local-comments`, `set-text-bytes`, `getpos-bytes`, `extmark-columns`. See the pinned audit artifact for the exact load error.
+- **mini.surround:** no load blockers; core blockers `surround-highlight`, `echospace`, `getchar-context`, `input-context-and-form`.
+- **mini.splitjoin:** one load blocker, `string-expr-mapping`, and core blocker `local-comments`. String expression mappings require Vimscript evaluation, which this host does not have. This is an **architectural constraint**, not a missing function or a to-do item; it may never be unblockable in this host. See the pinned audit artifact for the exact load error.
 - **flash.nvim:** terminally blocked by LuaJIT FFI (`module 'ffi' is not available`), proven by `test/specs/lua-plugin-flash-diagnostic.e2e.ts`. No shim API work unblocks it.
-- **Reproducibility risk:** `test/fixtures/test-plugins.json` fetches mini.comment at `ref: "main"`, a moving branch. Existing passing operations are not proof for an immutable pin; pinning is deferred.
+- **Reproducibility:** Phase 0 pinned mini.comment in `test/fixtures/test-plugins.json` to `27a29d6b949b9497f80a0a03421e89fed71d8c37`, replacing the moving `main` branch. Coverage still establishes only the tested operations.
 
-The coordinate contract covers only the enumerated APIs in `test/fixtures/neovim-coordinate-api-manifest.ts`, plus Phase 5b's five string helpers. It is **not** a claim that the whole shim is byte-correct. Remaining seams: `set-text-bytes` (`nvim_buf_get_text`/`nvim_buf_set_text`), `getpos-bytes` (`getpos`/`setpos`), `extmark-columns`, `nvim_buf_set_mark`, `cursor`, `getcurpos`, view save/restore, `searchpos`, and JS-backed `strlen`/`strpart`/`stridx`/`strridx`. `vim.fn.strwidth` still returns UTF-16 `s.length`, a separate quarantined display-width defect.
+Cumulative Phases 1–3 delta: core `set-text-bytes` (both plugins), `getpos-bytes` and `extmark-columns` (mini.splitjoin), plus optional `get-text-bytes` (mini.splitjoin). No other blocker moved. Before → now:
+
+| Plugin         | Load blockers                       | Core blockers                                                                                                                                                           |
+| -------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mini.surround  | `[]` → `[]`                         | `[surround-highlight, echospace, getchar-context, input-context-and-form, set-text-bytes]` → `[surround-highlight, echospace, getchar-context, input-context-and-form]` |
+| mini.splitjoin | `[string-expr-mapping]` → unchanged | `[local-comments, set-text-bytes, getpos-bytes, extmark-columns]` → `[local-comments]`                                                                                  |
+
+mini.splitjoin's optional `[get-text-bytes]` → `[]` is the same Phase 1 text fix reaching the optional tier. mini.surround's optional blockers are unchanged. Outstanding non-coordinate work remains `vim.hl.range`, `v:echospace`, getchar context, input context/form and `vim.opt_local.comments`; neither behavior suite is unblocked.
+
+The coordinate contract covers only the 23 enumerated APIs in `test/fixtures/neovim-coordinate-api-manifest.ts`, including the five string helpers. The text get/set, legacy-position (`getpos`/`getcurpos`/`setpos`) and extmark-column seams are closed through the adapter, subject to the deviations below. This is **not** a claim that the whole shim is byte-correct. Remaining seams: `nvim_buf_set_mark`, `cursor`, view save/restore, `wincol`, `searchpos`, and JS-backed `strlen`/`strpart`/`stridx`/`strridx`. `vim.fn.strwidth` still returns UTF-16 `s.length`, a separate quarantined display-width defect. The seven silent `iconv`/`uri_*` placeholders named above also remain unchanged.
 
 **D4 deviation:** interior-byte `nvim_win_set_cursor` writes normalize to the containing character's first byte. Neovim preserves interior bytes; a UTF-16 host cannot represent them. This is not parity. Past-EOL clamping is native and unchanged.
+
+**D5 deviation:** `nvim_buf_get_text` slices the UTF-8 encoding exactly, including split characters: fengari holds Lua strings as `Uint8Array`. `nvim_buf_set_text` instead normalizes interior start columns down and exclusive end columns up to character boundaries, because the host document is a JS UTF-16 string in which invalid UTF-8 has no representation. Reads clamp past EOL; writes reject past-EOL columns.
+
+**D6 deviation:** `getcurpos` retains its fifth, sticky `curswant` element by reading the fork's `vim.lastHPos`, not its pixel-valued `lastHSPos`. An unset goal (`-1`) uses the cursor's positional display cell (first cell of a wide character, last cell of a tab); a stored goal is made 1-based, and `Infinity` after `$` maps to `2147483647`. This reports the host's partial goal state, not full Neovim goal-state parity.
+
+**Extmark deviation:** CM6 offsets cannot retain interior UTF-8 byte remainders. Start columns normalize down and exclusive `end_col` up, like D5; getters report the normalized byte columns, not Neovim's preserved interior bytes. Valid columns are `0..bytelen` inclusive; out-of-range columns error, not clamp.
 
 ---
 
@@ -171,7 +188,7 @@ The coordinate contract covers only the enumerated APIs in `test/fixtures/neovim
 | `nvim_buf_get_mark(buf, name)`                       | ⚠️     | Line 1 / UTF-8 byte col 0; unset `{0,0}`, linewise end `v:maxcol`; buf must be 0    | Medium (mini.comment, nvim-surround) |
 | `nvim_buf_get_name(buf)`                             | ✅     | buf must be 0                                                                       | Low                                  |
 | `nvim_buf_get_offset(buf, index)`                    | ✅     | Line index 0 → byte offset 0; EOL always one byte, unloaded -1, bounds error; buf 0 | Low                                  |
-| `nvim_buf_get_text(buf, sr, sc, er, ec, opts)`       | ⚠️     | buf must be 0; columns still UTF-16 (`set-text-bytes`)                              | Low                                  |
+| `nvim_buf_get_text(buf, sr, sc, er, ec, opts)`       | ⚠️     | buf 0; byte columns, exact split-byte reads; past-EOL clamp                         | Low                                  |
 | `nvim_buf_get_var(buf, name)`                        | ✅     | buf must be 0                                                                       | Medium (nvim-autopairs)              |
 | `nvim_buf_is_loaded(buf)`                            | 🔲     |                                                                                     | Low                                  |
 | `nvim_buf_is_valid(buf)`                             | ✅     | Returns true for buf 0                                                              | Medium (flash, leap)                 |
@@ -179,7 +196,7 @@ The coordinate contract covers only the enumerated APIs in `test/fixtures/neovim
 | `nvim_buf_set_lines(buf, start, end, strict, lines)` | ✅     | buf must be 0                                                                       | High (5+ plugins)                    |
 | `nvim_buf_set_mark(buf, name, line, col, opts)`      | ⚠️     | buf must be 0; setter columns still UTF-16                                          | Low                                  |
 | `nvim_buf_set_name(buf, name)`                       | 🔲     |                                                                                     | Low                                  |
-| `nvim_buf_set_text(buf, sr, sc, er, ec, lines)`      | ⚠️     | buf must be 0; columns still UTF-16 (`set-text-bytes`)                              | Medium (nvim-surround)               |
+| `nvim_buf_set_text(buf, sr, sc, er, ec, lines)`      | ⚠️     | buf 0; byte columns with D5 normalization; past-EOL error                           | Medium (nvim-surround)               |
 | `nvim_buf_set_var(buf, name)`                        | ✅     | buf must be 0                                                                       | Medium (nvim-autopairs)              |
 | `nvim_buf_del_mark(buf, name)`                       | ✅     | buf must be 0                                                                       | Low                                  |
 | `nvim_buf_del_var(buf, name)`                        | 🔲     |                                                                                     | Low                                  |
@@ -203,7 +220,7 @@ The coordinate contract covers only the enumerated APIs in `test/fixtures/neovim
 | `nvim_buf_clear_namespace(buf, ns, start, end)`    | ✅     | buf must be 0                                                                              | High (flash, leap)                |
 | `nvim_set_extmark(...)`                            | 🔲     | Legacy compatibility name in the registry; use `nvim_buf_set_extmark`. Not a real handler. | Low                               |
 
-Extmark columns remain a non-byte seam (`extmark-columns`). `hl_eol` is already parsed in `nvim_buf_set_extmark`, and `src/lua/extmarks.ts` already sorts by priority. Visual precedence relative to native CM6 decorations remains limited (see `KNOWN_LIMITATIONS.md`); deferred fields include `virt_lines`, `conceal`, `line_hl_group`, and `sign_text`.
+Extmark setters and getters now convert byte columns through the adapter, with the interior-byte deviation above. Both getters' `details` serialization was repaired: modeled fields now form Lua tables instead of silently returning nil; `end_col` is converted to bytes and `virt_text` is serialized as `{text, highlight_group}` pairs, not internal JS objects. No new options were added. `hl_eol` is already parsed in `nvim_buf_set_extmark`, and `src/lua/extmarks.ts` already sorts by priority. Visual precedence relative to native CM6 decorations remains limited (see `KNOWN_LIMITATIONS.md`); deferred fields include `virt_lines`, `conceal`, `line_hl_group`, and `sign_text`.
 
 ### Buffer keymap operations
 
@@ -318,78 +335,78 @@ Extmark columns remain a non-byte seam (`extmark-columns`). `hl_eol` is already 
 
 The count includes the implemented entries in the demand-grouped tables below; those groups are not claims that every row remains a stub.
 
-| Function                           | Status | Notes                                                                    | Plugin demand                      |
-| ---------------------------------- | ------ | ------------------------------------------------------------------------ | ---------------------------------- |
-| `has(feature)`                     | ✅     | Obsidian/platform features                                               | Medium                             |
-| `expand(expr)`                     | ⚠️     | Only `%` with `:p`, `:t`, `:e`, `:r` modifiers                           | Low                                |
-| `exists(name)`                     | ✅     |                                                                          | Low                                |
-| `undotree()`                       | ✅     |                                                                          | Low                                |
-| `localtime()`                      | ✅     |                                                                          | Low                                |
-| `strftime(format, time?)`          | ✅     |                                                                          | Low                                |
-| `filereadable(path)`               | ✅     |                                                                          | Low                                |
-| `fnamemodify(path, modifier)`      | ✅     |                                                                          | Low                                |
-| `glob(pattern)`                    | ✅     |                                                                          | Low                                |
-| `isdirectory(path)`                | ✅     |                                                                          | Low                                |
-| `mode()`                           | ✅     |                                                                          | Medium (flash, Comment.nvim)       |
-| `line(expr)`                       | ✅     |                                                                          | Medium (leap, nvim-surround)       |
-| `col(expr)`                        | ✅     | 1-based byte column: `.`, `$`, marks or `{lnum,col}`; invalid position 0 | Medium (nvim-surround, leap)       |
-| `getline(lnum)`                    | ✅     |                                                                          | Medium (leap, mini.surround)       |
-| `tolower(str)`                     | ✅     |                                                                          | Low                                |
-| `toupper(str)`                     | ✅     |                                                                          | Low                                |
-| `trim(str)`                        | ✅     |                                                                          | Low                                |
-| `strlen(str)`                      | ✅     |                                                                          | Low                                |
-| `strwidth(str)`                    | ⚠️     | UTF-16 `s.length`, not display width; quarantined defect                 | Low                                |
-| `stridx(str, sub)`                 | ✅     |                                                                          | Low                                |
-| `strridx(str, sub)`                | ✅     |                                                                          | Low                                |
-| `strpart(str, start, len?)`        | ✅     |                                                                          | Low                                |
-| `substitute(str, pat, sub, flags)` | ✅     |                                                                          | Low                                |
-| `nr2char(nr)`                      | ✅     |                                                                          | Low                                |
-| `char2nr(char)`                    | ✅     |                                                                          | Low                                |
-| `getreg(name?)`                    | ✅     |                                                                          | Low                                |
-| `setreg(name, value, opts?)`       | ✅     |                                                                          | Low                                |
-| `getregtype(name?)`                | ✅     |                                                                          | Low                                |
-| `setline(lnum, text)`              | ✅     |                                                                          | Low                                |
-| `append(lnum, text)`               | ✅     |                                                                          | Low                                |
-| `indent(lnum)`                     | ✅     |                                                                          | Low (mini.surround, nvim-surround) |
-| `nextnonblank(lnum)`               | ✅     |                                                                          | Low (mini.surround)                |
-| `prevnonblank(lnum)`               | ✅     |                                                                          | Low                                |
-| `getpos(expr)`                     | ✅     |                                                                          | Medium (leap)                      |
-| `setpos(expr, list)`               | ✅     |                                                                          | Low                                |
-| `cursor(lnum, col)`                | ✅     |                                                                          | Medium (nvim-surround, leap)       |
-| `getcurpos()`                      | ✅     |                                                                          | Low                                |
-| `type(expr)`                       | ✅     |                                                                          | Low                                |
-| `len(expr)`                        | ✅     |                                                                          | Low                                |
-| `empty(expr)`                      | ✅     |                                                                          | Low                                |
-| `matchstr(str, pat)`               | ✅     |                                                                          | Low (leap)                         |
-| `match(str, pat)`                  | ✅     |                                                                          | Low                                |
-| `matchlist(str, pat)`              | ✅     |                                                                          | Low                                |
-| `escape(str, chars)`               | ✅     |                                                                          | Low                                |
-| `repeat(expr, count)`              | ✅     |                                                                          | Low                                |
-| `reverse(list_or_str)`             | ✅     |                                                                          | Low                                |
-| `range(start, end?, stride?)`      | ✅     |                                                                          | Low                                |
-| `sort(list, func?)`                | ✅     |                                                                          | Low                                |
-| `uniq(list)`                       | ✅     |                                                                          | Low                                |
-| `max(list)`                        | ✅     |                                                                          | Low                                |
-| `min(list)`                        | ✅     |                                                                          | Low                                |
-| `abs(expr)`                        | ✅     |                                                                          | Low                                |
-| `index(list, expr)`                | ✅     |                                                                          | Low                                |
-| `count(list, expr)`                | ✅     |                                                                          | Low                                |
-| `add(list, item)`                  | ✅     |                                                                          | Low                                |
-| `remove(list, idx)`                | ✅     |                                                                          | Low                                |
-| `extend(list, other)`              | ✅     |                                                                          | Low                                |
-| `copy(expr)`                       | ✅     |                                                                          | Low                                |
-| `deepcopy(expr)`                   | ✅     |                                                                          | Low                                |
-| `keys(dict)`                       | ✅     |                                                                          | Low                                |
-| `values(dict)`                     | ✅     |                                                                          | Low                                |
-| `items(dict)`                      | ✅     |                                                                          | Low                                |
-| `flatten(list, maxdepth?)`         | ✅     |                                                                          | Low (nvim-autopairs)               |
-| `split(str, pat?, keepempty?)`     | ✅     |                                                                          | Low                                |
-| `join(list, sep?)`                 | ✅     |                                                                          | Low                                |
-| `strchars(s, skipcc?)`             | ✅     | Composing marks counted unless `skipcc`                                  | High (flash)                       |
-| `charidx(s, idx, countcc?)`        | ✅     | Byte index → char index                                                  | High (flash, mini.pairs)           |
-| `byteidx(s, nr)`                   | ✅     | Char index → byte index                                                  | High (flash)                       |
-| `wincol()`                         | ✅     | CM6 geometry; measured from the window edge                              | High (leap)                        |
-| `winlayout()`                      | ✅     | Single leaf, matching `nvim_list_wins()`                                 | High (flash)                       |
+| Function                           | Status | Notes                                                                                  | Plugin demand                      |
+| ---------------------------------- | ------ | -------------------------------------------------------------------------------------- | ---------------------------------- |
+| `has(feature)`                     | ✅     | Obsidian/platform features                                                             | Medium                             |
+| `expand(expr)`                     | ⚠️     | Only `%` with `:p`, `:t`, `:e`, `:r` modifiers                                         | Low                                |
+| `exists(name)`                     | ✅     |                                                                                        | Low                                |
+| `undotree()`                       | ✅     |                                                                                        | Low                                |
+| `localtime()`                      | ✅     |                                                                                        | Low                                |
+| `strftime(format, time?)`          | ✅     |                                                                                        | Low                                |
+| `filereadable(path)`               | ✅     |                                                                                        | Low                                |
+| `fnamemodify(path, modifier)`      | ✅     |                                                                                        | Low                                |
+| `glob(pattern)`                    | ✅     |                                                                                        | Low                                |
+| `isdirectory(path)`                | ✅     |                                                                                        | Low                                |
+| `mode()`                           | ✅     |                                                                                        | Medium (flash, Comment.nvim)       |
+| `line(expr)`                       | ✅     |                                                                                        | Medium (leap, nvim-surround)       |
+| `col(expr)`                        | ✅     | 1-based byte column: `.`, `$`, marks or `{lnum,col}`; invalid position 0               | Medium (nvim-surround, leap)       |
+| `getline(lnum)`                    | ✅     |                                                                                        | Medium (leap, mini.surround)       |
+| `tolower(str)`                     | ✅     |                                                                                        | Low                                |
+| `toupper(str)`                     | ✅     |                                                                                        | Low                                |
+| `trim(str)`                        | ✅     |                                                                                        | Low                                |
+| `strlen(str)`                      | ✅     |                                                                                        | Low                                |
+| `strwidth(str)`                    | ⚠️     | UTF-16 `s.length`, not display width; quarantined defect                               | Low                                |
+| `stridx(str, sub)`                 | ✅     |                                                                                        | Low                                |
+| `strridx(str, sub)`                | ✅     |                                                                                        | Low                                |
+| `strpart(str, start, len?)`        | ✅     |                                                                                        | Low                                |
+| `substitute(str, pat, sub, flags)` | ✅     |                                                                                        | Low                                |
+| `nr2char(nr)`                      | ✅     |                                                                                        | Low                                |
+| `char2nr(char)`                    | ✅     |                                                                                        | Low                                |
+| `getreg(name?)`                    | ✅     |                                                                                        | Low                                |
+| `setreg(name, value, opts?)`       | ✅     |                                                                                        | Low                                |
+| `getregtype(name?)`                | ✅     |                                                                                        | Low                                |
+| `setline(lnum, text)`              | ✅     |                                                                                        | Low                                |
+| `append(lnum, text)`               | ✅     |                                                                                        | Low                                |
+| `indent(lnum)`                     | ✅     |                                                                                        | Low (mini.surround, nvim-surround) |
+| `nextnonblank(lnum)`               | ✅     |                                                                                        | Low (mini.surround)                |
+| `prevnonblank(lnum)`               | ✅     |                                                                                        | Low                                |
+| `getpos(expr)`                     | ✅     | Current cursor/mark tuple uses 1-based byte columns                                    | Medium (leap)                      |
+| `setpos(expr, list)`               | ✅     | Current cursor/mark writes convert 1-based byte columns; interior bytes normalize down | Low                                |
+| `cursor(lnum, col)`                | ✅     |                                                                                        | Medium (nvim-surround, leap)       |
+| `getcurpos()`                      | ✅     | Five-element tuple: byte column plus D6 host-goal `curswant`; see deviation above      | Low                                |
+| `type(expr)`                       | ✅     |                                                                                        | Low                                |
+| `len(expr)`                        | ✅     |                                                                                        | Low                                |
+| `empty(expr)`                      | ✅     |                                                                                        | Low                                |
+| `matchstr(str, pat)`               | ✅     |                                                                                        | Low (leap)                         |
+| `match(str, pat)`                  | ✅     |                                                                                        | Low                                |
+| `matchlist(str, pat)`              | ✅     |                                                                                        | Low                                |
+| `escape(str, chars)`               | ✅     |                                                                                        | Low                                |
+| `repeat(expr, count)`              | ✅     |                                                                                        | Low                                |
+| `reverse(list_or_str)`             | ✅     |                                                                                        | Low                                |
+| `range(start, end?, stride?)`      | ✅     |                                                                                        | Low                                |
+| `sort(list, func?)`                | ✅     |                                                                                        | Low                                |
+| `uniq(list)`                       | ✅     |                                                                                        | Low                                |
+| `max(list)`                        | ✅     |                                                                                        | Low                                |
+| `min(list)`                        | ✅     |                                                                                        | Low                                |
+| `abs(expr)`                        | ✅     |                                                                                        | Low                                |
+| `index(list, expr)`                | ✅     |                                                                                        | Low                                |
+| `count(list, expr)`                | ✅     |                                                                                        | Low                                |
+| `add(list, item)`                  | ✅     |                                                                                        | Low                                |
+| `remove(list, idx)`                | ✅     |                                                                                        | Low                                |
+| `extend(list, other)`              | ✅     |                                                                                        | Low                                |
+| `copy(expr)`                       | ✅     |                                                                                        | Low                                |
+| `deepcopy(expr)`                   | ✅     |                                                                                        | Low                                |
+| `keys(dict)`                       | ✅     |                                                                                        | Low                                |
+| `values(dict)`                     | ✅     |                                                                                        | Low                                |
+| `items(dict)`                      | ✅     |                                                                                        | Low                                |
+| `flatten(list, maxdepth?)`         | ✅     |                                                                                        | Low (nvim-autopairs)               |
+| `split(str, pat?, keepempty?)`     | ✅     |                                                                                        | Low                                |
+| `join(list, sep?)`                 | ✅     |                                                                                        | Low                                |
+| `strchars(s, skipcc?)`             | ✅     | Composing marks counted unless `skipcc`                                                | High (flash)                       |
+| `charidx(s, idx, countcc?)`        | ✅     | Byte index → char index                                                                | High (flash, mini.pairs)           |
+| `byteidx(s, nr)`                   | ✅     | Char index → byte index                                                                | High (flash)                       |
+| `wincol()`                         | ✅     | CM6 geometry; measured from the window edge                                            | High (leap)                        |
+| `winlayout()`                      | ✅     | Single leaf, matching `nvim_list_wins()`                                               | High (flash)                       |
 
 ### High demand from plugins
 

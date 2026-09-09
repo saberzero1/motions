@@ -9,22 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Enumerated Neovim coordinate boundaries** — byte offsets, cursor/mark reads, character/display-column queries and five string-coordinate helpers use a single typed adapter. Synthetic current-window APIs and `deletebufline` are implemented. Interior-byte cursor writes deliberately normalize (D4); remaining text/legacy-position/extmark seams and `strwidth` are deferred, not parity claims.
+- **Enumerated Neovim coordinate boundaries** — byte offsets, cursor/mark reads, character/display-column queries and five string-coordinate helpers use a single typed adapter. Synthetic current-window APIs and `deletebufline` are implemented. Interior-byte cursor writes deliberately normalize (D4); text/legacy-position/extmark repairs are described below, while `strwidth` and other unenumerated seams remain deferred, not parity claims.
     - Plugin: `src/lua/coordinates.ts`, `src/lua/coordinate-wire.ts` (adapter/marshalling), `src/lua/api.ts`, `src/lua/fn.ts`, `src/lua/stdlib.ts` (handlers), `src/lua/loader.ts`, `src/lua/window-info.ts` (resolved options and geometry), `src/lua/obsidian-api.ts` (explicit host-unit boundary)
+- **Remaining text, legacy-position and extmark coordinate seams** — text get/set and legacy positions now use byte columns; `getcurpos` retains sticky `curswant` from the fork with a positional fallback (D6). Text reads preserve exact UTF-8 slices; writes normalize interior start-down/end-up (D5). Extmarks follow that normalization, reject out-of-range columns, and serialize modeled `details`/`virt_text` correctly. These are scoped repairs with documented deviations, not whole-shim byte parity; already-real registration counts are unchanged.
+    - Plugin: `src/lua/coordinates.ts`, `src/lua/coordinate-wire.ts` (conversion and raw-byte marshalling), `src/lua/api.ts`, `src/lua/fn.ts` (handler boundaries), `src/lua/extmarks.ts` (virtual-text chunk serialization), `src/types/vim-api.d.ts` (fork goal state)
 
 ### Tests
 
 - **Source-derived documentation guard** — `test/unit/lua/api-status-counts.test.ts` reuses `api-inventory.ts` to enforce source/handler/status membership, dispatch and authoritative totals, public per-name subtotals, full/no-runner inventories, duplicate-stub accounting and historical provenance. Negative controls record actual mismatches in `test/fixtures/neovim-coordinate-controls.md`.
 - **Coordinate and audit evidence** — manifest-generated conformance, independent native oracle, directional type checks, structural boundary rule and Phase 5/5b demand audit remain the regression gates. mini.surround and mini.splitjoin are both **BLOCKED**; Phases 6/7 were cancelled, not executed as successful integration suites.
+- **Remaining-seams re-audit** — 23 manifest APIs; core blockers removed exactly `set-text-bytes`, `getpos-bytes`, `extmark-columns`, plus optional `get-text-bytes`. Remaining non-coordinate blockers keep both behavior suites gated. The unchanged source-count guard still rejects a deliberately wrong documented figure; observed mismatch/restoration is recorded in `test/fixtures/neovim-coordinate-controls.md` without changing assertions.
+- **mini.comment fixture pin** — Phase 0 replaced the moving `main` ref with `27a29d6b949b9497f80a0a03421e89fed71d8c37` in `test/fixtures/test-plugins.json` for reproducible existing operation tests.
 
 ### Documentation
 
-- `NEOVIM_API_STATUS.md`: source-guarded counts and denominators, actual absence policy, corrected decoration-provider/FFI findings, seven silent placeholders and current plugin blockers.
+- `NEOVIM_API_STATUS.md`: unchanged source-guarded counts and their semantic blind spot, closed seams and repaired serialization, exact before/after blocker lists, seven silent placeholders and remaining coordinate limitations.
 - `AGENTS.md`, `CONTRIBUTING.md`: coordinate ownership, module trees, inventory/oracle/test contracts and negative-control evidence.
-- `KNOWN_LIMITATIONS.md`: fixed mark-read sub-item, D4 deviation, remaining coordinate seams, quarantined `strwidth`, blocked plugin suites and mini.comment's moving-branch reproducibility risk.
+- `KNOWN_LIMITATIONS.md`: D4/D5/D6 and extmark normalization deviations, remaining coordinate seams, quarantined `strwidth`, blocked plugin suites and the resolved mini.comment moving-fixture risk. mini.splitjoin's Vimscript-dependent string expression mapping is an architectural constraint, not a missing-function to-do.
 - `README.md`, `docs/configuration/lua-config.md`: current qualified API counts, coordinate forms/units/errors and current-window/string-helper references; no blanket plugin compatibility claim.
 - `test/fixtures/neovim-coordinate-controls.md`: observed documentation-guard controls and restoration evidence.
-- `CHANGELOG.md`: new work is recorded only under Unreleased; the 0.148.0 stale count sentence is corrected in place as historical provenance.
+- `CHANGELOG.md`: this phase's work is recorded only under Unreleased; released blocks are unchanged.
 
 ## [0.149.0] - 2026-09-08
 
