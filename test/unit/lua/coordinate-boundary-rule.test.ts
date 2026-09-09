@@ -8,6 +8,7 @@ import {
     rmSync,
 } from 'node:fs';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 import ts from 'typescript';
 import { COORD_LINE } from '../../fixtures/neovim-coordinate-contract';
 
@@ -18,7 +19,7 @@ const suppression = '// ast-grep-ignore: neovim-coordinate-boundary';
 function scanCoordinateRule(
     files: Record<string, string>,
 ): Array<{ file: string; text: string; ruleId: string }> {
-    const dir = mkdtempSync('/tmp/opencode/coordinate-rule-');
+    const dir = mkdtempSync(path.join(tmpdir(), 'coordinate-rule-'));
     try {
         mkdirSync(path.join(dir, 'src/lua'), { recursive: true });
         for (const [file, text] of Object.entries(files))
