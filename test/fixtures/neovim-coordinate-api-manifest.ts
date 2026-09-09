@@ -18,6 +18,7 @@ interface CoordinateCase {
     error?: boolean;
     rawBytes?: boolean;
     lines?: readonly string[];
+    goal?: number;
     host?: 'unloaded' | 'empty' | 'linewise';
 }
 
@@ -78,6 +79,103 @@ const columnCases = (unit: 'byte' | 'character'): CoordinateCase[] => [
 ];
 
 export const COORDINATE_API_MANIFEST: CoordinateApiEntry[] = [
+    ...(['getpos', 'getcurpos', 'setpos'] as const).map(
+        (name): CoordinateApiEntry => ({
+            name: `vim.fn.${name}`,
+            forms:
+                name === 'setpos'
+                    ? ['expr,{buffer,line,byte,off}']
+                    : name === 'getpos'
+                      ? ['.', 'mark']
+                      : ['current cursor'],
+            inputUnit:
+                name === 'setpos'
+                    ? '1-based UTF-8 byte column'
+                    : 'position expression',
+            outputUnit:
+                name === 'getcurpos'
+                    ? 'buffer,line,byte,off,desired display cell'
+                    : name === 'getpos'
+                      ? 'buffer,line,byte,off'
+                      : 'status and host UTF-16 position',
+            bases: { input: [0, 1, 1], output: [0, 1, 1, 0] },
+            direction: name === 'setpos' ? 'Lua to host' : 'host to Lua',
+            invalid:
+                name === 'setpos'
+                    ? '-1 for unavailable line or invalid expression'
+                    : 'zero position for unavailable expression',
+            typeError: 'position name must be a string',
+            empty: 'column 1',
+            unloaded: name === 'setpos' ? '-1' : 'zero position',
+            sentinel:
+                'unset marks stay zero; D4 interior bytes normalize; linewise mark / $ desired goal preserve MAXCOL',
+            operation:
+                name === 'setpos'
+                    ? 'writeLegacyPosition'
+                    : 'readLegacyPosition',
+            cases:
+                name === 'setpos'
+                    ? [
+                          {
+                              name: 'cursor astral roundtrip',
+                              args: "'.',{0,3,6,0}",
+                              expected: '0;3:3;0:3:6:0',
+                          },
+                      ]
+                    : name === 'getcurpos'
+                      ? [
+                            {
+                                name: 'cursor Z five elements',
+                                args: '',
+                                goal: -1,
+                                tuple: true,
+                                expected: '0:3:14:0:9',
+                            },
+                            {
+                                name: 'wide character first cell',
+                                args: '',
+                                setup: 'vim.api.nvim_win_set_cursor(0,{3,9})',
+                                tuple: true,
+                                expected: '0:3:10:0:4',
+                            },
+                            {
+                                name: 'tab last cell',
+                                args: '',
+                                setup: 'vim.api.nvim_win_set_cursor(0,{3,12})',
+                                tuple: true,
+                                expected: '0:3:13:0:8',
+                            },
+                            {
+                                name: 'sticky goal on empty line after 10|j',
+                                args: '',
+                                setup: 'vim.api.nvim_win_set_cursor(0,{2,0})',
+                                goal: 9,
+                                tuple: true,
+                                expected: '0:2:1:0:10',
+                            },
+                        ]
+                      : [
+                            {
+                                name: 'cursor Z',
+                                args: "'.'",
+                                tuple: true,
+                                expected: '0:3:14:0',
+                            },
+                            {
+                                name: 'mark Z',
+                                args: '"\'a"',
+                                tuple: true,
+                                expected: '0:3:14:0',
+                            },
+                            {
+                                name: 'unset mark',
+                                args: '"\'z"',
+                                tuple: true,
+                                expected: '0:0:0:0',
+                            },
+                        ],
+        }),
+    ),
     ...(['get', 'set'] as const).map((operation): CoordinateApiEntry => ({
         name: `vim.api.nvim_buf_${operation}_text`,
         forms: [
@@ -587,10 +685,7 @@ for (const entry of COORDINATE_API_MANIFEST) {
 
 export const DEFERRED_COORDINATE_APIS = [
     'nvim_buf_set_mark',
-    'getpos',
-    'setpos',
     'cursor',
-    'getcurpos',
     'winsaveview',
     'winrestview',
     'wincol',

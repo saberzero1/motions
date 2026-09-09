@@ -1812,3 +1812,190 @@ Observed effective blocker lists (after the existing Phase 5b promotions):
 Thus the **core** blocker delta is exactly `set-text-bytes` for each plugin.
 Full units are required before declaring any remaining phase complete;
 targeted tests plus `verify` do not substitute for the full suite.
+
+## Remaining-coordinate seams Phase 2 — legacy positions
+
+Executed against `f1d5b79`, using `apply_patch` for every mutation and undo.
+Native display measurements used **`nvim --clean --headless -i NONE`**, version
+0.12.5, and F above. At cursor bytes `[0,2,5,9,12,13]`, measured `getcurpos()`
+columns were `[1,3,6,10,13,14]` and fifth elements `[1,2,3,4,8,9]`.
+The wide `界` occupies cells 4–5 but its desired column is 4; the tab's is 8.
+`normal! $` produced `{0,3,14,0,2147483647}`. `setpos('.', {0,3,6,0})`
+returned 0 and `getpos('.')` then returned `{0,3,6,0}`.
+
+### L0 — red-first legacy registrations
+
+Before changing production code, ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'legacy positions'
+```
+
+At 17:24:19, exit 1: **19 failed / 1 passed**. Position numbers were pushed as
+Lua floats in the old handlers, so concatenation included `.0`. The failures
+with behavioral significance included `getpos` `{0,3,7,0}` vs `{0,3,14,0}`;
+`getcurpos` at Z `{0,3,7,0,7}` vs `{0,3,14,0,9}`; at `界`
+`{0,3,5,0,5}` vs `{0,3,10,0,4}`; `$` desired 7 vs 2147483647;
+and `setpos` return `nil` vs 0. Cursor byte inputs `[1,3,6,10,13,14]`
+left host columns `[1,3,6,10,13,14]` vs `[1,2,3,5,6,7]`; mark byte 6
+left host `ch=5` vs 2. The three deferred-consumer expectations were corrected
+to preserve the observed **existing** float serialization, not change production
+behavior; their real negative controls are L4 below. The first-character
+`getcurpos` tuple initially differed only in formatting; L2 proves its shape
+assertion detects a real defect too.
+
+### L1 — handler leakage, ingress conversion and exception inventory
+
+Temporarily replaced the `getpos` handler with a raw shared-callback tuple,
+including a boundary-rule suppression, and changed `writeLegacyPosition` to
+use `col - 1` as the host column. Ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts test/unit/lua/coordinate-boundary-rule.test.ts -t 'getpos uses|setpos cursor byte 6|setpos mark|vim.fn.getpos|vim.fn.setpos|coordinate boundary suppression'
+```
+
+At 17:27:56, exit 1: **9 failed**. Observed `getpos('.')` `{0,3,7,0}` vs
+`{0,3,14,0}` while `col('.')` remained 14. Manifest cursor/mark reads both
+observed `0:3:7:0` vs `0:3:14:0`; unset mark observed `0:3:7:0` vs
+`0:0:0:0`. Cursor set/get byte 6 misleadingly round-tripped as 6, but the
+host assertion caught **column 6 vs 3**; the manifest observed
+`0;3:6;0:3:6:0` vs `0;3:3;0:3:6:0`. Mark ingress observed host `ch=5` vs 2.
+Both inventory assertions failed: extra owner `getpos`, unauthorized set
+`['getpos']` vs `[]`. Restored both production edits before L2.
+
+### L2 — dropped fifth element
+
+Removed the adapter's fifth-element push. Ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'getcurpos'
+```
+
+At 17:28:09, exit 1: **12 failed**. Length was **4 vs 5**. All six boundary
+tuples, both special-goal/option tuples, and all three manifest tuples were
+missing their expected fifth elements: `[1,2,3,4,8,9]`, `2147483647`, `7`,
+and `[9,4,8]`, respectively. Restored the push before L3.
+
+### L3 — using scalar virtcol for curswant
+
+Changed the drawn-cell selection to `span.last` unconditionally. Ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'getcurpos drawn cell at host column 5|getcurpos wide character'
+```
+
+At 17:28:22, exit 1: **2 failed**. Both observed `{0,3,10,0,5}` vs
+`{0,3,10,0,4}`: desired column **5 vs 4** at `界`. Restored the wide-first,
+tab-last selection before L4.
+
+### L4 — conversion inside the shared callback
+
+Temporarily changed the harness's shared `getCursorCol` to return the UTF-8
+length of the host line prefix plus one instead of the untouched host column.
+This mutates the callback used by all real fn handlers, not any handler's
+result. The search guard uses production `searchBufferLines`, with `cnW` to
+accept the current match without wrapping. Ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'leaves deferred'
+```
+
+At 17:28:45, exit 1: **3 failed**, with these observed vs expected results:
+
+| Deferred consumer                                            | Observed with broken shared callback | Expected unchanged behavior |
+| ------------------------------------------------------------ | ------------------------------------ | --------------------------- |
+| `wincol()` without CM geometry                               | `15.0`                               | `8.0`                       |
+| `searchpos('Z','cnW')`                                       | `{0,0}` (no match)                   | `{3,7}`                     |
+| `winsaveview()` `{lnum,col,curswant,coladd,topline,leftcol}` | `{3,13,13,0,1,0}`                    | `{3,6,6,0,1,0}`             |
+
+Restored `getCursorCol: () => host.cursor.col` before L5. Loader callbacks,
+`getCursorPosition`, and `getMarkPos` were never changed.
+
+### L5 — missing active manifest entry
+
+Temporarily removed `setpos` from the three-name manifest entry generation.
+Ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-manifest.test.ts -t 'requires exactly twenty'
+```
+
+At 17:29:02, exit 1: **1 failed**. Observed `missing: ['vim.fn.setpos']`
+vs `missing: []`; restored the entry immediately.
+
+### L6 — demand facts, not assertions
+
+The complete demand audit at 17:25:44 exited 1 with **1 failed / 155 passed**.
+Only `mini.splitjoin / vim.fn.getpos` differed: observed
+`{category:'real',result:'[0,3,14,0]',warnings:0}` vs the artifact's stale
+`{category:'real',result:'[0,3,7,0]',warnings:0}`. Updated only its recorded
+result/disposition and removed the `getpos-bytes` blocker record/list entry.
+No demand-audit assertions, source sites, other names or verdicts changed.
+The intended blocker delta is exactly `getpos-bytes`: mini.surround retains
+`surround-highlight`, `echospace`, `getchar-context`, `input-context-and-form`;
+mini.splitjoin retains load `string-expr-mapping` and core `local-comments`,
+`extmark-columns`. Both remain BLOCKED.
+
+### L7 — measured fork goal state and D6's two branches
+
+The installed fork was bundled with a real CM6 `EditorView` and driven through
+`Vim.handleKey` in Chromium, not through mocked motion handlers. The document
+was `[S, '', S, '']`, tab size 8. The temporary probe lived in `/tmp/opencode/`;
+generated browser artifacts were removed and `.playwright-mcp/` is now ignored.
+Native comparisons used `nvim --clean --headless -i NONE` (0.12.5).
+
+| Sequence              | Fork cursor `{line,ch}` | Fork `lastHPos` | Fork `lastHSPos` (pixels) | Native `getcurpos()`    |
+| --------------------- | ----------------------- | --------------- | ------------------------- | ----------------------- |
+| `10\|`                | `{0,6}`                 | `9`             | `6`                       | `{0,1,14,0,10}`         |
+| then `j`              | `{1,0}`                 | `9`             | `6`                       | `{0,2,1,0,10}`          |
+| then `j`              | `{2,6}`                 | `9`             | `95.265625`               | `{0,3,14,0,10}`         |
+| then `$`              | `{2,6}`                 | `Infinity`      | `85.359375`               | `{0,3,14,0,2147483647}` |
+| then `j`              | `{3,0}`                 | `Infinity`      | `6`                       | `{0,4,1,0,2147483647}`  |
+| fresh editor, `lllll` | `{0,6}`                 | `-1`            | `-1`                      | `{0,1,14,0,9}`          |
+
+Thus `$` stores **Infinity**, not Neovim's integer sentinel. `lastHPos` is the
+faithful field for the measured sticky goal; `lastHSPos` is pixel geometry and
+collapses on shorter lines. The fallback after pure horizontal motion is
+necessary. Unit cases replay these literal observed cursor/goal snapshots;
+they do not claim to execute fork motion machinery in the unit harness.
+
+**Goal branch red-first:** before adding finite-goal handling, ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'sticky.*goal'
+```
+
+At 17:42:30, exit 1: **4 failed / 2 passed**. `10|` and `10|jj` observed
+desired column **9 vs 10**; `10|j` observed **1 vs 10**, both in the direct
+contract and the generated manifest. The two `$` rows already passed.
+
+**Fallback/sentinel control:** after implementation, temporarily treated `-1`
+as an ordinary goal and mapped Infinity to zero. Ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts test/unit/lua/coordinate-manifest.test.ts -t 'getcurpos fallback|getcurpos sticky fork goal|cursor Z five elements'
+```
+
+At 17:42:58, exit 1: **5 failed / 3 passed**. Horizontal fallback at Z leaked
+desired column **0 vs 9** in both the direct and manifest cases. Wide fallback
+observed **`0:5` vs `4:5`** (`curswant:virtcol`). `$` on line 3 and `$j` on
+empty line 4 both observed desired column **0 vs 2147483647**. The three finite
+goal rows passed, distinguishing the two branches. Restored both mutations.
+
+**Drawn-cell fallback control:** changed only the non-tab fallback from
+`span.first` to `span.last` and ran:
+
+```bash
+npx vitest run test/unit/lua/coordinate-contract.test.ts -t 'getcurpos fallback wide'
+```
+
+At 17:43:10, exit 1: **1 failed**. Observed **`5:5` vs `4:5`**, proving the
+fallback does not merely return scalar `virtcol`. Restored `span.first` with
+`apply_patch`; no negative-control mutations remain.
+
+Restored Phase 2 QA ran at 17:43:55–17:44:09: manifest **421 passed** and
+**20/20 APIs exercised; 0 missing; 0 mismatches**; legacy positions **27 passed**;
+boundary rule **10 passed**; complete demand audit **156 passed**. Both plugin
+verdicts remain BLOCKED with the L6 lists, confirming the only blocker delta
+is `getpos-bytes`. The full unit suite, static gates, development build and
+two-spec e2e gate are separately required for final completion.

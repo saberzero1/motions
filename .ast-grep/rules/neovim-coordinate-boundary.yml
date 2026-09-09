@@ -6,7 +6,8 @@ note: |
     Host columns are UTF-16, not Lua UTF-8 bytes. Use createNeovimCoordinateAdapter.
     This catches the shipped col/cursor/mark leaks, including optional access,
     bracket access, and references. It does not prove units or sentinel semantics:
-    the ten-entry coordinate manifest is the authoritative conformance gate.
+    the twenty-entry coordinate manifest is the authoritative conformance gate.
+    getpos/getcurpos/setpos are adapter-backed; winsaveview/wincol/searchpos remain deferred.
     Named host-native/deferred exceptions are checked by coordinate-boundary-rule.test.ts.
 files:
     - 'src/lua/**/*.ts'

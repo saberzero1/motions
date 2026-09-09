@@ -751,55 +751,20 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     });
 
     registry.set('getpos', (state) => {
-        const expr = readString(state, 1);
-        lua.lua_newtable(state);
-        lua.lua_pushnumber(state, 0);
-        lua.lua_rawseti(state, -2, 1);
-
-        let line = 0;
-        let col = 0;
-        if (expr === '.') {
-            line = callbacks.getCursorLine();
-            // Deferred getpos: neovim-api-coordinate-contract.md Out of scope.
-            // ast-grep-ignore: neovim-coordinate-boundary
-            col = callbacks.getCursorCol();
-        } else if (expr.startsWith("'")) {
-            const markName = expr.substring(1);
-            // Deferred getpos: neovim-api-coordinate-contract.md Out of scope.
-            // ast-grep-ignore: neovim-coordinate-boundary
-            const pos = callbacks.getMarkPos?.(markName);
-            if (pos) {
-                line = pos.line + 1;
-                col = pos.ch + 1;
-            }
-        }
-
-        lua.lua_pushnumber(state, line);
-        lua.lua_rawseti(state, -2, 2);
-        lua.lua_pushnumber(state, col);
-        lua.lua_rawseti(state, -2, 3);
-        lua.lua_pushnumber(state, 0);
-        lua.lua_rawseti(state, -2, 4);
-        return 1;
+        return pushCoordinateResult(
+            state,
+            coordinates.readLegacyPosition(readString(state, 1)),
+        );
     });
 
     registry.set('setpos', (state) => {
-        const expr = readString(state, 1);
-        if (!lua.lua_istable(state, 2)) return 0;
-        lua.lua_rawgeti(state, 2, 2);
-        const lnum = lua.lua_tonumber(state, -1);
-        lua.lua_pop(state, 1);
-        lua.lua_rawgeti(state, 2, 3);
-        const col = lua.lua_tonumber(state, -1);
-        lua.lua_pop(state, 1);
-
-        if (expr === '.') {
-            callbacks.setCursor?.(lnum - 1, col - 1);
-        } else if (expr.startsWith("'")) {
-            const markName = expr.substring(1);
-            callbacks.setMark?.(markName, lnum - 1, col - 1);
-        }
-        return 0;
+        return pushCoordinateResult(
+            state,
+            coordinates.writeLegacyPosition(
+                readString(state, 1),
+                readCoordinateArgument(state, 2),
+            ),
+        );
     });
 
     registry.set('cursor', (state) => {
@@ -810,23 +775,10 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
     });
 
     registry.set('getcurpos', (state) => {
-        lua.lua_newtable(state);
-
-        lua.lua_pushnumber(state, 0);
-        lua.lua_rawseti(state, -2, 1);
-        lua.lua_pushnumber(state, callbacks.getCursorLine());
-        lua.lua_rawseti(state, -2, 2);
-        // Deferred getcurpos: neovim-api-coordinate-contract.md Out of scope.
-        // ast-grep-ignore: neovim-coordinate-boundary
-        lua.lua_pushnumber(state, callbacks.getCursorCol());
-        lua.lua_rawseti(state, -2, 3);
-        lua.lua_pushnumber(state, 0);
-        lua.lua_rawseti(state, -2, 4);
-        // Deferred getcurpos: neovim-api-coordinate-contract.md Out of scope.
-        // ast-grep-ignore: neovim-coordinate-boundary
-        lua.lua_pushnumber(state, callbacks.getCursorCol());
-        lua.lua_rawseti(state, -2, 5);
-        return 1;
+        return pushCoordinateResult(
+            state,
+            coordinates.readLegacyPosition('.', true),
+        );
     });
 
     // --- Type/introspection ---

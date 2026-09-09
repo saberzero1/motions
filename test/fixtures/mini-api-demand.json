@@ -547,11 +547,7 @@
             "verdict": "BLOCKED",
             "loadResult": "error:vim.keymap.set: string expr mappings are not supported (requires Vimscript evaluation). Use a Lua function instead: function() return vim.v.count == 0 and \"gk\" or \"k\" end",
             "loadBlockers": ["string-expr-mapping"],
-            "coreBlockers": [
-                "local-comments",
-                "getpos-bytes",
-                "extmark-columns"
-            ],
+            "coreBlockers": ["local-comments", "extmark-columns"],
             "optionalBlockers": [],
             "demands": {
                 "vim.api.nvim_buf_clear_namespace": [
@@ -704,7 +700,7 @@
                     [673, 673],
                     "(\"'<\"), (\"'>\")",
                     "REQUIRED: default visual gS; normal-only proposed cases do not cover this",
-                    "getpos-bytes"
+                    "allow"
                 ],
                 "vim.fn.shiftwidth": [
                     "real",
@@ -892,16 +888,6 @@
             "required": "synchronous-path prompt result and dictionary prompt/default semantics",
             "test": "plugin API-demand audit category mini.surround vim.fn.input"
         },
-        "getpos-bytes": {
-            "names": ["vim.fn.getpos"],
-            "owner": "Separately approved legacy position boundary follow-up",
-            "shim": "src/lua/fn.ts:753-783",
-            "fixture": "third S line; '< at host {line:2,ch:6}",
-            "call": "vim.fn.getpos(\"'<\")",
-            "observed": "[0,3,7,0]",
-            "required": "[0,3,14,0]",
-            "test": "plugin API-demand audit category mini.splitjoin vim.fn.getpos"
-        },
         "extmark-columns": {
             "names": [
                 "vim.api.nvim_buf_set_extmark",
@@ -980,7 +966,7 @@
         "vim.fn.deletebufline": "0:2.0",
         "vim.fn.getcharstr": "error:async APIs can only be called from async-capable callbacks",
         "vim.fn.getline": "é→𝄞界\tZ",
-        "vim.fn.getpos": "[0,3,7,0]",
+        "vim.fn.getpos": "[0,3,14,0]",
         "vim.fn.has": "0.0:1.0",
         "vim.fn.input": "error:async APIs can only be called from async-capable callbacks",
         "vim.fn.nextnonblank": "3",

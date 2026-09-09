@@ -211,7 +211,9 @@ interface CoordinateHost {
     getCursorLine?: () => number;
     getCursorCol?: () => number;
     setCursorPosition?: (line: number, col: number) => void;
+    setCursor?: (line: number, col: number) => void;
     getMarkPos?: (name: string) => { line: number; ch: number } | null;
+    setMark?: (name: string, line: number, ch: number) => void;
     getLastVisualMode?: () => string;
     getCmAdapter?: () => CmAdapter | null;
 }
@@ -524,6 +526,71 @@ export function createNeovimCoordinateAdapter(
         });
     }
     return {
+        readLegacyPosition(
+            expr: string,
+            current = false,
+        ): CoordinateResult<number[]> {
+            const pos =
+                expr === '.'
+                    ? cursor()
+                    : /^'.$/.test(expr)
+                      ? mark(expr[1]!)
+                      : { kind: 'invalid' as const };
+            const result =
+                pos.kind === 'position'
+                    ? [0, pos.line, pos.col + 1, 0]
+                    : pos.kind === 'linewise-end'
+                      ? [0, pos.line, MAXCOL, 0]
+                      : [0, 0, 0, 0];
+            if (current) {
+                // D6: the measured 10| goal survives shorter lines; -1 means
+                // no pending goal. $ stores Infinity, not a column to clamp.
+                const goal = host.getCmAdapter?.()?.state?.vim?.lastHPos ?? -1;
+                if (goal !== -1) {
+                    result.push(goal === Infinity ? MAXCOL : goal + 1);
+                    return value(result);
+                }
+                const span =
+                    pos.kind === 'position'
+                        ? displaySpans(context(pos.text)).find(
+                              (entry) => pos.col < entry.byteEnd,
+                          )
+                        : undefined;
+                // Neovim draws a wide glyph at its first cell, a tab at its last.
+                const cell =
+                    span && pos.kind === 'position'
+                        ? pos.text[span.utf16Start] === '\t'
+                            ? span.last
+                            : span.first
+                        : 0;
+                result.push(cell + 1);
+            }
+            return value(result);
+        },
+        writeLegacyPosition(
+            expr: string,
+            input: unknown,
+        ): CoordinateResult<number> {
+            if (!Array.isArray(input) || input.length < 3) return value(-1);
+            const line: unknown = input[1];
+            const col: unknown = input[2];
+            if (
+                typeof line !== 'number' ||
+                typeof col !== 'number' ||
+                !Number.isInteger(line) ||
+                !Number.isInteger(col)
+            )
+                return value(-1);
+            const text = lineText(line);
+            if (text === null) return value(-1);
+            const ch = byteToUtf16(text, byteColumn(Math.max(0, col - 1)));
+            if (expr === '.') {
+                host.setCursor?.(line - 1, ch);
+            } else if (/^'.$/.test(expr)) {
+                host.setMark?.(expr[1]!, line - 1, ch);
+            } else return value(-1);
+            return value(0);
+        },
         readText(
             startRow: number,
             startCol: number,

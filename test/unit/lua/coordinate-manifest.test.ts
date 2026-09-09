@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { destroyState } from '../../../src/lua/engine';
+import type { CmAdapter } from '../../../src/types/vim-api';
 import {
     COORDINATE_API_MANIFEST,
     DEFERRED_COORDINATE_APIS,
@@ -16,6 +17,9 @@ import {
 } from './coordinate-harness';
 
 const REQUIRED = [
+    'vim.fn.getpos',
+    'vim.fn.getcurpos',
+    'vim.fn.setpos',
     'vim.api.nvim_buf_get_text',
     'vim.api.nvim_buf_set_text',
     'vim.api.nvim_buf_get_offset',
@@ -84,7 +88,7 @@ function generateCoordinateCases() {
 }
 
 describe('coordinate manifest coverage', () => {
-    it('requires exactly seventeen real registrations with complete metadata', () => {
+    it('requires exactly twenty real registrations with complete metadata', () => {
         expect(assertCoordinateManifestCoverage()).toEqual({
             missing: [],
             extra: [],
@@ -105,7 +109,7 @@ describe('coordinate manifest conformance', () => {
             REQUIRED.every((name) => exercised.has(name))
         )
             process.stdout.write(
-                'coordinate manifest: 17/17 APIs exercised; 0 missing; 0 mismatches\n',
+                'coordinate manifest: 20/20 APIs exercised; 0 missing; 0 mismatches\n',
             );
     });
     for (const row of generateCoordinateCases()) {
@@ -129,6 +133,10 @@ describe('coordinate manifest conformance', () => {
                 row.api.endsWith('nvim_buf_set_text');
             if (textApi) state.host.lines = [...(row.lines ?? [COORD_LINE])];
             state.host.cursor = { line: 3, col: 7 };
+            if (row.goal !== undefined)
+                state.host.cm = {
+                    state: { vim: { lastHPos: row.goal } },
+                } as unknown as CmAdapter;
             for (const mark of ['a', '[', ']', '<', '>'])
                 state.host.marks.set(mark, { line: 2, ch: 6 });
             if (row.host === 'unloaded') state.host.loaded = false;
@@ -148,6 +156,13 @@ describe('coordinate manifest conformance', () => {
                         row.args,
                         row.rawBytes,
                     );
+                } else if (row.api === 'vim.fn.setpos') {
+                    const result = runLuaNumber(state.L, `return ${call}`);
+                    const position = runLuaString(
+                        state.L,
+                        "return table.concat(vim.fn.getpos('.'), ':')",
+                    );
+                    actual = `${result};${state.host.cursor.line}:${state.host.cursor.col};${position}`;
                 } else if (row.api.endsWith('nvim_win_set_cursor')) {
                     runLuaString(state.L, `${call}; return 'set'`);
                     actual = `${state.host.cursor.line}:${state.host.cursor.col}`;

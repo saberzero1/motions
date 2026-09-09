@@ -76,8 +76,6 @@ const hostExceptions = [
     'set_cursor',
 ];
 const deferredExceptions = [
-    'getpos',
-    'getcurpos',
     'winsaveview',
     'winrestview',
     'wincol',
@@ -205,10 +203,6 @@ describe('coordinate boundary suppression inventory', () => {
                 'nvim_set_current_line',
                 'get_cursor',
                 'set_cursor',
-                'getpos',
-                'getpos',
-                'getcurpos',
-                'getcurpos',
                 'winsaveview',
                 'wincol',
                 'searchpos',

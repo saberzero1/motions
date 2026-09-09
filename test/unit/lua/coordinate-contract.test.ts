@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import type { CmAdapter } from '../../../src/types/vim-api';
 import { destroyState } from '../../../src/lua/engine';
 import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
+import { searchBufferLines } from '../../../src/lua/vim-search';
 import { STRING_COORDINATE_CASES } from '../../fixtures/neovim-string-coordinate-contract';
 import { observeStringCoordinate } from './string-coordinate-harness';
 import {
@@ -28,6 +29,167 @@ import {
     readBuffer,
     observeTextCoordinate,
 } from './coordinate-harness';
+
+describe('coordinate contract legacy positions', () => {
+    let state: ReturnType<typeof createCoordinateState>;
+    beforeEach(() => {
+        state = createCoordinateState(COORD_LINES, {
+            searchBuffer: (pattern, flags, line, col, stopline) =>
+                searchBufferLines(
+                    {
+                        lineCount: () => state.host.lines.length,
+                        getLine: (index) => state.host.lines[index] ?? '',
+                    },
+                    pattern,
+                    flags,
+                    line,
+                    col,
+                    stopline,
+                ),
+        });
+        state.host.cursor = { line: 3, col: 7 };
+        state.host.cm = {
+            state: { vim: { lastHPos: -1 } },
+        } as unknown as CmAdapter;
+    });
+    afterEach(() => destroyState(state.L));
+
+    it('getpos uses bytes and agrees with col', () => {
+        expect(
+            runLuaString(
+                state.L,
+                `return table.concat(vim.fn.getpos('.'), ':') .. ';' .. vim.fn.col('.')`,
+            ),
+        ).toBe('0:3:14:0;14');
+    });
+    it('getcurpos retains five elements', () => {
+        expect(runLuaNumber(state.L, 'return #vim.fn.getcurpos()')).toBe(5);
+    });
+    // Literal snapshots from the real fork driven through 10|jj$j in a browser.
+    // The unit host replays those observations; it does not synthesize a goal
+    // from the cursor (the empty-line row deliberately distinguishes them).
+    it.each([
+        ['10|', 1, 7, 9, '0:1:14:0:10'],
+        ['10|j', 2, 1, 9, '0:2:1:0:10'],
+        ['10|jj', 3, 7, 9, '0:3:14:0:10'],
+        ['10|jj$', 3, 7, Infinity, '0:3:14:0:2147483647'],
+        ['10|jj$j', 4, 1, Infinity, '0:4:1:0:2147483647'],
+    ] as const)(
+        'getcurpos sticky fork goal after %s',
+        (_keys, line, col, goal, expected) => {
+            state.host.lines = [...COORD_LINES, ''];
+            state.host.cursor = { line, col };
+            state.host.cm = {
+                state: { vim: { lastHPos: goal } },
+            } as unknown as CmAdapter;
+            expect(
+                runLuaString(
+                    state.L,
+                    "return table.concat(vim.fn.getcurpos(), ':')",
+                ),
+            ).toBe(expected);
+        },
+    );
+    it('getcurpos fallback after lllll with no pending goal', () => {
+        state.host.cursor = { line: 1, col: 7 };
+        expect(
+            runLuaString(
+                state.L,
+                "return table.concat(vim.fn.getcurpos(), ':')",
+            ),
+        ).toBe('0:1:14:0:9');
+    });
+    it('getcurpos fallback wide first cell differs from virtcol', () => {
+        state.host.cursor = { line: 1, col: 5 };
+        expect(
+            runLuaString(
+                state.L,
+                "return table.concat({vim.fn.getcurpos()[5], vim.fn.virtcol('.')}, ':')",
+            ),
+        ).toBe('4:5');
+    });
+    it.each([
+        [1, '0:3:1:0:1'],
+        [2, '0:3:3:0:2'],
+        [3, '0:3:6:0:3'],
+        [5, '0:3:10:0:4'],
+        [6, '0:3:13:0:8'],
+        [7, '0:3:14:0:9'],
+    ] as const)('getcurpos drawn cell at host column %s', (col, expected) => {
+        state.host.cursor.col = col;
+        expect(
+            runLuaString(
+                state.L,
+                "return table.concat(vim.fn.getcurpos(), ':')",
+            ),
+        ).toBe(expected);
+    });
+    it('getcurpos preserves the end-of-line desired-column sentinel', () => {
+        state.host.cm = {
+            state: { vim: { lastHPos: Infinity } },
+        } as unknown as CmAdapter;
+        expect(
+            runLuaString(
+                state.L,
+                "return table.concat(vim.fn.getcurpos(), ':')",
+            ),
+        ).toBe('0:3:14:0:2147483647');
+    });
+    it('getcurpos uses resolved display options', () => {
+        expect(
+            runLuaString(
+                state.L,
+                "vim.bo.tabstop=2; vim.wo.list=true; return table.concat(vim.fn.getcurpos(), ':')",
+            ),
+        ).toBe('0:3:14:0:7');
+    });
+    it.each([
+        [1, 1],
+        [3, 2],
+        [6, 3],
+        [10, 5],
+        [13, 6],
+        [14, 7],
+    ])('setpos cursor byte %s roundtrips through the host', (byte, host) => {
+        const result = runLuaString(
+            state.L,
+            `local result=vim.fn.setpos('.', {0,3,${byte},0}); return tostring(result) .. ';' .. table.concat(vim.fn.getpos('.'), ':')`,
+        );
+        expect([result, state.host.cursor]).toEqual([
+            `0;0:3:${byte}:0`,
+            { line: 3, col: host },
+        ]);
+    });
+    it('setpos mark converts ingress and getpos converts egress', () => {
+        const result = runLuaString(
+            state.L,
+            `local result=vim.fn.setpos("'a", {0,3,6,0}); return tostring(result) .. ';' .. table.concat(vim.fn.getpos("'a"), ':')`,
+        );
+        expect([result, state.host.marks.get('a')]).toEqual([
+            '0;0:3:6:0',
+            { line: 2, ch: 2 },
+        ]);
+    });
+    it.each(['wincol', 'searchpos', 'winsaveview'] as const)(
+        'leaves deferred %s in host units',
+        (name) => {
+            const expressions = {
+                wincol: 'tostring(vim.fn.wincol())',
+                searchpos: "table.concat(vim.fn.searchpos('Z','cnW'), ':')",
+                winsaveview:
+                    "(function() local v=vim.fn.winsaveview(); return table.concat({v.lnum,v.col,v.curswant,v.coladd,v.topline,v.leftcol}, ':') end)()",
+            };
+            const expected = {
+                wincol: '8.0',
+                searchpos: '3.0:7.0',
+                winsaveview: '3.0:6.0:6.0:0.0:1.0:0.0',
+            };
+            expect(runLuaString(state.L, `return ${expressions[name]}`)).toBe(
+                expected[name],
+            );
+        },
+    );
+});
 
 describe('coordinate contract text bytes', () => {
     for (const [api, cases] of [

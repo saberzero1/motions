@@ -32,6 +32,7 @@ test-vault/.obsidian/plugins/vim-motions/
 
 # WDIO / E2E testing
 .obsidian-cache/
+.playwright-mcp/
 test-vault/.obsidian.vimrc
 test-vault/.obsidian/plugins/wdio-obsidian-service-plugin/
 

@@ -100,6 +100,8 @@ export interface VimState {
     selectMode?: boolean;
     virtualReplace?: boolean;
     lastSelection?: unknown;
+    /** Horizontal goal: | stores a zero-based display column; -1 unset, Infinity for $. */
+    lastHPos?: number;
     inputState?: {
         keyBuffer: string[];
         [key: string]: unknown;

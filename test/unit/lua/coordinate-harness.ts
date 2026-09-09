@@ -82,6 +82,12 @@ export function createCoordinateState(
             getMode: () => 'n',
             getCursorLine: () => host.cursor.line,
             getCursorCol: () => host.cursor.col,
+            setCursor: (line, col) => {
+                host.cursor = { line: line + 1, col: col + 1 };
+            },
+            setMark: (name, line, ch) => {
+                host.marks.set(name, { line, ch });
+            },
             getLine: (line) =>
                 host.loaded ? (host.lines[line] ?? null) : null,
             getLineCount,
