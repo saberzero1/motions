@@ -246,6 +246,7 @@ import {
     setAutocmdEventHoldDelay,
 } from './vim/autocmd-event-watcher';
 import { expandTilde } from './util/external-fs';
+import { openPathInDefaultApp } from './util/open-path';
 import { getLeafId } from './util/leaf';
 import { getEditorView } from './util/editor';
 import { isInsideInlineNodeType } from './treesitter/js-api';
@@ -4303,7 +4304,9 @@ export default class VimMotionsPlugin extends Plugin {
         }
 
         for (const p of paths) {
-            this.app.openWithDefaultApp(p);
+            if (!(await openPathInDefaultApp(this.app, p))) {
+                new Notice(`Vim Motions: could not open ${p}`);
+            }
         }
     }
 

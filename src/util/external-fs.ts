@@ -9,9 +9,18 @@ type osType = {
     homedir(): string;
 };
 
+type electronShellType = {
+    openPath(path: string): Promise<string>;
+    showItemInFolder(path: string): void;
+};
+
 type electronType = {
     app?: { getPath(name: string): string };
-    remote?: { app: { getPath(name: string): string } };
+    shell?: electronShellType;
+    remote?: {
+        app: { getPath(name: string): string };
+        shell?: electronShellType;
+    };
 };
 
 let fsPromisesCache: FsPromisesType | null = null;
@@ -193,5 +202,42 @@ export function getObsidianUserDataDir(): string | null {
         return app?.getPath('userData') ?? null;
     } catch {
         return null;
+    }
+}
+
+/** Obsidian itself reaches this as `electron.remote.shell` in the renderer. */
+function getElectronShell(): electronShellType | null {
+    if (!Platform.isDesktop) return null;
+
+    try {
+        const electron = getElectron();
+        return electron.shell ?? electron.remote?.shell ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Open a file at an *absolute* filesystem path in the OS default application.
+ *
+ * `App.openWithDefaultApp()` cannot do this: it resolves its argument through
+ * the vault adapter (`getFilePath()` joins onto the vault base path), so an
+ * out-of-vault path silently becomes a bogus in-vault one. Anything outside
+ * the vault has to go through Electron directly.
+ *
+ * Desktop-only — returns `false` on mobile or when Electron is unavailable, so
+ * callers can surface a failure instead of appearing to succeed.
+ */
+export async function openExternalPath(filePath: string): Promise<boolean> {
+    if (!Platform.isDesktop) return false;
+
+    const shell = getElectronShell();
+    if (!shell) return false;
+
+    try {
+        // Resolves to '' on success, or a non-empty error message on failure.
+        return (await shell.openPath(expandTilde(filePath))) === '';
+    } catch {
+        return false;
     }
 }
