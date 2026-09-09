@@ -6,8 +6,45 @@ import {
     getCursorPos,
     sendVimEscape,
     ensureLivePreview,
+    ensureSourceMode,
     PAUSE,
 } from '../../helpers';
+
+interface WrapGeometry {
+    viewportHeight: number;
+    lineHeight: number;
+    /** Cursor's display row, relative to the top of the scroll viewport. */
+    cursorTop: number;
+    cursorBottom: number;
+    /** First/last display row of the cursor's logical line, viewport-relative. */
+    blockTop: number;
+    blockBottom: number;
+}
+
+async function getWrapGeometry(): Promise<WrapGeometry | null> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return null;
+        const cm = (view.editor as unknown as Record<string, unknown>).cm as
+            import('@codemirror/view').EditorView | undefined;
+        if (!cm) return null;
+        const head = cm.state.selection.main.head;
+        const line = cm.state.doc.lineAt(head);
+        const cursorCoords = cm.coordsAtPos(head);
+        const startCoords = cm.coordsAtPos(line.from);
+        const endCoords = cm.coordsAtPos(line.to);
+        if (!cursorCoords || !startCoords || !endCoords) return null;
+        const rect = cm.scrollDOM.getBoundingClientRect();
+        return {
+            viewportHeight: rect.height,
+            lineHeight: cm.defaultLineHeight || 22,
+            cursorTop: cursorCoords.top - rect.top,
+            cursorBottom: cursorCoords.bottom - rect.top,
+            blockTop: startCoords.top - rect.top,
+            blockBottom: endCoords.bottom - rect.top,
+        };
+    })) as WrapGeometry | null;
+}
 
 async function getScrollTop(): Promise<number> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
@@ -208,6 +245,134 @@ describe('Normal mode — z-prefix commands (Tier 1)', function () {
                 result!.offsetFromTop / result!.viewportHeight;
             expect(relativePosition).toBeLessThan(0.15);
             expect(relativePosition).toBeGreaterThanOrEqual(0);
+        });
+    });
+
+    describe('zz on wrapped lines (#183)', function () {
+        /**
+         * Reference behaviour measured against Neovim 0.12.5 (`nvim -u NONE`,
+         * 80x22 window, wrap on, scrolloff=0, smoothscroll off), cursor on the
+         * final character of a single long line:
+         *
+         *   3 display rows  -> topline 12, skipcol 0    (3 rows below 9 above)
+         *   15 display rows -> topline 18, skipcol 0    (15 rows below 3 above)
+         *   38 display rows -> topline 21, skipcol 1280 (16 rows scrolled into)
+         *
+         * So `zz` centres the *whole* wrapped line rather than its first
+         * display row, and once the line is taller than the window Vim scrolls
+         * inside the line so the cursor stays on screen.
+         */
+
+        const FILLER = Array.from({ length: 120 }, (_, i) => `line ${i + 1}`);
+        const LONG_LINE_INDEX = FILLER.length;
+        const WORD = 'wrapped ';
+
+        function docWith(longLine: string): string {
+            return [...FILLER, longLine, ...FILLER].join('\n');
+        }
+
+        function lineOfRows(rows: number): string {
+            return WORD.repeat(
+                Math.ceil((charsPerRow * rows) / WORD.length),
+            ).trim();
+        }
+
+        async function placeCursorAtEndOfLongLine(
+            longLine: string,
+        ): Promise<void> {
+            await setupEditor(docWith(longLine), {
+                line: LONG_LINE_INDEX,
+                ch: longLine.length - 1,
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        }
+
+        let charsPerRow = 0;
+        let viewportRows = 0;
+
+        before(async function () {
+            await ensureSourceMode();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const probe = WORD.repeat(250).trim();
+            await placeCursorAtEndOfLongLine(probe);
+            const geo = await getWrapGeometry();
+            expect(geo).not.toBeNull();
+
+            const probeRows = Math.round(
+                (geo!.blockBottom - geo!.blockTop) / geo!.lineHeight,
+            );
+            expect(probeRows).toBeGreaterThan(1);
+            charsPerRow = probe.length / probeRows;
+            viewportRows = Math.floor(geo!.viewportHeight / geo!.lineHeight);
+            expect(viewportRows).toBeGreaterThan(12);
+        });
+
+        it('zz should keep the cursor on screen when the line is taller than the viewport (#183)', async function () {
+            await placeCursorAtEndOfLongLine(lineOfRows(viewportRows * 3));
+
+            await vimKeys('z', 'z');
+            await browser.pause(200);
+
+            const geo = await getWrapGeometry();
+            expect(geo).not.toBeNull();
+            expect(geo!.blockBottom - geo!.blockTop).toBeGreaterThan(
+                geo!.viewportHeight,
+            );
+
+            expect(geo!.cursorTop).toBeGreaterThanOrEqual(-1);
+            expect(geo!.cursorBottom).toBeLessThanOrEqual(
+                geo!.viewportHeight + 1,
+            );
+            expect(geo!.cursorBottom).toBeGreaterThan(
+                geo!.viewportHeight - 2 * geo!.lineHeight,
+            );
+        });
+
+        it('zz should centre the whole wrapped line, not its first display row (#183)', async function () {
+            const rows = Math.max(6, Math.floor(viewportRows / 3));
+            await placeCursorAtEndOfLongLine(lineOfRows(rows));
+
+            await vimKeys('z', 'z');
+            await browser.pause(200);
+
+            const geo = await getWrapGeometry();
+            expect(geo).not.toBeNull();
+            const blockHeight = geo!.blockBottom - geo!.blockTop;
+            expect(
+                Math.round(blockHeight / geo!.lineHeight),
+            ).toBeGreaterThanOrEqual(6);
+            expect(blockHeight).toBeLessThan(
+                geo!.viewportHeight - 4 * geo!.lineHeight,
+            );
+
+            const gapAbove = geo!.blockTop;
+            const gapBelow = geo!.viewportHeight - geo!.blockBottom;
+            expect(Math.abs(gapAbove - gapBelow)).toBeLessThanOrEqual(
+                1.5 * geo!.lineHeight,
+            );
+        });
+
+        it('zz should still centre a short unwrapped line', async function () {
+            await setupEditor(docWith('short line'), {
+                line: LONG_LINE_INDEX,
+                ch: 0,
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await vimKeys('z', 'z');
+            await browser.pause(200);
+
+            const geo = await getWrapGeometry();
+            expect(geo).not.toBeNull();
+            expect(geo!.blockBottom - geo!.blockTop).toBeLessThan(
+                geo!.lineHeight * 1.5,
+            );
+
+            const blockCentre = (geo!.blockTop + geo!.blockBottom) / 2;
+            expect(
+                Math.abs(blockCentre - geo!.viewportHeight / 2),
+            ).toBeLessThanOrEqual(geo!.lineHeight);
         });
     });
 
