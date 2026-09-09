@@ -1276,3 +1276,64 @@ and TS7006 at 181/202/223, TS2345 at 592 (indexed first line), TS2322 at 722
 (indexed empty line). `git diff` confirms this phase only inserts its new
 84-line group: all seven sites and the relevant unit tsconfig are unchanged
 from `31955c3`. They were not repaired because Phases 1–3 are explicitly frozen.
+
+## Phase 5 audit provenance and measured findings
+
+Executed 2026-09-09 after `df55325`. This phase changes no API implementations,
+behavior suites, documentation, or mini.comment pin. The four-category audit
+records incompatibilities; its green result is **not** a compatibility pass.
+Both plugins are BLOCKED. All new assertions belong to
+`test/unit/lua/plugin-api-demand.test.ts`.
+
+Pinned source acquisition (exit **0**): `bash scripts/fetch-test-plugins.sh`.
+Selected `nvim-mini/mini.nvim@25f25d3e6661d942323e56711096de1850d814ec`, only
+`lua/mini/surround.lua` and `lua/mini/splitjoin.lua`. The pre-existing
+`echasnovski/mini.comment@main` reproducibility issue is flagged, not changed.
+Independent archive-stream hash checks both exited **0**:
+
+```bash
+set -o pipefail; curl -fsSL https://github.com/nvim-mini/mini.nvim/archive/25f25d3e6661d942323e56711096de1850d814ec.tar.gz | tar -xzO mini.nvim-25f25d3e6661d942323e56711096de1850d814ec/lua/mini/surround.lua | sha256sum
+set -o pipefail; curl -fsSL https://github.com/nvim-mini/mini.nvim/archive/25f25d3e6661d942323e56711096de1850d814ec.tar.gz | tar -xzO mini.nvim-25f25d3e6661d942323e56711096de1850d814ec/lua/mini/splitjoin.lua | sha256sum
+```
+
+Observed SHA-256: surround
+`4f02f52cbf9d4b52389d001454d24811089df50d1ae6c7a5ff8f3b5a971303e0`;
+splitjoin `b9dfb867e26503417eae366b465a360684930caef8f7c12b3e5e6983c6229b96`.
+These equal the fetched-file digests independently recorded in
+`mini-api-demand.json`. The artifact's demand tuples are the manually reviewed
+name/line/form/reachability checklist, not a list obtained from API status docs.
+
+The complete native UTF return arity was independently re-measured:
+
+```bash
+nvim --headless -u NONE -i NONE -c 'lua local s="é→𝄞界\tZ"; print(vim.inspect({utf_all={vim.str_utfindex(s)},utf_old={vim.str_utfindex(s,13)},utf16=vim.str_utfindex(s,"utf-16",13),utf32=vim.str_utfindex(s,"utf-32",13),byte_old=vim.str_byteindex(s,5),byte16=vim.str_byteindex(s,"utf-16",5),byte32=vim.str_byteindex(s,"utf-32",5)}))' -c 'qa!'
+```
+
+Exit **0**: `utf_all={6,7}`, `utf_old={5,6}`, `utf16=6`, `utf32=5`,
+`byte_old=13`, `byte16=12`, `byte32=13`. Live sandbox probes return
+`0;0;0;0` for the four UTF-index calls and `0;0;0` for byte-index calls,
+**one return value each, zero warnings**. Phase **5b**, not this audit, owns
+the fix. The five `str_*` names, seven encoding/URI names, eleven additional
+treesitter placeholders, and four I/O placeholders are all individually
+probed; `silentInventory` records their actual results and zero-warning counts.
+
+Initial complete audit run:
+`npx vitest run test/unit/lua/plugin-api-demand.test.ts` exited **0**, **140
+passed**. Source discovery measured **61 names / 128 sites** (surround) and
+**33 names / 58 sites** (splitjoin), no uncovered/unresolved accesses. Optional
+external nvim-treesitter modules are absent in this fixed installation; the
+guard requires a fresh transitive audit if those modules are later installed.
+
+The initial load measurement exposed splitjoin's real additional blocker:
+unmodified `setup({})` raises **string expr mappings are not supported
+(requires Vimscript evaluation)** at its default `gS` mapping. This is a
+required-form defect in a real `vim.keymap.set` handler, not an absent API.
+The gate records one load-blocker separately from its four core-path blocker
+groups. Surround has zero load-blockers and seven core-path blocker groups.
+Source membership and actual private runtime registries agree: API
+**69 supported / 88 fallback / 157 known**, fn **92 real registrations / 39
+effective declared placeholders / 131 total**, with three fewer fn names
+without async callbacks. Of the fn placeholders, 37 warn once; `system` and
+`systemlist` intentionally reject. Three API fallbacks have implicit nil
+return types (`nvim_buf_add_highlight`, `nvim_del_augroup_by_id`,
+`nvim_set_extmark`); they still warn once, not silently.

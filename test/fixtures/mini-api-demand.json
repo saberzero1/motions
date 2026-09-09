@@ -1,0 +1,1139 @@
+{
+    "schemaVersion": 1,
+    "repo": "nvim-mini/mini.nvim",
+    "ref": "25f25d3e6661d942323e56711096de1850d814ec",
+    "archive": "https://github.com/nvim-mini/mini.nvim/archive/25f25d3e6661d942323e56711096de1850d814ec.tar.gz",
+    "rowColumns": [
+        "category",
+        "reachability",
+        "sourceLines",
+        "signatureOrExpression",
+        "contextAndRequirement",
+        "disposition"
+    ],
+    "contract": {
+        "classification": "Categories are observed through fresh live sandbox lookups AND calls, warning capture, and nontrivial result/effect probes. Source registration membership is an independent completeness check, never the category oracle.",
+        "real": "Real handler or working option/variable storage; does NOT claim every signature, coordinate unit, or callback context is compatible.",
+        "stub": "Placeholder emits an is-not-implemented warning on the fresh state's first lookup/call. A second call being quiet does not make it silent.",
+        "silent": "Inert constant, identity, prefix-only, or no-op placeholder, with zero warnings on first use. Includes the URI/encoding cluster explicitly required by the amended plan.",
+        "absent": "No accessible member. Nil reads are included: calling/indexing/arithmetic with them fails. Unset user g/b variables are instead tested by storage roundtrip.",
+        "reachability": "Earliest applicable tier among load, core, optional; context names further optional/version/error-only sites. core includes all default normal/visual mappings and their timers, not just the narrower proposed behavior cases.",
+        "owningTest": "test/unit/lua/plugin-api-demand.test.ts: plugin API-demand audit mini.<name>; category cases are parameterized by every demand name; source sites retain duplicate same-line references.",
+        "probes": "test/unit/lua/plugin-demand-probes.ts; test/unit/lua/plugin-silent-probes.ts",
+        "scope": "Fixed two-module fixture installation. No optional nvim-treesitter package is installed; its guarded require edges are recorded, not treated as audited upstream source. No plugin behavior suite is authorized.",
+        "miniComment": "echasnovski/mini.comment remains ref main: reproducibility defect flagged, not changed. No repin or behavior-spec migration in this user-authorized audit.",
+        "registryBaseline": "Phases 1-4 changed fn totals to 92 real registrations and 39 effective declared placeholders (131 total). Historical 84/46/130 duplicate-registration controls are reconstructed explicitly, not asserted against current source. Two system-execution registrations reject intentionally rather than emit a warning; they are not mislabeled as silent placeholders.",
+        "excludedConstants": "Current handle 0, winnr's one-window ordinal, ui.progress_status's empty no-progress result, detached ui.open handle, and write-through file flush are intentional host models. Namespace iter/snippet placeholders are superseded by later real injections. coroutine.isyieldable's compatibility fallback is outside vim.* and does not authorize synchronous key input. Generic api/fn/namespace fallbacks warn on first use and are not extra silent entries."
+    },
+    "plugins": {
+        "mini.surround": {
+            "path": "test-vault/lua/mini/surround.lua",
+            "archivePath": "lua/mini/surround.lua",
+            "sha256": "4f02f52cbf9d4b52389d001454d24811089df50d1ae6c7a5ff8f3b5a971303e0",
+            "requires": ["nvim-treesitter", "nvim-treesitter.query"],
+            "requireDisposition": "OPTIONAL, generator at 1032-1083 only; both pcall(require,...) probes at 1058 and direct query import at 1491. No files for these modules in the fixed installation; plugin branch requires successful probes AND use_nvim_treesitter=true. No unguarded load/core dependencies.",
+            "verdict": "BLOCKED",
+            "loadResult": "table",
+            "loadBlockers": [],
+            "coreBlockers": [
+                "utf-byteindex",
+                "utf-utfindex",
+                "surround-highlight",
+                "echospace",
+                "getchar-context",
+                "input-context-and-form",
+                "set-text-bytes"
+            ],
+            "optionalBlockers": [
+                "treesitter-range-shape",
+                "external-treesitter"
+            ],
+            "demands": {
+                "vim.api.nvim_buf_clear_namespace": [
+                    "real",
+                    "core",
+                    [2085],
+                    "(buf, ns, firstRow, lastRow)",
+                    "REQUIRED: sh deferred unhighlight callback",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_get_lines": [
+                    "real",
+                    "core",
+                    [2094, 2147],
+                    "(0, startRow, endRow, strict)",
+                    "REQUIRED: search neighborhood; 2094 optional linewise indentation",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_get_mark": [
+                    "real",
+                    "core",
+                    [1883, 1884],
+                    "(0, '['|']'|'<'|'>')",
+                    "REQUIRED: sa operator/visual marks, byte columns",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_line_count": [
+                    "real",
+                    "core",
+                    [2004, 2023, 2146],
+                    "(0)",
+                    "REQUIRED: replacement bounds and neighborhood",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_set_text": [
+                    "real",
+                    "core",
+                    [2035],
+                    "pcall(fn,0,startRow,startByte,endRow,endByte,lines)",
+                    "REQUIRED: sa/sd/sr region replacement; errors swallowed by upstream pcall",
+                    "set-text-bytes"
+                ],
+                "vim.api.nvim_create_augroup": [
+                    "real",
+                    "load",
+                    [1238],
+                    "('MiniSurround', {})",
+                    "REQUIRED: setup autocmd group",
+                    "allow"
+                ],
+                "vim.api.nvim_create_autocmd": [
+                    "real",
+                    "load",
+                    [1239],
+                    "('ColorScheme', {group,callback,desc})",
+                    "REQUIRED: setup highlight refresh",
+                    "allow"
+                ],
+                "vim.api.nvim_create_namespace": [
+                    "real",
+                    "load",
+                    [1091, 1092],
+                    "('MiniSurroundHighlight'|'MiniSurroundInput')",
+                    "REQUIRED: module top level",
+                    "allow"
+                ],
+                "vim.api.nvim_echo": [
+                    "real",
+                    "core",
+                    [2248],
+                    "(chunks, isImportant, {})",
+                    "REQUIRED: failed search and delayed prompt reminder; silent=false by default",
+                    "allow"
+                ],
+                "vim.api.nvim_get_current_buf": [
+                    "real",
+                    "core",
+                    [829, 883, 1492, 1515, 1616],
+                    "()",
+                    "REQUIRED: sh; OPTIONAL: 829 respect_selection_type and 1492/1515/1616 treesitter generator",
+                    "allow"
+                ],
+                "vim.api.nvim_get_keymap": [
+                    "real",
+                    "load",
+                    [2266],
+                    "(mode)",
+                    "REQUIRED: setup checks existing s mapping",
+                    "allow"
+                ],
+                "vim.api.nvim_set_hl": [
+                    "real",
+                    "load",
+                    [1242],
+                    "(0,'MiniSurround',{default=true,link='IncSearch'})",
+                    "REQUIRED: setup and ColorScheme callback",
+                    "allow"
+                ],
+                "vim.api.nvim_win_get_cursor": [
+                    "real",
+                    "core",
+                    [1469, 1521, 1954],
+                    "(0)",
+                    "REQUIRED: search/find; OPTIONAL: 1521 treesitter",
+                    "allow"
+                ],
+                "vim.api.nvim_win_set_cursor": [
+                    "real",
+                    "core",
+                    [1938],
+                    "(0,{line,byteCol-1})",
+                    "REQUIRED: action cursor placement",
+                    "allow"
+                ],
+                "vim.b.minisurround_config": [
+                    "real",
+                    "core",
+                    [1247],
+                    "buffer-local value or {}",
+                    "GUARD: optional override read on core path; unset nil is valid",
+                    "allow"
+                ],
+                "vim.b.minisurround_disable": [
+                    "real",
+                    "core",
+                    [1244],
+                    "== true",
+                    "GUARD: default mapping disable check; unset nil is valid",
+                    "allow"
+                ],
+                "vim.bo.filetype": [
+                    "real",
+                    "optional",
+                    [1616],
+                    "buffer-local option read",
+                    "OPTIONAL: treesitter diagnostic language fallback",
+                    "allow"
+                ],
+                "vim.cmd": [
+                    "real",
+                    "core",
+                    [868, 870, 935, 937, 1942, 2110, 2247, 2252],
+                    "normal! m'/zv/^; echohl; echo/redraw; silent range </>",
+                    "REQUIRED: find/prompt/feedback; OPTIONAL: 1942/2110 linewise indentation",
+                    "allow"
+                ],
+                "vim.deepcopy": [
+                    "real",
+                    "load",
+                    [1087, 1164, 1304],
+                    "(config|surroundSpec)",
+                    "REQUIRED: top-level defaults, setup, action spec copy",
+                    "allow"
+                ],
+                "vim.defer_fn": [
+                    "real",
+                    "core",
+                    [888, 1978],
+                    "(callback, milliseconds)",
+                    "REQUIRED: sh unhighlight; prompt reminder after 1000ms",
+                    "allow"
+                ],
+                "vim.fn.append": [
+                    "real",
+                    "optional",
+                    [774, 775],
+                    "(lineNumber,string)",
+                    "OPTIONAL: respect_selection_type=true, linewise add only",
+                    "allow"
+                ],
+                "vim.fn.col": [
+                    "real",
+                    "optional",
+                    [1051],
+                    "({lineNumber,'$'})",
+                    "OPTIONAL: treesitter end-column-zero normalization; Phase 3 delivered this form",
+                    "allow"
+                ],
+                "vim.fn.deletebufline": [
+                    "real",
+                    "optional",
+                    [830, 831],
+                    "(currentBuf,lineNumber)",
+                    "OPTIONAL: respect_selection_type=true, linewise delete only; NOT a default-path unblocker",
+                    "allow"
+                ],
+                "vim.fn.getcharstr": [
+                    "real",
+                    "core",
+                    [1985],
+                    "pcall(vim.fn.getcharstr)",
+                    "REQUIRED: surround identifier inside synchronous operator/action callback",
+                    "getchar-context"
+                ],
+                "vim.fn.getline": [
+                    "real",
+                    "core",
+                    [1891, 1895, 1914, 2272],
+                    "(lineNumber)",
+                    "REQUIRED: marks, byte-length calculations and bounds",
+                    "allow"
+                ],
+                "vim.fn.has": [
+                    "real",
+                    "load",
+                    [1868, 1871, 2343],
+                    "('nvim-0.11') == 0",
+                    "GUARD: observed 0, selects old UTF forms and vim.highlight.range; function wrappers defer calls until core",
+                    "allow"
+                ],
+                "vim.fn.input": [
+                    "real",
+                    "core",
+                    [936],
+                    "pcall(fn,{prompt=...,default=...})",
+                    "REQUIRED: built-in ?, f and t identifiers, no nondefault config required",
+                    "input-context-and-form"
+                ],
+                "vim.fn.nextnonblank": [
+                    "real",
+                    "optional",
+                    [2113],
+                    "(lineNumber)",
+                    "OPTIONAL: respect_selection_type=true linewise deletion",
+                    "allow"
+                ],
+                "vim.fn.strcharpart": [
+                    "real",
+                    "core",
+                    [2240],
+                    "(chunk,0,maxChars)",
+                    "REQUIRED: feedback truncation",
+                    "allow"
+                ],
+                "vim.fn.strdisplaywidth": [
+                    "real",
+                    "core",
+                    [2242],
+                    "(chunk)",
+                    "REQUIRED: feedback display width; not the quarantined strwidth",
+                    "allow"
+                ],
+                "vim.fn.visualmode": [
+                    "real",
+                    "core",
+                    [1932, 1933, 1934],
+                    "() == 'v'|'V'|CTRL-V",
+                    "REQUIRED: default visual sa selection type",
+                    "allow"
+                ],
+                "vim.g.minisurround_disable": [
+                    "real",
+                    "core",
+                    [1244],
+                    "== true",
+                    "GUARD: global disable flag; unset nil is valid",
+                    "allow"
+                ],
+                "vim.highlight.range": [
+                    "absent",
+                    "core",
+                    [2343],
+                    "(buf,ns,group,{row,byte},{row,byte})",
+                    "GUARD: ACTIVE old-version branch selected at load, called by sh only; not load-blocking",
+                    "surround-highlight"
+                ],
+                "vim.hl.range": [
+                    "stub",
+                    "optional",
+                    [2342],
+                    "(buf,ns,group,{row,byte},{row,byte})",
+                    "GUARD: non-current modern-version branch overwritten before use; has(nvim-0.11)=0 selects vim.highlight.range",
+                    "surround-highlight"
+                ],
+                "vim.inspect": [
+                    "real",
+                    "load",
+                    [1255, 1384, 1624],
+                    "(value), including member passed to tbl_map",
+                    "GUARD: setup validation error; core no-match message; optional treesitter errors",
+                    "allow"
+                ],
+                "vim.is_callable": [
+                    "real",
+                    "core",
+                    [1307, 1365, 1687, 2225, 2333],
+                    "(value)",
+                    "REQUIRED: surrounding specs/patterns; 2225 callable-type helper guard",
+                    "allow"
+                ],
+                "vim.islist": [
+                    "real",
+                    "core",
+                    [1354, 1362, 2311],
+                    "(value)",
+                    "REQUIRED: region arrays, patterns, cartesian product",
+                    "allow"
+                ],
+                "vim.iter": [
+                    "real",
+                    "core",
+                    [2339],
+                    "(x):flatten(math.huge):totable()",
+                    "REQUIRED: pattern flattening; real injector supersedes generic namespace stub",
+                    "allow"
+                ],
+                "vim.keymap.set": [
+                    "real",
+                    "load",
+                    [2260, 2262],
+                    "(mode,lhs,function|string,{expr,desc,silent}); (mode,'s','<Nop>')",
+                    "REQUIRED: setup default sa/sd/sr/sf/sF/sh and suffix mappings",
+                    "allow"
+                ],
+                "vim.list_extend": [
+                    "real",
+                    "optional",
+                    [1571, 1572],
+                    "(destination,ranges)",
+                    "OPTIONAL: treesitter generator",
+                    "allow"
+                ],
+                "vim.o.cmdheight": [
+                    "real",
+                    "core",
+                    [2237],
+                    "numeric global option read",
+                    "REQUIRED: feedback width arithmetic",
+                    "allow"
+                ],
+                "vim.o.columns": [
+                    "real",
+                    "core",
+                    [2237],
+                    "numeric global option read",
+                    "REQUIRED: feedback width arithmetic",
+                    "allow"
+                ],
+                "vim.o.operatorfunc": [
+                    "real",
+                    "core",
+                    [1270],
+                    "= 'v:lua.MiniSurround.' .. task",
+                    "REQUIRED: default expression mapping arms synchronous g@ callback",
+                    "allow"
+                ],
+                "vim.o.selection": [
+                    "real",
+                    "core",
+                    [1910],
+                    "== 'exclusive'",
+                    "GUARD: default visual mapping selection policy",
+                    "allow"
+                ],
+                "vim.on_key": [
+                    "real",
+                    "core",
+                    [922, 939],
+                    "(callback,ns); (nil,ns)",
+                    "REQUIRED: built-in ?/f/t input cancellation observation",
+                    "allow"
+                ],
+                "vim.pesc": [
+                    "real",
+                    "core",
+                    [1116, 1116, 1326, 1326],
+                    "(left|right|identifier)",
+                    "REQUIRED: built-in ? and default surrounding patterns",
+                    "allow"
+                ],
+                "vim.split": [
+                    "real",
+                    "core",
+                    [2032],
+                    "(concatenatedText,'\\n')",
+                    "REQUIRED: multiline region replacement",
+                    "allow"
+                ],
+                "vim.str_byteindex": [
+                    "silent",
+                    "core",
+                    [1870, 1871],
+                    "(s,'utf-32',index); old (s,index)",
+                    "REQUIRED: add mark endpoint normalization; wrapper definitions do not call at load",
+                    "utf-byteindex"
+                ],
+                "vim.str_utfindex": [
+                    "silent",
+                    "core",
+                    [1867, 1868],
+                    "(s,'utf-32',byte); old (s,byte) returns UTF-32 AND UTF-16",
+                    "REQUIRED: add mark endpoint normalization; old form first return used by wrapper",
+                    "utf-utfindex"
+                ],
+                "vim.tbl_contains": [
+                    "real",
+                    "load",
+                    [1252],
+                    "(allowedMethods,method)",
+                    "REQUIRED: setup and action option validation",
+                    "allow"
+                ],
+                "vim.tbl_deep_extend": [
+                    "real",
+                    "load",
+                    [1034, 1164, 1247, 1378, 2259],
+                    "('force', defaults, overrides...)",
+                    "REQUIRED: setup/config/mapping options; OPTIONAL: 1034 treesitter generator",
+                    "allow"
+                ],
+                "vim.tbl_filter": [
+                    "real",
+                    "optional",
+                    [1500],
+                    "(predicate,outerMatches)",
+                    "OPTIONAL: external nvim-treesitter plugin results",
+                    "allow"
+                ],
+                "vim.tbl_isempty": [
+                    "real",
+                    "optional",
+                    [1529, 1529, 1535, 1535, 1553, 1553],
+                    "(matches|missingLanguages)",
+                    "OPTIONAL: treesitter generator",
+                    "allow"
+                ],
+                "vim.tbl_keys": [
+                    "real",
+                    "load",
+                    [1251, 1554],
+                    "(methods|missingLanguages)",
+                    "REQUIRED: setup validation; OPTIONAL: 1554 treesitter error",
+                    "allow"
+                ],
+                "vim.tbl_map": [
+                    "real",
+                    "load",
+                    [1064, 1255, 1314, 1505, 1508, 1624, 2311],
+                    "(callback,list), including vim.inspect as callback",
+                    "GUARD: setup validation error; REQUIRED: core pattern transforms; OPTIONAL: treesitter ranges",
+                    "allow"
+                ],
+                "vim.treesitter.get_parser": [
+                    "real",
+                    "optional",
+                    [1517],
+                    "pcall(fn,buf,nil,{error=false})",
+                    "OPTIONAL: builtin treesitter generator parser",
+                    "allow"
+                ],
+                "vim.treesitter.get_range": [
+                    "real",
+                    "optional",
+                    [1506, 1508, 1595],
+                    "(node,buf,metadata) -> one six-element range table",
+                    "OPTIONAL: both treesitter query backends",
+                    "treesitter-range-shape"
+                ],
+                "vim.treesitter.language.get_lang": [
+                    "real",
+                    "optional",
+                    [1618],
+                    "pcall(fn,filetype)",
+                    "GUARD: treesitter diagnostic language fallback",
+                    "allow"
+                ],
+                "vim.treesitter.query.get": [
+                    "real",
+                    "optional",
+                    [1562],
+                    "(lang,'textobjects')",
+                    "OPTIONAL: builtin treesitter generator named query",
+                    "allow"
+                ],
+                "vim.v.count1": [
+                    "real",
+                    "core",
+                    [742, 1268, 1284, 1472],
+                    "count number",
+                    "REQUIRED: default mapping count propagation",
+                    "allow"
+                ],
+                "vim.v.echospace": [
+                    "absent",
+                    "core",
+                    [2237],
+                    "number added to available echo width",
+                    "REQUIRED: failed-search feedback or delayed reminder; silent=false by default",
+                    "echospace"
+                ]
+            }
+        },
+        "mini.splitjoin": {
+            "path": "test-vault/lua/mini/splitjoin.lua",
+            "archivePath": "lua/mini/splitjoin.lua",
+            "sha256": "b9dfb867e26503417eae366b465a360684930caef8f7c12b3e5e6983c6229b96",
+            "requires": [],
+            "requireDisposition": "No executable requires; documentation examples excluded.",
+            "verdict": "BLOCKED",
+            "loadResult": "error:vim.keymap.set: string expr mappings are not supported (requires Vimscript evaluation). Use a Lua function instead: function() return vim.v.count == 0 and \"gk\" or \"k\" end",
+            "loadBlockers": ["string-expr-mapping"],
+            "coreBlockers": [
+                "local-comments",
+                "set-text-bytes",
+                "getpos-bytes",
+                "extmark-columns"
+            ],
+            "optionalBlockers": ["get-text-bytes"],
+            "demands": {
+                "vim.api.nvim_buf_clear_namespace": [
+                    "real",
+                    "core",
+                    [617, 658],
+                    "(0,ns,0,-1)",
+                    "REQUIRED: default gS split/join extmark cleanup",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_del_extmark": [
+                    "real",
+                    "core",
+                    [1021],
+                    "(0,ns,id)",
+                    "REQUIRED: tracked cursor cleanup",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_get_extmark_by_id": [
+                    "real",
+                    "core",
+                    [1009, 1019],
+                    "(0,ns,id,{}) -> {row,byteCol}",
+                    "REQUIRED: moving split/join positions and cursor",
+                    "extmark-columns"
+                ],
+                "vim.api.nvim_buf_get_lines": [
+                    "real",
+                    "core",
+                    [838, 846, 953, 1026],
+                    "(0,startRow,endRow,strict)",
+                    "REQUIRED: default neighborhood, joining and indentation",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_get_text": [
+                    "real",
+                    "optional",
+                    [930],
+                    "(0,startRow,startByte,endRow,endByte,{})",
+                    "OPTIONAL: H.is_positions_inside_brackets called only by nondefault generated hooks at 469/514/555",
+                    "get-text-bytes"
+                ],
+                "vim.api.nvim_buf_line_count": [
+                    "real",
+                    "core",
+                    [834],
+                    "(0)",
+                    "REQUIRED: join bounds",
+                    "allow"
+                ],
+                "vim.api.nvim_buf_set_extmark": [
+                    "real",
+                    "core",
+                    [1003],
+                    "(0,ns,row,byteCol,{})",
+                    "REQUIRED: default split/join tracked positions",
+                    "extmark-columns"
+                ],
+                "vim.api.nvim_buf_set_text": [
+                    "real",
+                    "core",
+                    [1116],
+                    "pcall(fn,0,startRow,startByte,endRow,endByte,replacement)",
+                    "REQUIRED: default splitting/joining and indentation",
+                    "set-text-bytes"
+                ],
+                "vim.api.nvim_create_namespace": [
+                    "real",
+                    "load",
+                    [730],
+                    "('MiniSplitjoin')",
+                    "REQUIRED: module top level",
+                    "allow"
+                ],
+                "vim.api.nvim_win_get_cursor": [
+                    "real",
+                    "core",
+                    [1014, 1121],
+                    "(0)",
+                    "REQUIRED: default region detection and cursor correction",
+                    "allow"
+                ],
+                "vim.api.nvim_win_set_cursor": [
+                    "real",
+                    "core",
+                    [1020, 1123],
+                    "(0,{line,byteCol})",
+                    "REQUIRED: tracked cursor and insertion-boundary correction",
+                    "allow"
+                ],
+                "vim.b.minisplitjoin_config": [
+                    "real",
+                    "core",
+                    [780],
+                    "buffer-local value or {}",
+                    "GUARD: default path reads optional overrides; unset nil is valid",
+                    "allow"
+                ],
+                "vim.b.minisplitjoin_disable": [
+                    "real",
+                    "core",
+                    [777],
+                    "== true",
+                    "GUARD: default mapping disable check; unset nil is valid",
+                    "allow"
+                ],
+                "vim.bo.commentstring": [
+                    "real",
+                    "core",
+                    [1063],
+                    "buffer-local option read",
+                    "REQUIRED: default comment-aware indentation",
+                    "allow"
+                ],
+                "vim.bo.expandtab": [
+                    "real",
+                    "core",
+                    [1033],
+                    "boolean option read",
+                    "REQUIRED: default indent unit",
+                    "allow"
+                ],
+                "vim.deepcopy": [
+                    "real",
+                    "load",
+                    [728, 738],
+                    "(config)",
+                    "REQUIRED: module defaults and setup copy",
+                    "allow"
+                ],
+                "vim.fn.col": [
+                    "real",
+                    "core",
+                    [677],
+                    "({lineNumber,'$'})",
+                    "REQUIRED: default visual linewise gS; Phase 3 delivered list form",
+                    "allow"
+                ],
+                "vim.fn.getline": [
+                    "real",
+                    "core",
+                    [347, 518, 559, 813, 818, 940],
+                    "(lineNumber)",
+                    "REQUIRED: default indentation; OPTIONAL: 518/559/940 generated hooks",
+                    "allow"
+                ],
+                "vim.fn.getpos": [
+                    "real",
+                    "core",
+                    [673, 673],
+                    "(\"'<\"), (\"'>\")",
+                    "REQUIRED: default visual gS; normal-only proposed cases do not cover this",
+                    "getpos-bytes"
+                ],
+                "vim.fn.shiftwidth": [
+                    "real",
+                    "core",
+                    [1033],
+                    "()",
+                    "REQUIRED: space indentation with expandtab",
+                    "allow"
+                ],
+                "vim.fn.visualmode": [
+                    "real",
+                    "core",
+                    [676],
+                    "() == 'V'",
+                    "REQUIRED: default visual gS selection policy",
+                    "allow"
+                ],
+                "vim.g.minisplitjoin_disable": [
+                    "real",
+                    "core",
+                    [777],
+                    "== true",
+                    "GUARD: global disable flag; unset nil is valid",
+                    "allow"
+                ],
+                "vim.is_callable": [
+                    "real",
+                    "optional",
+                    [1105],
+                    "(value) only if ref == 'callable'",
+                    "GUARD: generic type helper's dormant callable branch; current setup callers pass table/string, never callable",
+                    "allow"
+                ],
+                "vim.keymap.set": [
+                    "real",
+                    "load",
+                    [1112],
+                    "(mode,lhs,rhs,{expr,desc,silent})",
+                    "REQUIRED: setup default normal gS uses a Vimscript expression STRING; generic handler is real but rejects this required form",
+                    "string-expr-mapping"
+                ],
+                "vim.o.operatorfunc": [
+                    "real",
+                    "core",
+                    [722],
+                    "= 'v:lua.MiniSplitjoin.operator'",
+                    "REQUIRED: normal gS arms synchronous g@ callback",
+                    "allow"
+                ],
+                "vim.opt_local.comments": [
+                    "absent",
+                    "core",
+                    [1068],
+                    ":get() -> list of comment definitions",
+                    "REQUIRED: comment-aware indentation runs for ordinary split/join, not an opt-in hook",
+                    "local-comments"
+                ],
+                "vim.pesc": [
+                    "real",
+                    "core",
+                    [519, 560, 1049, 1096],
+                    "(separator|commentLeader)",
+                    "REQUIRED: default comment matching; OPTIONAL: 519/560 generated hooks",
+                    "allow"
+                ],
+                "vim.split": [
+                    "real",
+                    "core",
+                    [1063],
+                    "(commentstring,'%%s')",
+                    "REQUIRED: default comment leader extraction",
+                    "allow"
+                ],
+                "vim.tbl_deep_extend": [
+                    "real",
+                    "load",
+                    [738, 780, 800, 801, 1111],
+                    "('force',defaults,overrides...)",
+                    "REQUIRED: setup and default option resolution",
+                    "allow"
+                ],
+                "vim.tbl_extend": [
+                    "real",
+                    "core",
+                    [799],
+                    "('force',defaultDetect,configDetect,optsDetect)",
+                    "REQUIRED: shallow detection options",
+                    "allow"
+                ],
+                "vim.tbl_filter": [
+                    "real",
+                    "core",
+                    [908],
+                    "(predicate,separators)",
+                    "REQUIRED: skip nested/quoted separators",
+                    "allow"
+                ],
+                "vim.tbl_map": [
+                    "real",
+                    "core",
+                    [616, 657, 919, 1002],
+                    "(callback,positionsOrExtmarks)",
+                    "REQUIRED: default position tracking",
+                    "allow"
+                ],
+                "vim.trim": [
+                    "real",
+                    "core",
+                    [1065, 1072],
+                    "(commentLeader)",
+                    "REQUIRED: default comment-aware indentation",
+                    "allow"
+                ]
+            }
+        }
+    },
+    "blockers": {
+        "string-expr-mapping": {
+            "names": ["vim.keymap.set"],
+            "owner": "Deferred Vimscript string-expression mapping support",
+            "shim": "src/lua/api.ts:vim.keymap.set string expr rejection",
+            "fixture": "unmodified mini.splitjoin setup({}), mappings.toggle='gS'",
+            "call": "vim.keymap.set('n','gS','v:lua.MiniSplitjoin.operator(\"toggle\") . \" \"',{expr=true})",
+            "observed": "setup raises: string expr mappings are not supported (requires Vimscript evaluation)",
+            "required": "accept and evaluate the unmodified string expr mapping; replacing it with a Lua function is not plugin compatibility",
+            "test": "plugin API-demand audit mini.splitjoin (loadResult)"
+        },
+        "utf-byteindex": {
+            "names": ["vim.str_byteindex"],
+            "owner": "Phase 5b",
+            "shim": "src/lua/stdlib.ts:1055-1059",
+            "fixture": "S = é→𝄞界\tZ",
+            "call": "old (S,5); (S,'utf-16',5); (S,'utf-32',5)",
+            "observed": "0;0;0 with zero warnings",
+            "required": "13;12;13",
+            "test": "plugin API-demand audit category mini.surround vim.str_byteindex"
+        },
+        "utf-utfindex": {
+            "names": ["vim.str_utfindex"],
+            "owner": "Phase 5b",
+            "shim": "src/lua/stdlib.ts:1060-1064",
+            "fixture": "S = é→𝄞界\tZ",
+            "call": "old (S); old (S,13); (S,'utf-16',13); (S,'utf-32',13)",
+            "observed": "0;0;0;0, ONE value each and zero warnings",
+            "required": "6,7;5,6;6;5 (old forms return two values)",
+            "test": "plugin API-demand audit category mini.surround vim.str_utfindex"
+        },
+        "surround-highlight": {
+            "names": ["vim.highlight.range", "vim.hl.range"],
+            "owner": "Deferred highlighting compatibility",
+            "shim": "src/lua/namespace-stubs.ts:8-65; src/lua/fn.ts:207-248",
+            "fixture": "default sh mapping; has('nvim-0.11') == 0",
+            "call": "range(0,ns,'MiniSurround',{0,0},{0,1})",
+            "observed": "active vim.highlight.range absent; modern vim.hl.range emits one warning and no highlight",
+            "required": "working highlight range through active compatibility branch; changing version detection alone selects another placeholder",
+            "test": "plugin API-demand audit category mini.surround vim.highlight.range / vim.hl.range"
+        },
+        "echospace": {
+            "names": ["vim.v.echospace"],
+            "owner": "Deferred command-line geometry",
+            "shim": "src/lua/api.ts:1744-1863",
+            "fixture": "default silent=false feedback/reminder",
+            "call": "vim.o.columns * max(vim.o.cmdheight-1,0) + vim.v.echospace",
+            "observed": "nil member; arithmetic cannot use it",
+            "required": "usable numeric command-line echo capacity",
+            "test": "plugin API-demand audit category mini.surround vim.v.echospace"
+        },
+        "getchar-context": {
+            "names": ["vim.fn.getcharstr"],
+            "owner": "Deferred synchronous operator/input routing",
+            "shim": "src/lua/fn.ts:1647-1668; src/lua/api.ts:1173-1187; src/lua/coroutine-runner.ts:yieldWithPromise",
+            "fixture": "default sa/sd/sr operator calls H.user_surround_id at surround.lua:1975-1991",
+            "call": "pcall(vim.fn.getcharstr) from ordinary synchronous callback",
+            "observed": "async APIs can only be called from async-capable callbacks",
+            "required": "return the physically supplied identifier without replacing public mapping or mocking input",
+            "test": "plugin API-demand audit category mini.surround vim.fn.getcharstr"
+        },
+        "input-context-and-form": {
+            "names": ["vim.fn.input"],
+            "owner": "Deferred synchronous prompt routing and input dictionary form",
+            "shim": "src/lua/fn.ts:1704-1718",
+            "fixture": "default surrounding identifiers ?, f, t",
+            "call": "pcall(vim.fn.input,{prompt='audit: ',default='value'})",
+            "observed": "synchronous callback rejects async API; handler reads only positional strings, so dictionary prompt/default are discarded",
+            "required": "synchronous-path prompt result and dictionary prompt/default semantics",
+            "test": "plugin API-demand audit category mini.surround vim.fn.input"
+        },
+        "set-text-bytes": {
+            "names": ["vim.api.nvim_buf_set_text"],
+            "owner": "Separately approved adjacent byte-text boundary follow-up",
+            "shim": "src/lua/api.ts:3770-3791 replaceRange forwarding",
+            "fixture": "S = é→𝄞界\tZ",
+            "call": "nvim_buf_set_text(0,0,5,0,9,{'é'})",
+            "observed": "é→𝄞界é",
+            "required": "é→é界\tZ",
+            "test": "plugin API-demand audit category mini.surround / mini.splitjoin vim.api.nvim_buf_set_text"
+        },
+        "get-text-bytes": {
+            "names": ["vim.api.nvim_buf_get_text"],
+            "owner": "Separately approved adjacent byte-text boundary follow-up",
+            "shim": "src/lua/api.ts:2857-2901 get-text host slicing",
+            "fixture": "S = é→𝄞界\tZ",
+            "call": "nvim_buf_get_text(0,0,5,0,9,{})",
+            "observed": "['\tZ']",
+            "required": "['𝄞']",
+            "test": "plugin API-demand audit category mini.splitjoin vim.api.nvim_buf_get_text; OPTIONAL generated hooks only"
+        },
+        "getpos-bytes": {
+            "names": ["vim.fn.getpos"],
+            "owner": "Separately approved legacy position boundary follow-up",
+            "shim": "src/lua/fn.ts:753-783",
+            "fixture": "third S line; '< at host {line:2,ch:6}",
+            "call": "vim.fn.getpos(\"'<\")",
+            "observed": "[0,3,7,0]",
+            "required": "[0,3,14,0]",
+            "test": "plugin API-demand audit category mini.splitjoin vim.fn.getpos"
+        },
+        "extmark-columns": {
+            "names": [
+                "vim.api.nvim_buf_set_extmark",
+                "vim.api.nvim_buf_get_extmark_by_id"
+            ],
+            "owner": "Deferred extmark byte-coordinate follow-up; no extmark options changed",
+            "shim": "src/lua/extmarks.ts:383-387,498-543",
+            "fixture": "S = é→𝄞界\tZ; requested byte column 13",
+            "call": "set_extmark(0,ns,0,13,{}) then get_extmark_by_id(0,ns,id,{})",
+            "observed": "[0,7]: byte 13 is clamped as UTF-16 to line length 7",
+            "required": "[0,13] and underlying host offset 6",
+            "test": "plugin API-demand audit category mini.splitjoin vim.api.nvim_buf_set_extmark / vim.api.nvim_buf_get_extmark_by_id"
+        },
+        "local-comments": {
+            "names": ["vim.opt_local.comments"],
+            "owner": "Deferred local option proxy / comments option",
+            "shim": "src/lua/api.ts:1390-1735 (opt/o/go/bo/wo only; no opt_local)",
+            "fixture": "default gS comment-aware indentation",
+            "call": "vim.opt_local.comments:get()",
+            "observed": "opt_local absent; indexing fails",
+            "required": "local comments option proxy returning parsed comment definitions",
+            "test": "plugin API-demand audit category mini.splitjoin vim.opt_local.comments"
+        },
+        "treesitter-range-shape": {
+            "names": ["vim.treesitter.get_range"],
+            "owner": "Deferred treesitter result-shape compatibility",
+            "shim": "src/lua/treesitter/api.ts:247-265",
+            "fixture": "markdown root for x",
+            "call": "local range=vim.treesitter.get_range(node,0,{}); range[3]",
+            "observed": "six separate values 0,0,0,0,1,1; local range is a number",
+            "required": "one six-element range table as indexed by surround.lua:1596-1599",
+            "test": "plugin API-demand audit category mini.surround vim.treesitter.get_range; OPTIONAL generator only"
+        },
+        "external-treesitter": {
+            "names": [],
+            "owner": "Optional dependency installation and transitive audit",
+            "shim": "fixed test fixture manifest",
+            "fixture": "use_nvim_treesitter=true generator",
+            "call": "pcall(require,'nvim-treesitter') and pcall(require,'nvim-treesitter.query')",
+            "observed": "neither dependency installed in this fixture installation; backend falls back to built-in",
+            "required": "separate pinned transitive inventory before claiming support for the external backend",
+            "test": "plugin API-demand audit mini.surround dependency edges"
+        }
+    },
+    "liveResults": {
+        "vim.api.nvim_buf_clear_namespace": "0",
+        "vim.api.nvim_buf_del_extmark": "true",
+        "vim.api.nvim_buf_get_extmark_by_id": "[0,7]",
+        "vim.api.nvim_buf_get_lines": "[\"é→𝄞界\\tZ\"]",
+        "vim.api.nvim_buf_get_mark": "[3,13]",
+        "vim.api.nvim_buf_get_text": "[\"\\tZ\"]",
+        "vim.api.nvim_buf_line_count": "3",
+        "vim.api.nvim_buf_set_extmark": "[0,7]",
+        "vim.api.nvim_buf_set_text": "é→𝄞界é",
+        "vim.api.nvim_create_augroup": "1",
+        "vim.api.nvim_create_autocmd": "1",
+        "vim.api.nvim_create_namespace": "true",
+        "vim.api.nvim_echo": "nil",
+        "vim.api.nvim_get_current_buf": "0",
+        "vim.api.nvim_get_keymap": "zz",
+        "vim.api.nvim_set_hl": "true",
+        "vim.api.nvim_win_get_cursor": "[3,13]",
+        "vim.api.nvim_win_set_cursor": "[1,9]",
+        "vim.b.minisurround_config": "17",
+        "vim.b.minisurround_disable": "17",
+        "vim.b.minisplitjoin_config": "17",
+        "vim.b.minisplitjoin_disable": "17",
+        "vim.bo.commentstring": "%% %s %%",
+        "vim.bo.expandtab": "true",
+        "vim.bo.filetype": "markdown",
+        "vim.cmd": "dispatched",
+        "vim.deepcopy": "1",
+        "vim.defer_fn": "false",
+        "vim.fn.append": "inserted",
+        "vim.fn.col": "15",
+        "vim.fn.deletebufline": "0:2.0",
+        "vim.fn.getcharstr": "error:async APIs can only be called from async-capable callbacks",
+        "vim.fn.getline": "é→𝄞界\tZ",
+        "vim.fn.getpos": "[0,3,7,0]",
+        "vim.fn.has": "0.0:1.0",
+        "vim.fn.input": "error:async APIs can only be called from async-capable callbacks",
+        "vim.fn.nextnonblank": "3",
+        "vim.fn.shiftwidth": "2",
+        "vim.fn.strcharpart": "𝄞",
+        "vim.fn.strdisplaywidth": "9",
+        "vim.fn.visualmode": "v",
+        "vim.g.minisurround_disable": "17",
+        "vim.g.minisplitjoin_disable": "17",
+        "vim.highlight.range": "",
+        "vim.hl.range": "nil",
+        "vim.inspect": "{\n  x = 1\n}",
+        "vim.is_callable": "true:false",
+        "vim.islist": "true:false",
+        "vim.iter": "[1,2]",
+        "vim.keymap.set": "zz",
+        "vim.list_extend": "[1,2]",
+        "vim.o.cmdheight": "1",
+        "vim.o.columns": "80",
+        "vim.o.operatorfunc": "v:lua.MiniSurround.add",
+        "vim.o.selection": "inclusive",
+        "vim.on_key": "1",
+        "vim.opt_local.comments": "",
+        "vim.pesc": "%(x%)",
+        "vim.split": "[\"a\",\"b\"]",
+        "vim.str_byteindex": "0;0;0",
+        "vim.str_utfindex": "0;0;0;0",
+        "vim.tbl_contains": "true:false",
+        "vim.tbl_deep_extend": "{\"x\":1,\"y\":2}",
+        "vim.tbl_extend": "{\"a\":1,\"b\":2}",
+        "vim.tbl_filter": "[2]",
+        "vim.tbl_isempty": "true:false",
+        "vim.tbl_keys": "a,b",
+        "vim.tbl_map": "[2,3]",
+        "vim.treesitter.get_parser": "table",
+        "vim.treesitter.get_range": "0,0,0,0,1,1",
+        "vim.treesitter.language.get_lang": "markdown",
+        "vim.treesitter.query.get": "table",
+        "vim.trim": "x",
+        "vim.v.count1": "1",
+        "vim.v.echospace": ""
+    },
+    "liveEffects": {
+        "vim.cmd": ["echohl Question"],
+        "vim.api.nvim_echo": ["audit message"]
+    },
+    "silentInventory": {
+        "vim.paste": ["silent", "true:é→𝄞界\tZ", 0, "Deferred paste dispatch"],
+        "vim.deprecate": ["silent", "", 0, "Deferred deprecation notices"],
+        "vim.diff": ["silent", "", 0, "Deferred diff API"],
+        "vim.wait": ["silent", "false:1", 0, "Deferred condition polling"],
+        "vim.str_byteindex": ["silent", "0;0;0", 0, "Phase 5b"],
+        "vim.str_utfindex": ["silent", "0;0;0;0", 0, "Phase 5b"],
+        "vim.str_utf_start": ["silent", "0", 0, "Phase 5b"],
+        "vim.str_utf_end": ["silent", "0", 0, "Phase 5b"],
+        "vim.str_utf_pos": ["silent", "[]", 0, "Phase 5b"],
+        "vim.iconv": ["silent", "é", 0, "Deferred encoding API"],
+        "vim.uri_decode": ["silent", "a%20b", 0, "Deferred URI APIs"],
+        "vim.uri_encode": ["silent", "a b", 0, "Deferred URI APIs"],
+        "vim.uri_from_bufnr": ["silent", "", 0, "Deferred URI APIs"],
+        "vim.uri_from_fname": ["silent", "file:///a b", 0, "Deferred URI APIs"],
+        "vim.uri_to_bufnr": ["silent", "0", 0, "Deferred URI APIs"],
+        "vim.uri_to_fname": ["silent", "file:///a%20b", 0, "Deferred URI APIs"],
+        "vim.treesitter.get_captures_at_pos": [
+            "silent",
+            "[]",
+            0,
+            "Deferred treesitter highlighting"
+        ],
+        "vim.treesitter.get_captures_at_cursor": [
+            "silent",
+            "[]",
+            0,
+            "Deferred treesitter highlighting"
+        ],
+        "vim.treesitter.start": [
+            "silent",
+            "nil",
+            0,
+            "Deferred treesitter highlighting"
+        ],
+        "vim.treesitter.stop": [
+            "silent",
+            "",
+            0,
+            "Deferred treesitter highlighting"
+        ],
+        "vim.treesitter.foldexpr": [
+            "silent",
+            "0",
+            0,
+            "Deferred treesitter folds"
+        ],
+        "vim.treesitter.select": ["silent", "", 0, "Deferred treesitter UI"],
+        "vim.treesitter.inspect_tree": [
+            "silent",
+            "",
+            0,
+            "Deferred treesitter UI"
+        ],
+        "vim.treesitter.query.add_directive": [
+            "silent",
+            "0",
+            0,
+            "Deferred Lua directive callbacks"
+        ],
+        "vim.treesitter.query.edit": ["silent", "", 0, "Deferred query UI"],
+        "vim.treesitter.query.lint": [
+            "silent",
+            "[]",
+            0,
+            "Deferred query diagnostics"
+        ],
+        "vim.treesitter.query.omnifunc": [
+            "silent",
+            "0",
+            0,
+            "Deferred query completion"
+        ],
+        "io.read": ["silent", "nil", 0, "Deferred stdin; not plugin demand"],
+        "io.tmpfile": ["silent", "", 0, "Deferred I/O; not plugin demand"],
+        "io.input": ["silent", "", 0, "Deferred I/O; not plugin demand"],
+        "io.output": ["silent", "", 0, "Deferred I/O; not plugin demand"]
+    },
+    "intentionalConstantCandidates": {
+        "src/lua/api.ts#nvim_get_current_buf": "Current buffer identity is handle 0 in this single-buffer model.",
+        "src/lua/api.ts#nvim_get_current_tabpage": "Current tabpage identity is handle 0 in this single-window model.",
+        "src/lua/api.ts#nvim_get_current_win": "Current window identity is handle 0 in this single-window model.",
+        "src/lua/io-shim.ts#flush": "File writes are synchronous write-through: there is no pending buffered data to flush.",
+        "src/lua/stdlib.ts#vim.empty_dict": "Creates a new empty table; dictionary JSON marker fidelity is separate from an inert callable placeholder.",
+        "src/lua/stdlib.ts#vim.in_fast_event": "This host exposes no Neovim libuv fast-event Lua callbacks.",
+        "src/lua/ui-api.ts#progress_status": "No progress producers exist in this host; empty status is the valid no-progress result."
+    }
+}

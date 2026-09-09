@@ -5,6 +5,11 @@
         "files": ["lua/mini/comment.lua"]
     },
     {
+        "repo": "nvim-mini/mini.nvim",
+        "ref": "25f25d3e6661d942323e56711096de1850d814ec",
+        "files": ["lua/mini/surround.lua", "lua/mini/splitjoin.lua"]
+    },
+    {
         "repo": "folke/flash.nvim",
         "ref": "5f0f270fdc7c5b0c21d903ee85b9cb06f2ac636a",
         "dirs": ["lua/flash"]
