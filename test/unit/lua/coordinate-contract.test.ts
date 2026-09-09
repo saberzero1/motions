@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EditorState } from '@codemirror/state';
+import type { CmAdapter } from '../../../src/types/vim-api';
 import { destroyState } from '../../../src/lua/engine';
 import { buildCharSpans, utf8Length } from '../../../src/lua/coordinates';
 import {
@@ -15,6 +17,191 @@ import {
     runLuaError,
     readBuffer,
 } from './coordinate-harness';
+
+describe('coordinate contract Windows', () => {
+    let state: ReturnType<typeof createCoordinateState>;
+    const names = [
+        'nvim_win_is_valid',
+        'nvim_win_get_width',
+        'nvim_win_get_height',
+        'nvim_win_get_position',
+        'nvim_win_get_number',
+    ];
+    function geometryAdapter() {
+        const editorState = EditorState.create({ doc: COORD_LINES.join('\n') });
+        return {
+            cm6: {
+                state: editorState,
+                visibleRanges: [{ from: 0, to: editorState.doc.length }],
+                viewport: { from: 0, to: editorState.doc.length },
+                viewportLineBlocks: [],
+                documentTop: 0,
+                defaultCharacterWidth: 8,
+                defaultLineHeight: 20,
+                scrollDOM: {
+                    clientTop: 0,
+                    clientWidth: 640,
+                    clientHeight: 200,
+                    getBoundingClientRect: () => ({ top: 0 }),
+                },
+                dom: { querySelector: () => null },
+            },
+            lastLine: () => 2,
+        };
+    }
+    beforeEach(() => {
+        state = createCoordinateState(COORD_LINES);
+        state.host.cm = geometryAdapter() as unknown as CmAdapter;
+    });
+    afterEach(() => {
+        destroyState(state.L);
+        vi.restoreAllMocks();
+    });
+
+    it.each([
+        ['valid', 'tostring(vim.api.nvim_win_is_valid(0))', 'true'],
+        [
+            'position',
+            "'[' .. table.concat(vim.api.nvim_win_get_position(0), ',') .. ']'",
+            '[0,0]',
+        ],
+        [
+            'identity',
+            "table.concat({vim.fn.win_getid(), vim.api.nvim_win_get_number(0), table.unpack(vim.api.nvim_win_get_position(0))}, ',')",
+            '0,1,0,0',
+        ],
+    ])('handle zero has one ordinal [%s]', (_name, expression, expected) => {
+        expect(runLuaString(state.L, `return ${expression}`)).toBe(expected);
+    });
+    it.each([
+        ['win_getid()', 0],
+        ['win_getid(1)', 0],
+        ['win_getid(1,1)', 0],
+        ['win_getid(2)', 0],
+        ['win_getid(1,2)', 0],
+        ['win_getid(0)', 0],
+        ['winnr()', 1],
+        ["winnr('$')", 1],
+        ["winnr('#')", 0],
+    ] as const)('handle zero has one ordinal [%s]', (expression, expected) => {
+        expect(runLuaNumber(state.L, `return vim.fn.${expression}`)).toBe(
+            expected,
+        );
+    });
+    it.each([
+        ...names.map((name) => `vim.api.${name}(0)`),
+        'vim.fn.win_getid()',
+        'vim.fn.winnr()',
+    ])('handle zero has one ordinal [no stub warning %s]', (expression) => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        runLuaString(state.L, `${expression}; return 'done'`);
+        expect(warn.mock.calls.length).toBe(0);
+    });
+    it.each(['api', 'getwininfo'])(
+        'geometry is live cells not pixels [%s]',
+        (source) => {
+            const adapter = geometryAdapter();
+            state.host.cm = adapter as unknown as CmAdapter;
+            const measure = () =>
+                source === 'api'
+                    ? [
+                          runLuaNumber(
+                              state.L,
+                              'return vim.api.nvim_win_get_width(0)',
+                          ),
+                          runLuaNumber(
+                              state.L,
+                              'return vim.api.nvim_win_get_height(0)',
+                          ),
+                      ]
+                    : [
+                          runLuaNumber(
+                              state.L,
+                              'return vim.fn.getwininfo(0)[1].width',
+                          ),
+                          runLuaNumber(
+                              state.L,
+                              'return vim.fn.getwininfo(0)[1].height',
+                          ),
+                      ];
+            const before = measure();
+            adapter.cm6.scrollDOM.clientWidth = 400;
+            adapter.cm6.scrollDOM.clientHeight = 120;
+            expect([...before, ...measure()]).toEqual([80, 10, 50, 6]);
+        },
+    );
+    it.each([-1, 1])('nonzero handles stay invalid [validity %s]', (handle) => {
+        expect(
+            runLuaString(
+                state.L,
+                `return tostring(vim.api.nvim_win_is_valid(${handle}))`,
+            ),
+        ).toBe('false');
+    });
+    it.each(
+        names
+            .slice(1)
+            .flatMap((name) =>
+                [-1, 1].map((handle) => [name, handle] as const),
+            ),
+    )('nonzero handles stay invalid [%s %s]', (name, handle) => {
+        expect(
+            runLuaError(state.L, `return vim.api.${name}(${handle})`),
+        ).toContain('window numbers other than 0');
+    });
+    it.each(
+        names.flatMap((name) =>
+            ['', '0,0'].map((args) => [name, args] as const),
+        ),
+    )('handle zero has one ordinal [arity %s(%s)]', (name, args) => {
+        expect(
+            runLuaError(state.L, `return vim.api.${name}(${args})`),
+        ).toContain('expected 1 argument');
+    });
+    it.each(
+        names.flatMap((name) =>
+            ['nil', 'true', "'0'", '{}', '0.5'].map(
+                (arg) => [name, arg] as const,
+            ),
+        ),
+    )('handle zero has one ordinal [type %s(%s)]', (name, arg) => {
+        expect(
+            runLuaError(state.L, `return vim.api.${name}(${arg})`),
+        ).toContain('expected integer window number');
+    });
+    it.each([
+        ['win_getid(1,1,1)', 'expected at most 2 arguments'],
+        ['winnr("$",1)', 'expected at most 1 argument'],
+        ['win_getid(true)', 'expected integer ordinal'],
+        ['win_getid(1,{})', 'expected integer ordinal'],
+        ['win_getid(1.5)', 'expected integer ordinal'],
+        ['winnr({})', 'expected window expression'],
+        ['winnr("invalid")', 'invalid window expression'],
+    ])(
+        'handle zero has one ordinal [fn validation %s]',
+        (expression, expected) => {
+            expect(
+                runLuaError(state.L, `return vim.fn.${expression}`),
+            ).toContain(expected);
+        },
+    );
+    it('missing editor has no measurable geometry [dimensions]', () => {
+        state.host.cm = null;
+        expect([
+            runLuaNumber(state.L, 'return vim.api.nvim_win_get_width(0)'),
+            runLuaNumber(state.L, 'return vim.api.nvim_win_get_height(0)'),
+        ]).toEqual([0, 0]);
+    });
+    it('missing editor has no measurable geometry [identity]', () => {
+        state.host.cm = null;
+        expect(
+            runLuaString(
+                state.L,
+                "return tostring(vim.api.nvim_win_is_valid(0)) .. ':' .. table.concat({vim.fn.win_getid(), vim.fn.winnr(), vim.api.nvim_win_get_number(0), table.unpack(vim.api.nvim_win_get_position(0))}, ',')",
+            ),
+        ).toBe('true:0,1,1,0,0');
+    });
+});
 
 describe('coordinate contract A1', () => {
     let state: ReturnType<typeof createCoordinateState>;

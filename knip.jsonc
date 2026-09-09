@@ -6,6 +6,8 @@
         "test/**/*.test.ts",
         "test/specs/**/*.e2e.ts",
         "test/neovim/record-golden.ts",
+        // Invoked directly by Phase 2 QA via tsx, not imported by tests.
+        "test/neovim/coordinate-oracle.ts",
         "test/neovim/smoke.ts",
         "test/coverage-report.ts",
         "esbuild.config.mjs",

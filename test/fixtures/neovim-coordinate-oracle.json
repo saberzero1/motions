@@ -1,0 +1,1964 @@
+{
+    "profiles": [
+        {
+            "boundaries": [
+                {
+                    "byte": 0,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": {
+                        "cells": [1, 1],
+                        "charcol": 1,
+                        "col": 1,
+                        "virtcol": 1
+                    },
+                    "virtcol": 1,
+                    "virtcol2col": [1, 1]
+                },
+                {
+                    "byte": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": {
+                        "cells": [2, 2],
+                        "charcol": 2,
+                        "col": 3,
+                        "virtcol": 2
+                    },
+                    "virtcol": 2,
+                    "virtcol2col": [3, 3]
+                },
+                {
+                    "byte": 5,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": {
+                        "cells": [3, 3],
+                        "charcol": 3,
+                        "col": 6,
+                        "virtcol": 3
+                    },
+                    "virtcol": 3,
+                    "virtcol2col": [6, 6]
+                },
+                {
+                    "byte": 9,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": {
+                        "cells": [4, 5],
+                        "charcol": 4,
+                        "col": 10,
+                        "virtcol": 5
+                    },
+                    "virtcol": 5,
+                    "virtcol2col": [10, 10]
+                },
+                {
+                    "byte": 12,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": {
+                        "cells": [6, 8],
+                        "charcol": 5,
+                        "col": 13,
+                        "virtcol": 8
+                    },
+                    "virtcol": 8,
+                    "virtcol2col": [13, 13]
+                },
+                {
+                    "byte": 13,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": {
+                        "cells": [9, 9],
+                        "charcol": 6,
+                        "col": 14,
+                        "virtcol": 9
+                    },
+                    "virtcol": 9,
+                    "virtcol2col": [14, 14]
+                },
+                {
+                    "byte": 14,
+                    "cells": [10, 10],
+                    "charcol": 0,
+                    "col": 15,
+                    "expressions": {
+                        "cells": [10, 10],
+                        "charcol": 7,
+                        "col": 15,
+                        "virtcol": 10
+                    },
+                    "virtcol": 10,
+                    "virtcol2col": [14, 14]
+                }
+            ],
+            "expressions": {
+                "cells_eol": [10, 10],
+                "charcol_eol": 7,
+                "col_eol": 15,
+                "virtcol_eol": 10
+            },
+            "name": "base",
+            "occupied": [
+                {
+                    "byte_col": 1,
+                    "cell": 1,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": { "charcol": 1, "col": 1 },
+                    "virtcol": 1
+                },
+                {
+                    "byte_col": 3,
+                    "cell": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": { "charcol": 2, "col": 3 },
+                    "virtcol": 2
+                },
+                {
+                    "byte_col": 6,
+                    "cell": 3,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": { "charcol": 3, "col": 6 },
+                    "virtcol": 3
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 4,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 5,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 6,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 7,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 8,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 9,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 9
+                }
+            ],
+            "options": {
+                "ambiwidth": "single",
+                "breakindent": false,
+                "display": "lastline",
+                "fileformat": "unix",
+                "foldcolumn": "0",
+                "linebreak": false,
+                "list": false,
+                "listchars": "tab:>-",
+                "number": false,
+                "relativenumber": false,
+                "showbreak": "",
+                "signcolumn": "no",
+                "tabstop": 8,
+                "virtualedit": "onemore",
+                "width": 80,
+                "wrap": true
+            },
+            "text": "é→𝄞界\tZ"
+        },
+        {
+            "boundaries": [
+                {
+                    "byte": 0,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": {
+                        "cells": [1, 1],
+                        "charcol": 1,
+                        "col": 1,
+                        "virtcol": 1
+                    },
+                    "virtcol": 1,
+                    "virtcol2col": [1, 1]
+                },
+                {
+                    "byte": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": {
+                        "cells": [2, 2],
+                        "charcol": 2,
+                        "col": 3,
+                        "virtcol": 2
+                    },
+                    "virtcol": 2,
+                    "virtcol2col": [3, 3]
+                },
+                {
+                    "byte": 5,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": {
+                        "cells": [3, 3],
+                        "charcol": 3,
+                        "col": 6,
+                        "virtcol": 3
+                    },
+                    "virtcol": 3,
+                    "virtcol2col": [6, 6]
+                },
+                {
+                    "byte": 9,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": {
+                        "cells": [4, 5],
+                        "charcol": 4,
+                        "col": 10,
+                        "virtcol": 5
+                    },
+                    "virtcol": 5,
+                    "virtcol2col": [10, 10]
+                },
+                {
+                    "byte": 12,
+                    "cells": [6, 6],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": {
+                        "cells": [6, 6],
+                        "charcol": 5,
+                        "col": 13,
+                        "virtcol": 6
+                    },
+                    "virtcol": 6,
+                    "virtcol2col": [13, 13]
+                },
+                {
+                    "byte": 13,
+                    "cells": [7, 7],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": {
+                        "cells": [7, 7],
+                        "charcol": 6,
+                        "col": 14,
+                        "virtcol": 7
+                    },
+                    "virtcol": 7,
+                    "virtcol2col": [14, 14]
+                },
+                {
+                    "byte": 14,
+                    "cells": [8, 8],
+                    "charcol": 0,
+                    "col": 15,
+                    "expressions": {
+                        "cells": [8, 8],
+                        "charcol": 7,
+                        "col": 15,
+                        "virtcol": 8
+                    },
+                    "virtcol": 8,
+                    "virtcol2col": [14, 14]
+                }
+            ],
+            "expressions": {
+                "cells_eol": [8, 8],
+                "charcol_eol": 7,
+                "col_eol": 15,
+                "virtcol_eol": 8
+            },
+            "name": "tabstop-2",
+            "occupied": [
+                {
+                    "byte_col": 1,
+                    "cell": 1,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": { "charcol": 1, "col": 1 },
+                    "virtcol": 1
+                },
+                {
+                    "byte_col": 3,
+                    "cell": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": { "charcol": 2, "col": 3 },
+                    "virtcol": 2
+                },
+                {
+                    "byte_col": 6,
+                    "cell": 3,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": { "charcol": 3, "col": 6 },
+                    "virtcol": 3
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 4,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 5,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 6,
+                    "cells": [6, 6],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 6
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 7,
+                    "cells": [7, 7],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 7
+                }
+            ],
+            "options": {
+                "ambiwidth": "single",
+                "breakindent": false,
+                "display": "lastline",
+                "fileformat": "unix",
+                "foldcolumn": "0",
+                "linebreak": false,
+                "list": false,
+                "listchars": "tab:>-",
+                "number": false,
+                "relativenumber": false,
+                "showbreak": "",
+                "signcolumn": "no",
+                "tabstop": 2,
+                "virtualedit": "onemore",
+                "width": 80,
+                "wrap": true
+            },
+            "text": "é→𝄞界\tZ"
+        },
+        {
+            "boundaries": [
+                {
+                    "byte": 0,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": {
+                        "cells": [1, 1],
+                        "charcol": 1,
+                        "col": 1,
+                        "virtcol": 1
+                    },
+                    "virtcol": 1,
+                    "virtcol2col": [1, 1]
+                },
+                {
+                    "byte": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": {
+                        "cells": [2, 2],
+                        "charcol": 2,
+                        "col": 3,
+                        "virtcol": 2
+                    },
+                    "virtcol": 2,
+                    "virtcol2col": [3, 3]
+                },
+                {
+                    "byte": 5,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": {
+                        "cells": [3, 3],
+                        "charcol": 3,
+                        "col": 6,
+                        "virtcol": 3
+                    },
+                    "virtcol": 3,
+                    "virtcol2col": [6, 6]
+                },
+                {
+                    "byte": 9,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": {
+                        "cells": [4, 5],
+                        "charcol": 4,
+                        "col": 10,
+                        "virtcol": 5
+                    },
+                    "virtcol": 5,
+                    "virtcol2col": [10, 10]
+                },
+                {
+                    "byte": 12,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": {
+                        "cells": [6, 8],
+                        "charcol": 5,
+                        "col": 13,
+                        "virtcol": 8
+                    },
+                    "virtcol": 8,
+                    "virtcol2col": [13, 13]
+                },
+                {
+                    "byte": 13,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": {
+                        "cells": [9, 9],
+                        "charcol": 6,
+                        "col": 14,
+                        "virtcol": 9
+                    },
+                    "virtcol": 9,
+                    "virtcol2col": [14, 14]
+                },
+                {
+                    "byte": 14,
+                    "cells": [10, 10],
+                    "charcol": 0,
+                    "col": 15,
+                    "expressions": {
+                        "cells": [10, 10],
+                        "charcol": 7,
+                        "col": 15,
+                        "virtcol": 10
+                    },
+                    "virtcol": 10,
+                    "virtcol2col": [14, 14]
+                }
+            ],
+            "expressions": {
+                "cells_eol": [10, 10],
+                "charcol_eol": 7,
+                "col_eol": 15,
+                "virtcol_eol": 10
+            },
+            "name": "list-tab-glyph",
+            "occupied": [
+                {
+                    "byte_col": 1,
+                    "cell": 1,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": { "charcol": 1, "col": 1 },
+                    "virtcol": 1
+                },
+                {
+                    "byte_col": 3,
+                    "cell": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": { "charcol": 2, "col": 3 },
+                    "virtcol": 2
+                },
+                {
+                    "byte_col": 6,
+                    "cell": 3,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": { "charcol": 3, "col": 6 },
+                    "virtcol": 3
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 4,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 5,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 6,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 7,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 8,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 9,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 9
+                }
+            ],
+            "options": {
+                "ambiwidth": "single",
+                "breakindent": false,
+                "display": "lastline",
+                "fileformat": "unix",
+                "foldcolumn": "0",
+                "linebreak": false,
+                "list": true,
+                "listchars": "tab:>-",
+                "number": false,
+                "relativenumber": false,
+                "showbreak": "",
+                "signcolumn": "no",
+                "tabstop": 8,
+                "virtualedit": "onemore",
+                "width": 80,
+                "wrap": true
+            },
+            "text": "é→𝄞界\tZ"
+        },
+        {
+            "boundaries": [
+                {
+                    "byte": 0,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": {
+                        "cells": [1, 1],
+                        "charcol": 1,
+                        "col": 1,
+                        "virtcol": 1
+                    },
+                    "virtcol": 1,
+                    "virtcol2col": [1, 1]
+                },
+                {
+                    "byte": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": {
+                        "cells": [2, 2],
+                        "charcol": 2,
+                        "col": 3,
+                        "virtcol": 2
+                    },
+                    "virtcol": 2,
+                    "virtcol2col": [3, 3]
+                },
+                {
+                    "byte": 5,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": {
+                        "cells": [3, 3],
+                        "charcol": 3,
+                        "col": 6,
+                        "virtcol": 3
+                    },
+                    "virtcol": 3,
+                    "virtcol2col": [6, 6]
+                },
+                {
+                    "byte": 9,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": {
+                        "cells": [4, 5],
+                        "charcol": 4,
+                        "col": 10,
+                        "virtcol": 5
+                    },
+                    "virtcol": 5,
+                    "virtcol2col": [10, 10]
+                },
+                {
+                    "byte": 12,
+                    "cells": [6, 7],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": {
+                        "cells": [6, 7],
+                        "charcol": 5,
+                        "col": 13,
+                        "virtcol": 7
+                    },
+                    "virtcol": 7,
+                    "virtcol2col": [13, 13]
+                },
+                {
+                    "byte": 13,
+                    "cells": [8, 8],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": {
+                        "cells": [8, 8],
+                        "charcol": 6,
+                        "col": 14,
+                        "virtcol": 8
+                    },
+                    "virtcol": 8,
+                    "virtcol2col": [14, 14]
+                },
+                {
+                    "byte": 14,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 15,
+                    "expressions": {
+                        "cells": [9, 9],
+                        "charcol": 7,
+                        "col": 15,
+                        "virtcol": 9
+                    },
+                    "virtcol": 9,
+                    "virtcol2col": [14, 14]
+                }
+            ],
+            "expressions": {
+                "cells_eol": [9, 9],
+                "charcol_eol": 7,
+                "col_eol": 15,
+                "virtcol_eol": 9
+            },
+            "name": "list-no-tab-glyph",
+            "occupied": [
+                {
+                    "byte_col": 1,
+                    "cell": 1,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": { "charcol": 1, "col": 1 },
+                    "virtcol": 1
+                },
+                {
+                    "byte_col": 3,
+                    "cell": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": { "charcol": 2, "col": 3 },
+                    "virtcol": 2
+                },
+                {
+                    "byte_col": 6,
+                    "cell": 3,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": { "charcol": 3, "col": 6 },
+                    "virtcol": 3
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 4,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 5,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 6,
+                    "cells": [6, 7],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 7
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 7,
+                    "cells": [6, 7],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 7
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 8,
+                    "cells": [8, 8],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 8
+                }
+            ],
+            "options": {
+                "ambiwidth": "single",
+                "breakindent": false,
+                "display": "lastline",
+                "fileformat": "unix",
+                "foldcolumn": "0",
+                "linebreak": false,
+                "list": true,
+                "listchars": "trail:-",
+                "number": false,
+                "relativenumber": false,
+                "showbreak": "",
+                "signcolumn": "no",
+                "tabstop": 8,
+                "virtualedit": "onemore",
+                "width": 80,
+                "wrap": true
+            },
+            "text": "é→𝄞界\tZ"
+        },
+        {
+            "boundaries": [
+                {
+                    "byte": 0,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": {
+                        "cells": [1, 1],
+                        "charcol": 1,
+                        "col": 1,
+                        "virtcol": 1
+                    },
+                    "virtcol": 1,
+                    "virtcol2col": [1, 1]
+                },
+                {
+                    "byte": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": {
+                        "cells": [2, 2],
+                        "charcol": 2,
+                        "col": 3,
+                        "virtcol": 2
+                    },
+                    "virtcol": 2,
+                    "virtcol2col": [3, 3]
+                },
+                {
+                    "byte": 5,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": {
+                        "cells": [3, 3],
+                        "charcol": 3,
+                        "col": 6,
+                        "virtcol": 3
+                    },
+                    "virtcol": 3,
+                    "virtcol2col": [6, 6]
+                },
+                {
+                    "byte": 9,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": {
+                        "cells": [4, 5],
+                        "charcol": 4,
+                        "col": 10,
+                        "virtcol": 5
+                    },
+                    "virtcol": 5,
+                    "virtcol2col": [10, 10]
+                },
+                {
+                    "byte": 12,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": {
+                        "cells": [6, 8],
+                        "charcol": 5,
+                        "col": 13,
+                        "virtcol": 8
+                    },
+                    "virtcol": 8,
+                    "virtcol2col": [13, 13]
+                },
+                {
+                    "byte": 13,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": {
+                        "cells": [9, 9],
+                        "charcol": 6,
+                        "col": 14,
+                        "virtcol": 9
+                    },
+                    "virtcol": 9,
+                    "virtcol2col": [14, 14]
+                },
+                {
+                    "byte": 14,
+                    "cells": [10, 10],
+                    "charcol": 0,
+                    "col": 15,
+                    "expressions": {
+                        "cells": [10, 10],
+                        "charcol": 7,
+                        "col": 15,
+                        "virtcol": 10
+                    },
+                    "virtcol": 10,
+                    "virtcol2col": [14, 14]
+                }
+            ],
+            "expressions": {
+                "cells_eol": [10, 10],
+                "charcol_eol": 7,
+                "col_eol": 15,
+                "virtcol_eol": 10
+            },
+            "name": "nowrap",
+            "occupied": [
+                {
+                    "byte_col": 1,
+                    "cell": 1,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": { "charcol": 1, "col": 1 },
+                    "virtcol": 1
+                },
+                {
+                    "byte_col": 3,
+                    "cell": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": { "charcol": 2, "col": 3 },
+                    "virtcol": 2
+                },
+                {
+                    "byte_col": 6,
+                    "cell": 3,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": { "charcol": 3, "col": 6 },
+                    "virtcol": 3
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 4,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 5,
+                    "cells": [4, 5],
+                    "charcol": 0,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 6,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 7,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 8,
+                    "cells": [6, 8],
+                    "charcol": 0,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 9,
+                    "cells": [9, 9],
+                    "charcol": 0,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 9
+                }
+            ],
+            "options": {
+                "ambiwidth": "single",
+                "breakindent": false,
+                "display": "lastline",
+                "fileformat": "unix",
+                "foldcolumn": "0",
+                "linebreak": false,
+                "list": false,
+                "listchars": "tab:>-",
+                "number": false,
+                "relativenumber": false,
+                "showbreak": "",
+                "signcolumn": "no",
+                "tabstop": 8,
+                "virtualedit": "onemore",
+                "width": 80,
+                "wrap": false
+            },
+            "text": "é→𝄞界\tZ"
+        },
+        {
+            "boundaries": [
+                {
+                    "byte": 0,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": {
+                        "cells": [1, 1],
+                        "charcol": 1,
+                        "col": 1,
+                        "virtcol": 1
+                    },
+                    "virtcol": 1,
+                    "virtcol2col": [1, 1]
+                },
+                {
+                    "byte": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": {
+                        "cells": [2, 2],
+                        "charcol": 2,
+                        "col": 3,
+                        "virtcol": 2
+                    },
+                    "virtcol": 2,
+                    "virtcol2col": [3, 3]
+                },
+                {
+                    "byte": 5,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": {
+                        "cells": [3, 3],
+                        "charcol": 3,
+                        "col": 6,
+                        "virtcol": 3
+                    },
+                    "virtcol": 3,
+                    "virtcol2col": [6, 6]
+                },
+                {
+                    "byte": 9,
+                    "cells": [4, 5],
+                    "charcol": 10,
+                    "col": 10,
+                    "expressions": {
+                        "cells": [4, 5],
+                        "charcol": 4,
+                        "col": 10,
+                        "virtcol": 5
+                    },
+                    "virtcol": 5,
+                    "virtcol2col": [10, 10]
+                },
+                {
+                    "byte": 12,
+                    "cells": [6, 8],
+                    "charcol": 13,
+                    "col": 13,
+                    "expressions": {
+                        "cells": [6, 8],
+                        "charcol": 5,
+                        "col": 13,
+                        "virtcol": 8
+                    },
+                    "virtcol": 8,
+                    "virtcol2col": [13, 13]
+                },
+                {
+                    "byte": 13,
+                    "cells": [11, 11],
+                    "charcol": 14,
+                    "col": 14,
+                    "expressions": {
+                        "cells": [11, 11],
+                        "charcol": 6,
+                        "col": 14,
+                        "virtcol": 11
+                    },
+                    "virtcol": 11,
+                    "virtcol2col": [14, 14]
+                },
+                {
+                    "byte": 14,
+                    "cells": [12, 12],
+                    "charcol": 15,
+                    "col": 15,
+                    "expressions": {
+                        "cells": [12, 12],
+                        "charcol": 7,
+                        "col": 15,
+                        "virtcol": 12
+                    },
+                    "virtcol": 12,
+                    "virtcol2col": [15, 15]
+                },
+                {
+                    "byte": 16,
+                    "cells": [13, 13],
+                    "charcol": 17,
+                    "col": 17,
+                    "expressions": {
+                        "cells": [13, 13],
+                        "charcol": 8,
+                        "col": 17,
+                        "virtcol": 13
+                    },
+                    "virtcol": 13,
+                    "virtcol2col": [17, 17]
+                },
+                {
+                    "byte": 19,
+                    "cells": [14, 14],
+                    "charcol": 20,
+                    "col": 20,
+                    "expressions": {
+                        "cells": [14, 14],
+                        "charcol": 9,
+                        "col": 20,
+                        "virtcol": 14
+                    },
+                    "virtcol": 14,
+                    "virtcol2col": [20, 20]
+                },
+                {
+                    "byte": 23,
+                    "cells": [15, 16],
+                    "charcol": 24,
+                    "col": 24,
+                    "expressions": {
+                        "cells": [15, 16],
+                        "charcol": 10,
+                        "col": 24,
+                        "virtcol": 16
+                    },
+                    "virtcol": 16,
+                    "virtcol2col": [24, 24]
+                },
+                {
+                    "byte": 26,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": {
+                        "cells": [19, 28],
+                        "charcol": 11,
+                        "col": 27,
+                        "virtcol": 28
+                    },
+                    "virtcol": 28,
+                    "virtcol2col": [27, 27]
+                },
+                {
+                    "byte": 27,
+                    "cells": [29, 29],
+                    "charcol": 0,
+                    "col": 28,
+                    "expressions": {
+                        "cells": [29, 29],
+                        "charcol": 12,
+                        "col": 28,
+                        "virtcol": 29
+                    },
+                    "virtcol": 29,
+                    "virtcol2col": [28, 28]
+                },
+                {
+                    "byte": 28,
+                    "cells": [30, 30],
+                    "charcol": 0,
+                    "col": 29,
+                    "expressions": {
+                        "cells": [30, 30],
+                        "charcol": 13,
+                        "col": 29,
+                        "virtcol": 30
+                    },
+                    "virtcol": 30,
+                    "virtcol2col": [29, 29]
+                },
+                {
+                    "byte": 30,
+                    "cells": [31, 31],
+                    "charcol": 0,
+                    "col": 31,
+                    "expressions": {
+                        "cells": [31, 31],
+                        "charcol": 14,
+                        "col": 31,
+                        "virtcol": 31
+                    },
+                    "virtcol": 31,
+                    "virtcol2col": [31, 31]
+                },
+                {
+                    "byte": 33,
+                    "cells": [32, 32],
+                    "charcol": 0,
+                    "col": 34,
+                    "expressions": {
+                        "cells": [32, 32],
+                        "charcol": 15,
+                        "col": 34,
+                        "virtcol": 32
+                    },
+                    "virtcol": 32,
+                    "virtcol2col": [34, 34]
+                },
+                {
+                    "byte": 37,
+                    "cells": [35, 36],
+                    "charcol": 0,
+                    "col": 38,
+                    "expressions": {
+                        "cells": [35, 36],
+                        "charcol": 16,
+                        "col": 38,
+                        "virtcol": 36
+                    },
+                    "virtcol": 36,
+                    "virtcol2col": [38, 38]
+                },
+                {
+                    "byte": 40,
+                    "cells": [37, 40],
+                    "charcol": 0,
+                    "col": 41,
+                    "expressions": {
+                        "cells": [37, 40],
+                        "charcol": 17,
+                        "col": 41,
+                        "virtcol": 40
+                    },
+                    "virtcol": 40,
+                    "virtcol2col": [41, 41]
+                },
+                {
+                    "byte": 41,
+                    "cells": [43, 43],
+                    "charcol": 0,
+                    "col": 42,
+                    "expressions": {
+                        "cells": [43, 43],
+                        "charcol": 18,
+                        "col": 42,
+                        "virtcol": 43
+                    },
+                    "virtcol": 43,
+                    "virtcol2col": [42, 42]
+                },
+                {
+                    "byte": 42,
+                    "cells": [44, 44],
+                    "charcol": 0,
+                    "col": 43,
+                    "expressions": {
+                        "cells": [44, 44],
+                        "charcol": 19,
+                        "col": 43,
+                        "virtcol": 44
+                    },
+                    "virtcol": 44,
+                    "virtcol2col": [43, 43]
+                },
+                {
+                    "byte": 44,
+                    "cells": [45, 45],
+                    "charcol": 0,
+                    "col": 45,
+                    "expressions": {
+                        "cells": [45, 45],
+                        "charcol": 20,
+                        "col": 45,
+                        "virtcol": 45
+                    },
+                    "virtcol": 45,
+                    "virtcol2col": [45, 45]
+                },
+                {
+                    "byte": 47,
+                    "cells": [46, 46],
+                    "charcol": 0,
+                    "col": 48,
+                    "expressions": {
+                        "cells": [46, 46],
+                        "charcol": 21,
+                        "col": 48,
+                        "virtcol": 46
+                    },
+                    "virtcol": 46,
+                    "virtcol2col": [48, 48]
+                },
+                {
+                    "byte": 51,
+                    "cells": [47, 48],
+                    "charcol": 0,
+                    "col": 52,
+                    "expressions": {
+                        "cells": [47, 48],
+                        "charcol": 22,
+                        "col": 52,
+                        "virtcol": 48
+                    },
+                    "virtcol": 48,
+                    "virtcol2col": [52, 52]
+                },
+                {
+                    "byte": 54,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": {
+                        "cells": [51, 60],
+                        "charcol": 23,
+                        "col": 55,
+                        "virtcol": 60
+                    },
+                    "virtcol": 60,
+                    "virtcol2col": [55, 55]
+                },
+                {
+                    "byte": 55,
+                    "cells": [61, 61],
+                    "charcol": 0,
+                    "col": 56,
+                    "expressions": {
+                        "cells": [61, 61],
+                        "charcol": 24,
+                        "col": 56,
+                        "virtcol": 61
+                    },
+                    "virtcol": 61,
+                    "virtcol2col": [56, 56]
+                },
+                {
+                    "byte": 56,
+                    "cells": [62, 62],
+                    "charcol": 0,
+                    "col": 57,
+                    "expressions": {
+                        "cells": [62, 62],
+                        "charcol": 25,
+                        "col": 57,
+                        "virtcol": 62
+                    },
+                    "virtcol": 62,
+                    "virtcol2col": [56, 56]
+                }
+            ],
+            "expressions": {
+                "cells_eol": [62, 62],
+                "charcol_eol": 25,
+                "col_eol": 57,
+                "virtcol_eol": 62
+            },
+            "name": "narrow-showbreak",
+            "occupied": [
+                {
+                    "byte_col": 1,
+                    "cell": 1,
+                    "cells": [1, 1],
+                    "charcol": 1,
+                    "col": 1,
+                    "expressions": { "charcol": 1, "col": 1 },
+                    "virtcol": 1
+                },
+                {
+                    "byte_col": 3,
+                    "cell": 2,
+                    "cells": [2, 2],
+                    "charcol": 3,
+                    "col": 3,
+                    "expressions": { "charcol": 2, "col": 3 },
+                    "virtcol": 2
+                },
+                {
+                    "byte_col": 6,
+                    "cell": 3,
+                    "cells": [3, 3],
+                    "charcol": 6,
+                    "col": 6,
+                    "expressions": { "charcol": 3, "col": 6 },
+                    "virtcol": 3
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 4,
+                    "cells": [4, 5],
+                    "charcol": 10,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 10,
+                    "cell": 5,
+                    "cells": [4, 5],
+                    "charcol": 10,
+                    "col": 10,
+                    "expressions": { "charcol": 4, "col": 10 },
+                    "virtcol": 5
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 6,
+                    "cells": [6, 8],
+                    "charcol": 13,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 7,
+                    "cells": [6, 8],
+                    "charcol": 13,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 13,
+                    "cell": 8,
+                    "cells": [6, 8],
+                    "charcol": 13,
+                    "col": 13,
+                    "expressions": { "charcol": 5, "col": 13 },
+                    "virtcol": 8
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 9,
+                    "cells": [11, 11],
+                    "charcol": 14,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 11
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 10,
+                    "cells": [11, 11],
+                    "charcol": 14,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 11
+                },
+                {
+                    "byte_col": 14,
+                    "cell": 11,
+                    "cells": [11, 11],
+                    "charcol": 14,
+                    "col": 14,
+                    "expressions": { "charcol": 6, "col": 14 },
+                    "virtcol": 11
+                },
+                {
+                    "byte_col": 15,
+                    "cell": 12,
+                    "cells": [12, 12],
+                    "charcol": 15,
+                    "col": 15,
+                    "expressions": { "charcol": 7, "col": 15 },
+                    "virtcol": 12
+                },
+                {
+                    "byte_col": 17,
+                    "cell": 13,
+                    "cells": [13, 13],
+                    "charcol": 17,
+                    "col": 17,
+                    "expressions": { "charcol": 8, "col": 17 },
+                    "virtcol": 13
+                },
+                {
+                    "byte_col": 20,
+                    "cell": 14,
+                    "cells": [14, 14],
+                    "charcol": 20,
+                    "col": 20,
+                    "expressions": { "charcol": 9, "col": 20 },
+                    "virtcol": 14
+                },
+                {
+                    "byte_col": 24,
+                    "cell": 15,
+                    "cells": [15, 16],
+                    "charcol": 24,
+                    "col": 24,
+                    "expressions": { "charcol": 10, "col": 24 },
+                    "virtcol": 16
+                },
+                {
+                    "byte_col": 24,
+                    "cell": 16,
+                    "cells": [15, 16],
+                    "charcol": 24,
+                    "col": 24,
+                    "expressions": { "charcol": 10, "col": 24 },
+                    "virtcol": 16
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 17,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 18,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 19,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 20,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 21,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 22,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 23,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 24,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 25,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 26,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 27,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 27,
+                    "cell": 28,
+                    "cells": [19, 28],
+                    "charcol": 0,
+                    "col": 27,
+                    "expressions": { "charcol": 11, "col": 27 },
+                    "virtcol": 28
+                },
+                {
+                    "byte_col": 28,
+                    "cell": 29,
+                    "cells": [29, 29],
+                    "charcol": 0,
+                    "col": 28,
+                    "expressions": { "charcol": 12, "col": 28 },
+                    "virtcol": 29
+                },
+                {
+                    "byte_col": 29,
+                    "cell": 30,
+                    "cells": [30, 30],
+                    "charcol": 0,
+                    "col": 29,
+                    "expressions": { "charcol": 13, "col": 29 },
+                    "virtcol": 30
+                },
+                {
+                    "byte_col": 31,
+                    "cell": 31,
+                    "cells": [31, 31],
+                    "charcol": 0,
+                    "col": 31,
+                    "expressions": { "charcol": 14, "col": 31 },
+                    "virtcol": 31
+                },
+                {
+                    "byte_col": 34,
+                    "cell": 32,
+                    "cells": [32, 32],
+                    "charcol": 0,
+                    "col": 34,
+                    "expressions": { "charcol": 15, "col": 34 },
+                    "virtcol": 32
+                },
+                {
+                    "byte_col": 38,
+                    "cell": 33,
+                    "cells": [35, 36],
+                    "charcol": 0,
+                    "col": 38,
+                    "expressions": { "charcol": 16, "col": 38 },
+                    "virtcol": 36
+                },
+                {
+                    "byte_col": 38,
+                    "cell": 34,
+                    "cells": [35, 36],
+                    "charcol": 0,
+                    "col": 38,
+                    "expressions": { "charcol": 16, "col": 38 },
+                    "virtcol": 36
+                },
+                {
+                    "byte_col": 38,
+                    "cell": 35,
+                    "cells": [35, 36],
+                    "charcol": 0,
+                    "col": 38,
+                    "expressions": { "charcol": 16, "col": 38 },
+                    "virtcol": 36
+                },
+                {
+                    "byte_col": 38,
+                    "cell": 36,
+                    "cells": [35, 36],
+                    "charcol": 0,
+                    "col": 38,
+                    "expressions": { "charcol": 16, "col": 38 },
+                    "virtcol": 36
+                },
+                {
+                    "byte_col": 41,
+                    "cell": 37,
+                    "cells": [37, 40],
+                    "charcol": 0,
+                    "col": 41,
+                    "expressions": { "charcol": 17, "col": 41 },
+                    "virtcol": 40
+                },
+                {
+                    "byte_col": 41,
+                    "cell": 38,
+                    "cells": [37, 40],
+                    "charcol": 0,
+                    "col": 41,
+                    "expressions": { "charcol": 17, "col": 41 },
+                    "virtcol": 40
+                },
+                {
+                    "byte_col": 41,
+                    "cell": 39,
+                    "cells": [37, 40],
+                    "charcol": 0,
+                    "col": 41,
+                    "expressions": { "charcol": 17, "col": 41 },
+                    "virtcol": 40
+                },
+                {
+                    "byte_col": 41,
+                    "cell": 40,
+                    "cells": [37, 40],
+                    "charcol": 0,
+                    "col": 41,
+                    "expressions": { "charcol": 17, "col": 41 },
+                    "virtcol": 40
+                },
+                {
+                    "byte_col": 42,
+                    "cell": 41,
+                    "cells": [43, 43],
+                    "charcol": 0,
+                    "col": 42,
+                    "expressions": { "charcol": 18, "col": 42 },
+                    "virtcol": 43
+                },
+                {
+                    "byte_col": 42,
+                    "cell": 42,
+                    "cells": [43, 43],
+                    "charcol": 0,
+                    "col": 42,
+                    "expressions": { "charcol": 18, "col": 42 },
+                    "virtcol": 43
+                },
+                {
+                    "byte_col": 42,
+                    "cell": 43,
+                    "cells": [43, 43],
+                    "charcol": 0,
+                    "col": 42,
+                    "expressions": { "charcol": 18, "col": 42 },
+                    "virtcol": 43
+                },
+                {
+                    "byte_col": 43,
+                    "cell": 44,
+                    "cells": [44, 44],
+                    "charcol": 0,
+                    "col": 43,
+                    "expressions": { "charcol": 19, "col": 43 },
+                    "virtcol": 44
+                },
+                {
+                    "byte_col": 45,
+                    "cell": 45,
+                    "cells": [45, 45],
+                    "charcol": 0,
+                    "col": 45,
+                    "expressions": { "charcol": 20, "col": 45 },
+                    "virtcol": 45
+                },
+                {
+                    "byte_col": 48,
+                    "cell": 46,
+                    "cells": [46, 46],
+                    "charcol": 0,
+                    "col": 48,
+                    "expressions": { "charcol": 21, "col": 48 },
+                    "virtcol": 46
+                },
+                {
+                    "byte_col": 52,
+                    "cell": 47,
+                    "cells": [47, 48],
+                    "charcol": 0,
+                    "col": 52,
+                    "expressions": { "charcol": 22, "col": 52 },
+                    "virtcol": 48
+                },
+                {
+                    "byte_col": 52,
+                    "cell": 48,
+                    "cells": [47, 48],
+                    "charcol": 0,
+                    "col": 52,
+                    "expressions": { "charcol": 22, "col": 52 },
+                    "virtcol": 48
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 49,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 50,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 51,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 52,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 53,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 54,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 55,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 56,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 57,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 58,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 59,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 55,
+                    "cell": 60,
+                    "cells": [51, 60],
+                    "charcol": 0,
+                    "col": 55,
+                    "expressions": { "charcol": 23, "col": 55 },
+                    "virtcol": 60
+                },
+                {
+                    "byte_col": 56,
+                    "cell": 61,
+                    "cells": [61, 61],
+                    "charcol": 0,
+                    "col": 56,
+                    "expressions": { "charcol": 24, "col": 56 },
+                    "virtcol": 61
+                }
+            ],
+            "options": {
+                "ambiwidth": "single",
+                "breakindent": false,
+                "display": "lastline",
+                "fileformat": "unix",
+                "foldcolumn": "0",
+                "linebreak": false,
+                "list": false,
+                "listchars": "tab:>-",
+                "number": false,
+                "relativenumber": false,
+                "showbreak": ">>",
+                "signcolumn": "no",
+                "tabstop": 8,
+                "virtualedit": "onemore",
+                "width": 8,
+                "wrap": true
+            },
+            "text": "é→𝄞界\tZé→𝄞界\tZé→𝄞界\tZé→𝄞界\tZ"
+        }
+    ],
+    "version": "0.12.5"
+}

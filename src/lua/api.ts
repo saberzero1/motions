@@ -27,6 +27,7 @@ import { injectRegex } from './regex';
 import { injectOnKey } from './on-key';
 import { replaceTermcodes, termcodesToNotation } from './termcodes';
 import { utf8Length } from './coordinates';
+import { getWindowDimensions } from './window-info';
 import {
     dispatchSetExtmark,
     dispatchDelExtmark,
@@ -761,6 +762,11 @@ const SUPPORTED_NVIM_API_FUNCTIONS = new Set<string>([
     'nvim_buf_call',
     'nvim_win_call',
     'nvim_win_get_config',
+    'nvim_win_is_valid',
+    'nvim_win_get_width',
+    'nvim_win_get_height',
+    'nvim_win_get_position',
+    'nvim_win_get_number',
     'nvim_create_user_command',
     'nvim_del_user_command',
     'nvim_create_autocmd',
@@ -999,7 +1005,6 @@ const NVIM_API_RETURN_TYPES = {
         'nvim_buf_detach',
         'nvim_buf_is_loaded',
         'nvim_buf_is_valid',
-        'nvim_win_is_valid',
         'nvim_tabpage_is_valid',
         'nvim_paste',
     ]),
@@ -1010,9 +1015,6 @@ const NVIM_API_RETURN_TYPES = {
         'nvim_open_term',
         'nvim_open_win',
         'nvim_buf_get_changedtick',
-        'nvim_win_get_height',
-        'nvim_win_get_number',
-        'nvim_win_get_width',
         'nvim_tabpage_get_number',
         'nvim_open_tabpage',
         'nvim_get_hl_id_by_name',
@@ -1043,7 +1045,6 @@ const NVIM_API_RETURN_TYPES = {
         'nvim_buf_get_text',
         'nvim_buf_get_keymap',
         'nvim_win_get_config',
-        'nvim_win_get_position',
         'nvim_win_get_tabpage',
         'nvim_win_get_var',
         'nvim_tabpage_get_var',
@@ -2960,6 +2961,60 @@ export function injectVimApi(
         return 1;
     });
     lua.lua_setfield(L, apiIndex, to_luastring('nvim_buf_is_valid'));
+
+    // A single synthetic current window, not Obsidian workspace pane IDs.
+    for (const name of [
+        'nvim_win_is_valid',
+        'nvim_win_get_width',
+        'nvim_win_get_height',
+        'nvim_win_get_position',
+        'nvim_win_get_number',
+    ] as const) {
+        lua.lua_pushjsfunction(L, (state: lua_State) => {
+            if (lua.lua_gettop(state) !== 1) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring(`${name}: expected 1 argument`),
+                );
+            }
+            if (
+                lua.lua_type(state, 1) !== lua.LUA_TNUMBER ||
+                !Number.isInteger(lua.lua_tonumber(state, 1))
+            ) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring(`${name}: expected integer window number`),
+                );
+            }
+            if (name === 'nvim_win_is_valid') {
+                const win = lua.lua_tonumber(state, 1);
+                lua.lua_pushboolean(state, win === 0);
+                return 1;
+            }
+            requireWindowZero(state, 1, name);
+            if (name === 'nvim_win_get_position') {
+                lua.lua_createtable(state, 2, 0);
+                lua.lua_pushinteger(state, 0);
+                lua.lua_rawseti(state, -2, 1);
+                lua.lua_pushinteger(state, 0);
+                lua.lua_rawseti(state, -2, 2);
+            } else if (name === 'nvim_win_get_number') {
+                lua.lua_pushinteger(state, 1);
+            } else {
+                const dimensions = getWindowDimensions(
+                    callbacks.getCmAdapter?.() ?? null,
+                );
+                lua.lua_pushinteger(
+                    state,
+                    name === 'nvim_win_get_width'
+                        ? dimensions.width
+                        : dimensions.height,
+                );
+            }
+            return 1;
+        });
+        lua.lua_setfield(L, apiIndex, to_luastring(name));
+    }
 
     // --- Wave 1: Cursor + line + marks ---
 

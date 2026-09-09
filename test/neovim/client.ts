@@ -150,11 +150,26 @@ export class NeovimClient {
     }
 
     async stop(): Promise<void> {
-        try {
-            await this.nvim.command('qa!');
-        } catch {
-            // Expected — process exits
-        }
-        this.process.kill();
+        if (
+            !this.process ||
+            this.process.exitCode !== null ||
+            this.process.signalCode !== null
+        )
+            return;
+        await new Promise<void>((resolve, reject) => {
+            let forced = false;
+            const timer = setTimeout(() => {
+                forced = true;
+                this.process.kill('SIGKILL');
+            }, 2000);
+            this.process.once('close', () => {
+                clearTimeout(timer);
+                if (forced) reject(new Error('Neovim did not stop gracefully'));
+                else resolve();
+            });
+            // qa! exits without an RPC response. A request leaves its Promise
+            // unresolved (and top-level await exits 13); notify has no reply.
+            this.nvim.notify('nvim_command', ['qa!']);
+        });
     }
 }

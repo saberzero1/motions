@@ -1695,13 +1695,60 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         return 1;
     });
 
+    registry.set('win_getid', (state) => {
+        const count = lua.lua_gettop(state);
+        if (count > 2) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('win_getid: expected at most 2 arguments'),
+            );
+        }
+        for (let index = 1; index <= count; index++) {
+            if (
+                lua.lua_type(state, index) !== lua.LUA_TNUMBER ||
+                !Number.isInteger(lua.lua_tonumber(state, index))
+            ) {
+                return lauxlib.luaL_error(
+                    state,
+                    to_luastring('win_getid: expected integer ordinal'),
+                );
+            }
+        }
+        // Only window/tab ordinal 1 exists. Invalid ordinals also return 0:
+        // Neovim's failure value is indistinguishable from our current handle.
+        lua.lua_pushinteger(state, 0);
+        return 1;
+    });
+    registry.set('winnr', (state) => {
+        const count = lua.lua_gettop(state);
+        if (count > 1) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('winnr: expected at most 1 argument'),
+            );
+        }
+        if (count === 1 && lua.lua_type(state, 1) !== lua.LUA_TSTRING) {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('winnr: expected window expression'),
+            );
+        }
+        const expression = count === 0 ? '' : readString(state, 1);
+        if (expression !== '' && expression !== '$' && expression !== '#') {
+            return lauxlib.luaL_error(
+                state,
+                to_luastring('winnr: invalid window expression'),
+            );
+        }
+        lua.lua_pushinteger(state, expression === '#' ? 0 : 1);
+        return 1;
+    });
+
     const numberReturnFns = new Set([
         'search',
-        'win_getid',
         'setbufline',
         'deletebufline',
         'bufnr',
-        'winnr',
         'tabpagenr',
         'changenr',
         'virtcol',

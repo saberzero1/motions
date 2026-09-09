@@ -9,6 +9,7 @@ import { injectVimApi } from '../../../src/lua/api';
 import { injectVimFn } from '../../../src/lua/fn';
 import { AutocmdManager } from '../../../src/lua/autocmd';
 import { COORD_LINES } from '../../fixtures/neovim-coordinate-contract';
+import type { CmAdapter } from '../../../src/types/vim-api';
 
 type LuaState = ReturnType<typeof createSandboxedState>;
 
@@ -17,6 +18,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
     const host = {
         lines: [...lines],
         loaded: true,
+        cm: null as CmAdapter | null,
         cursor: { line: 1, col: 1 },
         marks: new Map<string, { line: number; ch: number }>(),
     };
@@ -35,6 +37,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
     };
     try {
         const api = injectVimApi(L, {
+            getCmAdapter: () => host.cm,
             onSettingOverride: () => {},
             handleExCommand: () => {},
             getVaultName: () => 'coordinate-vault',
@@ -54,6 +57,7 @@ export function createCoordinateState(lines: readonly string[] = COORD_LINES) {
                 name === 'fileformat' ? 'unix' : undefined,
         });
         injectVimFn(L, {
+            getCmAdapter: () => host.cm,
             getBufferOption: api.getBufferOption,
             getWindowOption: api.getWindowOption,
             getActiveFilePath: () => 'coordinates.md',

@@ -15,6 +15,27 @@ export function getCursorWinCol(cm: CmAdapter): number {
     return Math.max(1, Math.round((coords.left - scrollLeft) / charWidth) + 1);
 }
 
+/** Live viewport dimensions in cells; no editor has no measurable geometry. */
+export function getWindowDimensions(cm: CmAdapter | null): {
+    width: number;
+    height: number;
+} {
+    const view = cm?.cm6;
+    if (!view) return { width: 0, height: 0 };
+    const charWidth = view.defaultCharacterWidth;
+    const lineHeight = view.defaultLineHeight;
+    return {
+        width:
+            charWidth > 0
+                ? Math.floor(view.scrollDOM.clientWidth / charWidth)
+                : 0,
+        height:
+            lineHeight > 0
+                ? Math.floor(view.scrollDOM.clientHeight / lineHeight)
+                : 0,
+    };
+}
+
 export function getWindowInfo(cm: CmAdapter): Record<string, unknown> {
     const view = cm.cm6;
     const { fromLine, toLine } = getVisibleRange(cm);
@@ -49,7 +70,6 @@ export function getWindowInfo(cm: CmAdapter): Record<string, unknown> {
         );
     }
     const charWidth = view.defaultCharacterWidth;
-    const lineHeight = view.defaultLineHeight;
     const gutterWidth =
         view.dom.querySelector('.cm-gutters')?.getBoundingClientRect().width ??
         0;
@@ -61,9 +81,7 @@ export function getWindowInfo(cm: CmAdapter): Record<string, unknown> {
         winbar: 0,
         topline,
         botline,
-        height:
-            lineHeight > 0 ? Math.floor(scroll.clientHeight / lineHeight) : 0,
-        width: charWidth > 0 ? Math.floor(scroll.clientWidth / charWidth) : 0,
+        ...getWindowDimensions(cm),
         textoff: charWidth > 0 ? Math.ceil(gutterWidth / charWidth) : 0,
         winrow: 1,
         wincol: 1,
