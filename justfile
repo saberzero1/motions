@@ -13,7 +13,7 @@ tag version:
 
 check:
     npm run lint
-    tsc --noEmit
+    npx tsc --noEmit
     npm run build
     npm run test:unit
 
