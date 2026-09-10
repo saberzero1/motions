@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.150.0] - 2026-09-10
+
 ### Added
 
 - **`Open configuration directory in system explorer` command** — reveals the folder containing the active `init.lua` / `.obsidian.vimrc` in the OS file manager, with the configuration file itself selected. That folder is the one `require()` searches for a `lua/` directory, so it is the folder to manage modules from. Obsidian already exposes this as the unofficial-but-typed `App.showInFolder()`; no new Electron dependency is introduced for vault-relative configurations, and out-of-vault ones reuse the routing added below. Desktop only, and the command is hidden on mobile. When a Lua and a vimrc configuration share a folder, it is revealed once rather than twice. ([#182](https://github.com/saberzero1/motions/issues/182))
     - Plugin: `src/main.ts` (`open-configuration-directory`), `src/util/open-path.ts` (`revealPathInSystemExplorer`, `parentDirOf`), `src/util/external-fs.ts` (`revealExternalPath`)
-
 - **`cursorlineopt` accepts Neovim's full grammar, including `screenline`** — the option was a three-value enum (`number`/`line`/`both`). It now parses the real comma-separated list over `line`, `screenline`, `number` and `both`, in any order, with `both` as Neovim's alias for `line,number` and the `line`+`screenline` combination rejected as Neovim rejects it; duplicates are rejected too, matching Neovim's own check. The grammar collapses to five reachable states, which is what the settings dropdown offers and what is stored, while vimrc and Lua accept any legal spelling and normalize into it (`vim.opt.cursorlineopt = "line,number"` stores `both`). `screenline` highlights only the cursor's display row of a wrapped line, drawn as a measured `RectangleMarker` inside a CodeMirror `layer()` — a `Decoration.line` spans the whole wrapped block and a mark decoration would stop at the last glyph instead of filling to the content edge, so neither can express it.
     - The default becomes Neovim's `both`, and `migrateCursorlineoptSettings` pins every existing vault to the previous `number`, so no installed configuration changes appearance. Stored values need no rewriting — `number`, `line` and `both` were already valid Neovim spellings. The one undetectable case is a vault that has never written `data.json`, recorded in `KNOWN_LIMITATIONS.md`.
     - Plugin: `src/vim/cursorline-option.ts` (new — grammar, normalization, canonical states), `src/vim/cursorline.ts` (`screenline` layer), `src/settings.ts` (type, default, both settings implementations), `src/settings-migration.ts`, `src/main.ts`, `src/vimrc/loader.ts` (`normalize` hook for string options), `src/vim/options.ts`, `styles.css`
