@@ -246,98 +246,11 @@ describe('Ex commands extended', function () {
         expect(result.dispatchedCommands).toContain('app:go-back');
     });
 
-    it(':forward should navigate history forward', async function () {
-        await obsidianPage.openFile('Welcome.md');
-        await browser.pause(300);
+    it(':forward dispatches Obsidian’s history-forward command', async function () {
+        const result = await handleEx('forward');
 
-        await browser.executeObsidian(async ({ app }) => {
-            const existing = app.vault.getAbstractFileByPath('TestForward.md');
-            if (existing) await app.vault.delete(existing);
-            await app.vault.create('TestForward.md', 'Forward test');
-        });
-        await obsidianPage.openFile('TestForward.md');
-        await browser.pause(300);
-
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (view) view.editor.focus();
-        });
-        await browser.pause(300);
-
-        const backResult = await browser.executeObsidian(
-            ({ app, obsidian }) => {
-                try {
-                    const Vim = (
-                        window as unknown as Record<string, unknown> & {
-                            CodeMirrorAdapter?: {
-                                Vim?: {
-                                    handleEx: (
-                                        cm: unknown,
-                                        input: string,
-                                    ) => void;
-                                };
-                            };
-                        }
-                    ).CodeMirrorAdapter?.Vim;
-                    if (!Vim) return { error: 'No Vim' };
-                    const view = app.workspace.getActiveViewOfType(
-                        obsidian.MarkdownView,
-                    );
-                    if (!view) return { error: 'No view' };
-                    const cm = (
-                        view.editor as unknown as Record<string, unknown>
-                    ).cm as Record<string, unknown>;
-                    const adapter = cm?.cm;
-                    if (!adapter) return { error: 'No adapter' };
-                    Vim.handleEx(adapter, 'back');
-                    return { success: true };
-                } catch (e) {
-                    return { error: String(e) };
-                }
-            },
-        );
-        expect(backResult).toHaveProperty('success', true);
-        await browser.pause(500);
-
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (view) view.editor.focus();
-        });
-        await browser.pause(300);
-
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'forward');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-
-        await browser.pause(500);
+        expect(result.unknownCommand).toBe(false);
+        expect(result.dispatchedCommands).toContain('app:go-forward');
     });
 
     it(':explorer dispatches reveal-active-file', async function () {
