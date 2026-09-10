@@ -1472,6 +1472,19 @@ export function injectVimApi(
             );
             return 0;
         }
+        if (spec.type === 'string') {
+            // The vimrc `set` path validates here; this one did not, so an
+            // illegal value was written raw and only overwritten afterwards
+            // when `setOption` happened to normalize it. Anything Neovim
+            // rejects must not reach the settings at all.
+            const raw = typeof value === 'string' ? value : '';
+            const normalized = spec.normalize ? spec.normalize(raw) : raw;
+            if (normalized === null) return 0;
+            if (spec.validValues && !spec.validValues.includes(normalized)) {
+                return 0;
+            }
+            value = normalized;
+        }
         callbacks.onSettingOverride(
             spec.settingsKey,
             value,
