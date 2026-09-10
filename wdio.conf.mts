@@ -82,6 +82,40 @@ export const config: WebdriverIO.Config = {
         }
     },
 
+    async beforeTest() {
+        try {
+            await browser.executeObsidian(({ obsidian }) => {
+                type ModalInstance = InstanceType<typeof obsidian.Modal>;
+                type ModalTracker = {
+                    instances: Set<ModalInstance>;
+                };
+                const trackedWindow = window as unknown as {
+                    __wdioModalTracker?: ModalTracker;
+                };
+                if (trackedWindow.__wdioModalTracker) return;
+
+                const tracker: ModalTracker = { instances: new Set() };
+                const prototype = obsidian.Modal.prototype;
+                const realOpen = prototype.open;
+                const realClose = prototype.close;
+                prototype.open = function (this: ModalInstance): void {
+                    tracker.instances.add(this);
+                    realOpen.call(this);
+                };
+                prototype.close = function (this: ModalInstance): void {
+                    try {
+                        realClose.call(this);
+                    } finally {
+                        tracker.instances.delete(this);
+                    }
+                };
+                trackedWindow.__wdioModalTracker = tracker;
+            });
+        } catch {
+            /* best-effort modal tracking */
+        }
+    },
+
     async afterTest() {
         try {
             await browser.executeObsidian(({ app, obsidian }) => {
@@ -162,18 +196,42 @@ export const config: WebdriverIO.Config = {
 
             if (remnants.picker || remnants.modal || remnants.overlay) {
                 await browser.executeObsidian(() => {
+                    const tracker = (
+                        window as unknown as {
+                            __wdioModalTracker?: {
+                                instances: Set<{
+                                    containerEl: HTMLElement;
+                                    close(): void;
+                                }>;
+                            };
+                        }
+                    ).__wdioModalTracker;
+                    for (const modal of Array.from(tracker?.instances ?? [])) {
+                        if (!modal.containerEl.isConnected) {
+                            tracker?.instances.delete(modal);
+                            continue;
+                        }
+                        try {
+                            modal.close();
+                        } catch {
+                            tracker?.instances.delete(modal);
+                        }
+                    }
+
                     document
                         .querySelectorAll(
                             '.vim-motions-picker, .vim-motions-hint-overlay, ' +
                                 '.vim-motions-easymotion, .vim-motions-which-key',
                         )
                         .forEach((el) => el.remove());
+                });
+                await browser.pause(50);
 
+                await browser.executeObsidian(() => {
                     document
                         .querySelectorAll('.modal-container')
                         .forEach((el) => el.remove());
                 });
-                await browser.pause(50);
             }
         } catch {
             /* best-effort cleanup */
