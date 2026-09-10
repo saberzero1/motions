@@ -22,6 +22,7 @@ import {
     getNumberwidth,
     type LineNumberMode,
 } from './line-number-gutter';
+import { isCursorlineNumberHighlight } from './cursorline';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -236,7 +237,9 @@ function renderSegment(
             const text = computeLineNumber(lineNo, cursorLineNo, effectiveMode);
             const cls =
                 getSegmentClass('line-number') +
-                (isCurrent ? ' vim-motions-line-num-current' : '');
+                (isCurrent && isCursorlineNumberHighlight()
+                    ? ' vim-motions-line-num-current'
+                    : '');
             return { type: 'line-number', text, cls };
         }
         case 'relative-number': {
@@ -245,7 +248,9 @@ function renderSegment(
                 : String(Math.abs(lineNo - cursorLineNo));
             const cls =
                 getSegmentClass('relative-number') +
-                (isCurrent ? ' vim-motions-line-num-current' : '');
+                (isCurrent && isCursorlineNumberHighlight()
+                    ? ' vim-motions-line-num-current'
+                    : '');
             return { type: 'relative-number', text: rel, cls };
         }
         case 'signs': {

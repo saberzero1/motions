@@ -1,5 +1,6 @@
 import { Compartment, type Extension } from '@codemirror/state';
 import { gutter, GutterMarker, EditorView } from '@codemirror/view';
+import { isCursorlineNumberHighlight } from './cursorline';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -96,7 +97,10 @@ function createLineNumberGutter(
             ).number;
             const lineNo = view.state.doc.lineAt(line.from).number;
             const text = computeLineNumber(lineNo, cursorLineNo, mode);
-            return new LineNumberMarker(text, lineNo === cursorLineNo);
+            return new LineNumberMarker(
+                text,
+                lineNo === cursorLineNo && isCursorlineNumberHighlight(),
+            );
         },
         lineMarkerChange(update) {
             if (mode === 'absolute') {

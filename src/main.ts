@@ -137,6 +137,7 @@ import {
 import {
     createCursorlineExtension,
     reconfigureCursorline,
+    setCursorlineNumberHighlight,
 } from './vim/cursorline';
 import {
     createFoldColumnExtension,
@@ -2751,6 +2752,10 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
         setNumberwidth(this.settings.numberwidth);
+        setCursorlineNumberHighlight(
+            this.settings.cursorline,
+            this.settings.cursorlineopt,
+        );
         this.vimExtensionSlot.push(
             skipInTableCells(
                 createCursorlineExtension(
@@ -5323,9 +5328,17 @@ export default class VimMotionsPlugin extends Plugin {
     reconfigureCursorlineHighlight(): void {
         const enabled = this.settings.cursorline;
         const opt = this.settings.cursorlineopt;
+        setCursorlineNumberHighlight(enabled, opt);
         this.iterateEditorViews((cm) =>
             reconfigureCursorline(cm, enabled, opt),
         );
+        // The cursor line's number is drawn by whichever gutter is active, so
+        // it has to be rebuilt for the CursorLineNr gating to become visible.
+        if (this.settings.statuscolumn) {
+            this.reconfigureStatusColumnGutter();
+        } else {
+            this.reconfigureLineNumberGutter();
+        }
     }
 
     reconfigureFoldColumnGutter(): void {

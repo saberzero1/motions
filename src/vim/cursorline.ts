@@ -15,6 +15,29 @@ export type CursorlineOpt = 'number' | 'line' | 'both';
 
 const cursorlineCompartment = new Compartment();
 
+// ── Current-line number highlight ────────────────────────
+
+// Mirrors DEFAULT_SETTINGS (cursorline: true, cursorlineopt: 'number') so the
+// gutter renders identically if the setter has not run yet.
+let cursorlineNumberHighlight = true;
+
+/**
+ * Neovim draws the cursor line's number with `CursorLineNr` only when
+ * `'cursorline'` is on AND `'cursorlineopt'` contains `"number"` (or is
+ * `"both"`); it is never used while `'cursorline'` is off. The number itself is
+ * still drawn — with `LineNr` — so this gates only the highlight.
+ */
+export function setCursorlineNumberHighlight(
+    enabled: boolean,
+    opt: CursorlineOpt,
+): void {
+    cursorlineNumberHighlight = enabled && (opt === 'number' || opt === 'both');
+}
+
+export function isCursorlineNumberHighlight(): boolean {
+    return cursorlineNumberHighlight;
+}
+
 // ── Decorations ──────────────────────────────────────────
 
 function createCursorlineStateField(): StateField<DecorationSet> {
