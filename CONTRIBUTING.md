@@ -41,6 +41,7 @@ Current rules:
 
 - `promise-owned-listener` — an event listener installed inside a Promise executor is released only on the paths that settle it, and nothing settles an abandoned Promise. Give the caller an abort path, as `src/lua/key-broker.ts` does.
 - `unguarded-disposer-loop` — a cleanup loop must isolate exceptions, or the first throw skips every later disposer. Use `runCleanups` from `src/util/cleanup.ts`.
+- `solo-self-reported-success` — a test whose only assertion is a flag the test itself produced (`return { success: true }` on the line after calling a void-returning function) proves nothing beyond "no exception crossed the `executeObsidian` boundary".
 - `editor-view-double-cm` — `Editor.cm` **is** the CM6 `EditorView`; a second `.cm` lands on the CM5 vim adapter, which has no `dispatch`. Combined with a `typeof x.dispatch === 'function'` guard this produces a silent no-op, which is how every gutter reconfigure reached zero editors for 108 releases. Use `getEditorView()` from `src/util/editor.ts` for the view, `getCmAdapter()` from `src/vim/vim-api.ts` for the adapter.
 
 **When adding a rule, prove it fires on a defect that actually shipped.** Extract the pre-fix file from git history into a scratch directory and scan it:
@@ -137,7 +138,8 @@ src/
     mark-gutter.ts         # Mark gutter refresh scheduling (delegates to sign-column)
     line-number-gutter.ts  # Configurable line number gutter (absolute/relative/hybrid/dual)
     statuscolumn.ts        # Unified configurable gutter (statuscolumn format string API)
-    cursorline.ts          # Cursor line highlight (number/line/both modes)
+    cursorline.ts          # Cursor line highlight; `line` via Decoration.line, `screenline` via a measured layer() RectangleMarker
+    cursorline-option.ts   # Neovim `cursorlineopt` grammar: comma lists, the `both` alias, line/screenline exclusion, five canonical states
     fold-column.ts         # Fold column gutter (▸/▾ indicators with click-to-fold)
     harpoon-store.ts       # Harpoon file slot persistence
     harpoon-nav.ts         # Harpoon navigation keybindings
