@@ -24,10 +24,18 @@ import {
  * Obsidian's native gutter and VS Code all keep it on row 1. Both cases are
  * asserted so neither can be traded for the other.
  *
- * Each assertion is a delta *relative to a normal single-row line*. The constant
- * offset between the monospace gutter font and the editor font is unrelated to
- * this issue; comparing deltas cancels it out and keeps the test independent of
- * theme font metrics.
+ * Each assertion measures the number's glyph centre against the centre of the
+ * line's FIRST DISPLAY ROW, not against the text's glyph centre. Comparing two
+ * glyph rects means comparing two font content areas at different sizes (a 12px
+ * monospace number against a 25.9px heading), and a content area is centred on
+ * the line box only when that font governs the line's baseline. On a heading the
+ * baseline comes from the strut, so a different platform font stack shifts the
+ * heading's centre while the gutter number does not move: that comparison read
+ * 0.0px on Linux and 2.5px on Windows for identical, correct rendering. The row
+ * centre is font-metric-free on the row side, and it is the invariant the plugin
+ * actually controls — where the text sits inside its own row is Obsidian's
+ * typography. The row's top is the block's top plus its leading space, because a
+ * heading pads above the text rather than below it.
  */
 
 const HEADING_LINE = '# Heading one';
@@ -55,7 +63,7 @@ const TOLERANCE_PX = 2;
 
 interface LineMeasurement {
     blockHeight: number;
-    delta: number;
+    rowOffset: number;
 }
 
 type Measurement =
@@ -173,15 +181,25 @@ async function measureGutterAlignment(): Promise<Measurement> {
                 return { error: 'gutter element has no .vim-motions-line-num' };
 
             const numberCentre = firstGlyphCentre(marker);
-            const textCentre = firstGlyphCentre(lineEl);
             if (numberCentre === null)
                 return { error: 'no glyph rect for the gutter number' };
-            if (textCentre === null)
-                return { error: 'no glyph rect for the line text' };
+
+            const lineStyle = getComputedStyle(lineEl);
+            const rowHeight = Number.parseFloat(lineStyle.lineHeight);
+            if (!Number.isFinite(rowHeight))
+                return { error: 'line has no resolved line-height' };
+
+            // A heading's block is taller than its row because the leading
+            // space sits ABOVE the text: measured 47.06px block, 31.07px row,
+            // ~16px padding-top. The first row therefore starts at the end of
+            // that space, not at the top of the border box.
+            const leading =
+                (Number.parseFloat(lineStyle.paddingTop) || 0) +
+                (Number.parseFloat(lineStyle.borderTopWidth) || 0);
 
             lines.push({
                 blockHeight: gutterEl.getBoundingClientRect().height,
-                delta: numberCentre - textCentre,
+                rowOffset: numberCentre - (lineTop + leading + rowHeight / 2),
             });
         }
 
@@ -228,29 +246,35 @@ describe('Gutter line-number vertical alignment (#184)', function () {
         expect(lines[WRAPPED_HEADING].blockHeight).toBeGreaterThan(
             lines[HEADING].blockHeight * 1.5,
         );
+        // Anchors the row-centre formula: on a plain single-row line the row IS
+        // the block, so a platform that pads above the text fails here rather
+        // than silently skewing every other case.
+        expect(Math.abs(lines[NORMAL].rowOffset)).toBeLessThanOrEqual(
+            TOLERANCE_PX,
+        );
     });
 
     it('aligns the number with the heading text on a tall heading line', function () {
         expect(measurement.error).toBeUndefined();
         const lines = measurement.lines as LineMeasurement[];
-        expect(
-            Math.abs(lines[HEADING].delta - lines[NORMAL].delta),
-        ).toBeLessThanOrEqual(TOLERANCE_PX);
+        expect(Math.abs(lines[HEADING].rowOffset)).toBeLessThanOrEqual(
+            TOLERANCE_PX,
+        );
     });
 
     it('aligns the number on a heading that is tall AND wrapped', function () {
         expect(measurement.error).toBeUndefined();
         const lines = measurement.lines as LineMeasurement[];
-        expect(
-            Math.abs(lines[WRAPPED_HEADING].delta - lines[NORMAL].delta),
-        ).toBeLessThanOrEqual(TOLERANCE_PX);
+        expect(Math.abs(lines[WRAPPED_HEADING].rowOffset)).toBeLessThanOrEqual(
+            TOLERANCE_PX,
+        );
     });
 
     it('keeps the number on the first display row of a wrapped line', function () {
         expect(measurement.error).toBeUndefined();
         const lines = measurement.lines as LineMeasurement[];
-        expect(
-            Math.abs(lines[WRAPPED].delta - lines[NORMAL].delta),
-        ).toBeLessThanOrEqual(TOLERANCE_PX);
+        expect(Math.abs(lines[WRAPPED].rowOffset)).toBeLessThanOrEqual(
+            TOLERANCE_PX,
+        );
     });
 });
