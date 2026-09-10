@@ -1,0 +1,42 @@
+id: solo-self-reported-success
+language: typescript
+severity: error
+message: The only assertion in this test is a flag the test set itself.
+note: |
+    `expect(result).toHaveProperty('success', true)` proves nothing when the
+    callback that produced `result` ends in `return { success: true }`. The
+    flag is a literal the test wrote on the line after calling a void-returning
+    function, so the assertion only says no exception crossed the
+    `executeObsidian` boundary.
+
+    This shipped, and it hid three real defects. `:changes` was a silent no-op,
+    `:edit!` created a note named `!.md` instead of reverting the buffer, and
+    `:violations!` printed the list it was asked to clear — all three with
+    passing tests. Replacing `'w'` with `'wNOSUCHCOMMAND'` in
+    workspace.e2e.ts left `:w should save without error` green.
+
+    Assert what the feature is responsible for producing. For an ex command,
+    `handleEx()` in test/helpers.ts returns `unknownCommand`, which the fork
+    sets when it emits `Not an editor command` — that is the assertion a
+    fabricated command name actually fails.
+
+    Pairing the crash guard with a real assertion is fine and does not match
+    this rule; the rule fires only when nothing else in the block is asserted.
+files:
+    - 'test/specs/**/*.e2e.ts'
+rule:
+    kind: call_expression
+    all:
+        - pattern: it($$$ARGS)
+        - has:
+              stopBy: end
+              pattern: expect($X).toHaveProperty('success', true)
+        - not:
+              has:
+                  stopBy: end
+                  all:
+                      - pattern: expect($Y)
+                      - not:
+                            inside:
+                                stopBy: end
+                                pattern: expect($Z).toHaveProperty('success', true)
