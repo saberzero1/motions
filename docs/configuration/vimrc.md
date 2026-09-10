@@ -224,47 +224,47 @@ Use `set <option>=<value>`.
 
 Use `set <option>=<value>`.
 
-| Option                  | Alias    | Description                                                      | Default                                                                    |
-| ----------------------- | -------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)                  | (off)                                                                      |
-| `foldopen`              | `fdo`    | Motion categories that auto-unfold (Neovim-compatible)           | `block,hor,mark,percent,search,undo`                                       |
-| `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                             | (off)                                                                      |
-| `flashjumpkey`          | —        | Key to trigger flash jump mode                                   | `s`                                                                        |
-| `flashminpatternlength` | `fmpl`   | Minimum chars before labels in jump mode                         | `1`                                                                        |
-| `yankhighlightmode`     | —        | Yank highlight style (`off`/`solid`/`fade`)                      | `solid`                                                                    |
-| `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels                       | `asdghklqwertyuiopzxcvbnmfj`                                               |
-| `hintlabels`            | `hl`     | Characters for hint mode labels                                  | `asdfghjkl`                                                                |
-| `guicursor`             | —        | Per-mode cursor shapes                                           | (block/bar/block/underline/underline)                                      |
-| `tablewidget`           | —        | Table widget mode (`native`/`raw`)                               | `native`                                                                   |
-| `whichkey`              | `wk`     | Which-key hints (`off`/`leader`/`all`)                           | `off`                                                                      |
-| `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                            | `grouped`                                                                  |
-| `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)                | `which-key`                                                                |
-| `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                                     | `on`                                                                       |
-| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception                        | (empty — uses defaults: markdown, graph, pdf, canvas, empty, image, bases) |
-| `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`both`)              | `number`                                                                   |
-| `signcolumn`            | `scl`    | Sign column visibility (`auto[:N]`/`yes[:N]`/`no`)               | `auto`                                                                     |
-| `linenumbermode`        | `lnm`    | Line number display (deprecated — use `statuscolumn`)            | `hybrid`                                                                   |
-| `statuscolumn`          | `stc`    | Custom gutter layout format string                               | (empty — plugin-managed)                                                   |
-| `snippetdir`            | —        | Path to user snippet JSON directory                              | (off)                                                                      |
-| `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)                 | `both`                                                                     |
-| `pickermatcher`         | —        | Picker match engine (`ufuzzy`/`obsidian`)                        | `ufuzzy`                                                                   |
-| `pickerpreview`         | —        | Non-Markdown picker previews (`rendered`/`hidden`/`raw`)         | `rendered`                                                                 |
-| `ripgreppath`           | —        | Path to ripgrep binary                                           | (off)                                                                      |
-| `ripgrepargs`           | —        | Additional ripgrep arguments                                     | (off)                                                                      |
-| `grepmode`              | —        | Grep backend (`ripgrep`/`grep`)                                  | `ripgrep`                                                                  |
-| `oilsort`               | —        | Oil default sort (`name`/`mtime`/`size`)                         | `name`                                                                     |
-| `hinthotkey`            | —        | Key to trigger hint mode                                         | (off)                                                                      |
-| `undotreeposition`      | —        | Undo tree sidebar position (`left`/`right`)                      | `right`                                                                    |
-| `impreset`              | —        | IM preset (`custom`/`macism`/`im-select`/`fcitx5-remote`/`ibus`) | `custom`                                                                   |
-| `imbinarypath`          | —        | Path to IM binary                                                | (off)                                                                      |
-| `imobtainargs`          | —        | Args for obtaining current IM                                    | (off)                                                                      |
-| `imswitchargs`          | —        | Args for switching IM                                            | `{im}`                                                                     |
-| `imdefaultnormal`       | —        | Default IM for normal mode                                       | (off)                                                                      |
-| `imrestorebehavior`     | —        | IM restore behavior (`restore`/`default`)                        | `restore`                                                                  |
-| `imdefaultinsert`       | —        | Default IM for insert mode                                       | (off)                                                                      |
-| `whichwrap`             | `ww`     | Keys that wrap to next/prev line at boundaries (`h,l,b,s,<,>`)   | `b,s`                                                                      |
-| `virtualedit`           | `ve`     | Cursor past EOL (`onemore`/`all`/`block`/`insert`)               | (off)                                                                      |
-| `nrformats`             | `nf`     | Number formats for `<C-a>`/`<C-x>` (`bin,hex,octal`)             | `bin,hex`                                                                  |
+| Option                  | Alias    | Description                                                                                                | Default                                                                    |
+| ----------------------- | -------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `clipboard`             | `clip`   | System clipboard sync (`unnamed`/`unnamedplus`)                                                            | (off)                                                                      |
+| `foldopen`              | `fdo`    | Motion categories that auto-unfold (Neovim-compatible)                                                     | `block,hor,mark,percent,search,undo`                                       |
+| `insertmodeescape`      | `ime`    | Two-key sequence to exit insert mode                                                                       | (off)                                                                      |
+| `flashjumpkey`          | —        | Key to trigger flash jump mode                                                                             | `s`                                                                        |
+| `flashminpatternlength` | `fmpl`   | Minimum chars before labels in jump mode                                                                   | `1`                                                                        |
+| `yankhighlightmode`     | —        | Yank highlight style (`off`/`solid`/`fade`)                                                                | `solid`                                                                    |
+| `easymotionlabels`      | `eml`    | Characters for EasyMotion and flash labels                                                                 | `asdghklqwertyuiopzxcvbnmfj`                                               |
+| `hintlabels`            | `hl`     | Characters for hint mode labels                                                                            | `asdfghjkl`                                                                |
+| `guicursor`             | —        | Per-mode cursor shapes                                                                                     | (block/bar/block/underline/underline)                                      |
+| `tablewidget`           | —        | Table widget mode (`native`/`raw`)                                                                         | `native`                                                                   |
+| `whichkey`              | `wk`     | Which-key hints (`off`/`leader`/`all`)                                                                     | `off`                                                                      |
+| `whichkeygrouping`      | `wkg`    | Which-key grouping (`flat`/`grouped`)                                                                      | `grouped`                                                                  |
+| `whichkeysort`          | `wks`    | Which-key sort order (`which-key`/`groups-first`)                                                          | `which-key`                                                                |
+| `whichkeyicons`         | `wki`    | Which-key icons (`on`/`off`)                                                                               | `on`                                                                       |
+| `workspacenavviewtypes` | `wnvt`   | View types for workspace nav interception                                                                  | (empty — uses defaults: markdown, graph, pdf, canvas, empty, image, bases) |
+| `cursorlineopt`         | `culopt` | Cursor line highlight mode (`number`/`line`/`screenline`/`both`/`screenline,number`; comma lists accepted) | `both`                                                                     |
+| `signcolumn`            | `scl`    | Sign column visibility (`auto[:N]`/`yes[:N]`/`no`)                                                         | `auto`                                                                     |
+| `linenumbermode`        | `lnm`    | Line number display (deprecated — use `statuscolumn`)                                                      | `hybrid`                                                                   |
+| `statuscolumn`          | `stc`    | Custom gutter layout format string                                                                         | (empty — plugin-managed)                                                   |
+| `snippetdir`            | —        | Path to user snippet JSON directory                                                                        | (off)                                                                      |
+| `snippettrigger`        | —        | Snippet trigger mode (`completion`/`tab`/`both`)                                                           | `both`                                                                     |
+| `pickermatcher`         | —        | Picker match engine (`ufuzzy`/`obsidian`)                                                                  | `ufuzzy`                                                                   |
+| `pickerpreview`         | —        | Non-Markdown picker previews (`rendered`/`hidden`/`raw`)                                                   | `rendered`                                                                 |
+| `ripgreppath`           | —        | Path to ripgrep binary                                                                                     | (off)                                                                      |
+| `ripgrepargs`           | —        | Additional ripgrep arguments                                                                               | (off)                                                                      |
+| `grepmode`              | —        | Grep backend (`ripgrep`/`grep`)                                                                            | `ripgrep`                                                                  |
+| `oilsort`               | —        | Oil default sort (`name`/`mtime`/`size`)                                                                   | `name`                                                                     |
+| `hinthotkey`            | —        | Key to trigger hint mode                                                                                   | (off)                                                                      |
+| `undotreeposition`      | —        | Undo tree sidebar position (`left`/`right`)                                                                | `right`                                                                    |
+| `impreset`              | —        | IM preset (`custom`/`macism`/`im-select`/`fcitx5-remote`/`ibus`)                                           | `custom`                                                                   |
+| `imbinarypath`          | —        | Path to IM binary                                                                                          | (off)                                                                      |
+| `imobtainargs`          | —        | Args for obtaining current IM                                                                              | (off)                                                                      |
+| `imswitchargs`          | —        | Args for switching IM                                                                                      | `{im}`                                                                     |
+| `imdefaultnormal`       | —        | Default IM for normal mode                                                                                 | (off)                                                                      |
+| `imrestorebehavior`     | —        | IM restore behavior (`restore`/`default`)                                                                  | `restore`                                                                  |
+| `imdefaultinsert`       | —        | Default IM for insert mode                                                                                 | (off)                                                                      |
+| `whichwrap`             | `ww`     | Keys that wrap to next/prev line at boundaries (`h,l,b,s,<,>`)                                             | `b,s`                                                                      |
+| `virtualedit`           | `ve`     | Cursor past EOL (`onemore`/`all`/`block`/`insert`)                                                         | (off)                                                                      |
+| `nrformats`             | `nf`     | Number formats for `<C-a>`/`<C-x>` (`bin,hex,octal`)                                                       | `bin,hex`                                                                  |
 
 ## Mode prompt customization
 
