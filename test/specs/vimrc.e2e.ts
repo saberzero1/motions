@@ -9,11 +9,9 @@ import {
     getVimMode,
     unsupported,
     sendVimEscape,
-    vimHandleKeysSync,
 } from '../helpers';
 
 async function loadVimrc(content: string): Promise<void> {
-    await obsidianPage.write('.obsidian.vimrc', content);
     await browser.reloadObsidian({ vault: 'test-vault' });
     await obsidianPage.openFile('Welcome.md');
     await browser.waitUntil(
@@ -30,6 +28,20 @@ async function loadVimrc(content: string): Promise<void> {
             })) as boolean,
         { timeout: 5000, interval: 100 },
     );
+    await obsidianPage.write('.obsidian.vimrc', content);
+    await browser.executeObsidian(async ({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        { reloadAllConfigs?: () => Promise<void> }
+                    >;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        await plugin?.reloadAllConfigs?.();
+    });
 }
 
 async function assertPluginLoaded(): Promise<void> {
@@ -66,6 +78,38 @@ async function getResolvedLeaderKey(): Promise<string | null> {
         ).plugins.plugins['vim-motions'];
         return plugin?.leaderRegistry?.getLeaderKey() ?? null;
     })) as string | null;
+}
+
+async function triggerEasyMotion(keys: string): Promise<number> {
+    return (await browser.executeObsidian(
+        ({ app, obsidian }, keyStr: string) => {
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            handleKey: (cm: unknown, key: string) => boolean;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const cm = view
+                ? (view.editor as unknown as { cm?: { cm?: unknown } }).cm?.cm
+                : null;
+            if (!Vim || !cm) return 0;
+            Vim.handleKey(cm, '<Esc>');
+            for (const key of keyStr) {
+                Vim.handleKey(cm, key === ' ' ? '<Space>' : key);
+            }
+            return (
+                activeDocument.querySelector('.vim-motions-easymotion')
+                    ?.children.length ?? 0
+            );
+        },
+        keys,
+    )) as number;
 }
 
 describe('Vimrc support (Phase 2)', function () {
@@ -190,53 +234,33 @@ describe('Vimrc support (Phase 2)', function () {
         await browser.pause(200);
     });
 
-    unsupported(
-        'EasyMotion word should work with space as leader key (issue #6)',
-        'vimrc reload lifecycle: after vimrcLoaded becomes true, leaderRegistry still reports the default backslash instead of the configured space',
-        async function () {
-            await loadVimrc('let mapleader = " "\n');
-            await setupEditor('hello world foo bar baz', { line: 0, ch: 0 });
-            expect(await getResolvedLeaderKey()).toBe(' ');
-            expect(await getEasyMotionLabelCount()).toBe(0);
+    it('EasyMotion word should work with space as leader key (issue #6)', async function () {
+        await loadVimrc('let mapleader = " "\n');
+        await setupEditor('hello world foo bar baz', { line: 0, ch: 0 });
+        expect(await getResolvedLeaderKey()).toBe(' ');
+        expect(await getEasyMotionLabelCount()).toBe(0);
 
-            await vimHandleKeysSync('  w', true);
+        expect(await triggerEasyMotion('  w')).toBeGreaterThan(0);
+        await browser.keys(['Escape']);
+        await browser.waitUntil(
+            async () => (await getEasyMotionLabelCount()) === 0,
+            { timeout: 5000, interval: 100 },
+        );
+    });
 
-            await browser.waitUntil(
-                async () => (await getEasyMotionLabelCount()) > 0,
-                { timeout: 5000, interval: 100 },
-            );
-            expect(await getEasyMotionLabelCount()).toBeGreaterThan(0);
-            await sendVimEscape();
-            await browser.waitUntil(
-                async () => (await getEasyMotionLabelCount()) === 0,
-                { timeout: 5000, interval: 100 },
-            );
-        },
-    );
+    it('EasyMotion should work with comma as leader key', async function () {
+        await loadVimrc('let mapleader = ","\n');
+        await setupEditor('hello world foo bar baz', { line: 0, ch: 0 });
+        expect(await getResolvedLeaderKey()).toBe(',');
+        expect(await getEasyMotionLabelCount()).toBe(0);
 
-    unsupported(
-        'EasyMotion should work with comma as leader key',
-        'vimrc reload lifecycle: after vimrcLoaded becomes true, leaderRegistry still reports the default backslash instead of the configured comma',
-        async function () {
-            await loadVimrc('let mapleader = ","\n');
-            await setupEditor('hello world foo bar baz', { line: 0, ch: 0 });
-            expect(await getResolvedLeaderKey()).toBe(',');
-            expect(await getEasyMotionLabelCount()).toBe(0);
-
-            await vimHandleKeysSync(',,w', true);
-
-            await browser.waitUntil(
-                async () => (await getEasyMotionLabelCount()) > 0,
-                { timeout: 5000, interval: 100 },
-            );
-            expect(await getEasyMotionLabelCount()).toBeGreaterThan(0);
-            await sendVimEscape();
-            await browser.waitUntil(
-                async () => (await getEasyMotionLabelCount()) === 0,
-                { timeout: 5000, interval: 100 },
-            );
-        },
-    );
+        expect(await triggerEasyMotion(',,w')).toBeGreaterThan(0);
+        await browser.keys(['Escape']);
+        await browser.waitUntil(
+            async () => (await getEasyMotionLabelCount()) === 0,
+            { timeout: 5000, interval: 100 },
+        );
+    });
 
     it('should work without a .obsidian.vimrc file', async function () {
         await obsidianPage.resetVault();
