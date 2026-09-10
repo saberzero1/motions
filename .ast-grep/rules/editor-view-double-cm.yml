@@ -1,0 +1,35 @@
+id: editor-view-double-cm
+language: typescript
+severity: error
+message: Reaching the CM5 vim adapter through `.cm.cm` instead of the CM6 EditorView.
+note: |
+    `Editor.cm` IS the CodeMirror 6 `EditorView`. A second `.cm` steps off it onto
+    the CM5 compatibility adapter that the vim engine attaches, which has a
+    different API — notably no `dispatch`.
+
+    This shipped for 108 releases (0.52.0–0.149.0). `iterateEditorViews()` read
+    `editor.cm.cm` and then guarded with `typeof cm.dispatch === 'function'`. The
+    adapter has no `dispatch`, so the guard rejected every leaf and the callback
+    ran for no editor at all. All five gutter reconfigure methods — line numbers,
+    sign column, fold column, statuscolumn and cursorline — dispatched into
+    nothing, and every one of those settings appeared to need an Obsidian
+    restart. Nothing threw, because a duck-type guard turns the wrong object into
+    a silent no-op.
+
+    For the CM6 view, use the canonical accessor:
+
+        import { getEditorView } from './util/editor';
+        const cm = getEditorView(markdownView);
+
+    For the CM5 vim adapter, use `getCmAdapter()` from src/vim/vim-api.ts rather
+    than deriving it by hand.
+files:
+    - 'src/**/*.ts'
+ignores:
+    - 'src/lib/fengari/**'
+rule:
+    any:
+        - pattern: $X.cm.cm
+        - pattern: $X.cm?.cm
+        - pattern: $X?.cm.cm
+        - pattern: $X?.cm?.cm
