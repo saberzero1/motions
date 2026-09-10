@@ -5386,10 +5386,9 @@ export default class VimMotionsPlugin extends Plugin {
 
     private iterateEditorViews(fn: (cm: EditorView) => void): void {
         this.app.workspace.iterateAllLeaves((leaf) => {
-            const view = (leaf.view as MarkdownView)?.editor;
-            const cm = (
-                view as unknown as { cm?: { cm: EditorView } } | undefined
-            )?.cm?.cm;
+            const view = leaf.view;
+            if (!(view instanceof MarkdownView)) return;
+            const cm = getEditorView(view);
             if (cm && typeof cm.dispatch === 'function') fn(cm);
         });
     }

@@ -137,6 +137,11 @@ describe('Gutter settings via Lua config (#101)', function () {
         expect(state.settingsNumber).toBe(true);
         expect(state.settingsRelativeNumber).toBe(false);
         expect(state.bodyHasLineNumberClass).toBe(true);
+        // The stored value and the body class are set before any editor is
+        // touched, so only this assertion distinguishes "applied" from merely
+        // "stored". Without it, a reconfigure that reached no editor view at
+        // all still passed this test.
+        expect(state.hasLineNumbers).toBe(true);
     });
 
     it('should store and persist number=false via Lua', async function () {
