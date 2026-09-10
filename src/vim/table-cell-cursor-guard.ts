@@ -5,6 +5,7 @@ import {
     type ViewUpdate,
 } from '@codemirror/view';
 import { type Extension } from '@codemirror/state';
+import { getEditorView } from '../util/editor';
 import { MarkdownView, editorInfoField } from 'obsidian';
 import {
     setCursorSuppressedForView,
@@ -34,7 +35,7 @@ function getParentEditorView(cellView: EditorView): EditorView | null {
         const info = cellView.state.field(editorInfoField);
         const mdView = info.app?.workspace?.getActiveViewOfType(MarkdownView);
         if (!mdView) return null;
-        return mdView.editor.cm ?? null;
+        return getEditorView(mdView);
     } catch {
         return null;
     }

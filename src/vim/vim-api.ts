@@ -1,6 +1,7 @@
 import type { MarkdownView } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import type { VimApi, CmAdapter } from '../types/vim-api';
+import { getEditorView } from '../util/editor';
 import {
     isBundledVimActive,
     getBundledVimApi,
@@ -37,7 +38,7 @@ export function getCmAdapterFromEditorView(
 
 export function getCmAdapter(view: MarkdownView): CmAdapter | null {
     try {
-        const editorView = view.editor.cm;
+        const editorView = getEditorView(view);
         if (!editorView) return null;
 
         // Built-in vim path: editorView.cm is the CM5-compat adapter

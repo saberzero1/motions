@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import { setKeyInterceptActive } from '@replit/codemirror-vim';
 import { captureKeys, type KeyCaptureHandle } from '../util/key-capture';
+import { getEditorView } from '../util/editor';
 import { findLinkAtCursor } from '../motions/goto-definition';
 import { navigateWithJump } from '../workspace/navigate';
 
@@ -339,14 +340,6 @@ function findLeafForElement(app: App, el: HTMLElement): WorkspaceLeaf | null {
     return found;
 }
 
-function editorViewFromMarkdownView(mdView: MarkdownView): EditorView | null {
-    try {
-        return mdView.editor.cm ?? null;
-    } catch {
-        return null;
-    }
-}
-
 function getEditorViewFromElement(el: Element, app: App): EditorView | null {
     const cmEditor = el.closest('.cm-editor');
     if (!cmEditor) return null;
@@ -355,7 +348,7 @@ function getEditorViewFromElement(el: Element, app: App): EditorView | null {
     if (cmView?.view) return cmView.view;
     const leaf = findLeafForElement(app, el as HTMLElement);
     if (leaf?.view instanceof MarkdownView) {
-        return editorViewFromMarkdownView(leaf.view);
+        return getEditorView(leaf.view);
     }
     return null;
 }

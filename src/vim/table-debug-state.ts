@@ -6,6 +6,7 @@ import {
     getViewOverrideCount,
     isKeyInterceptActive,
 } from '@replit/codemirror-vim';
+import { getEditorView } from '../util/editor';
 import { getTableNavSessionSnapshot } from './table-nav-controller';
 import { getTableNavState, type TableNavState } from './table-nav-state';
 import {
@@ -73,7 +74,7 @@ export function getTableDebugState(app: App): TableDebugState | null {
     const mdView = app.workspace.getActiveViewOfType(MarkdownView);
     if (!mdView) return null;
 
-    const editorView = mdView.editor.cm;
+    const editorView = getEditorView(mdView);
     if (!editorView) return null;
 
     const contentEl = (mdView as unknown as { contentEl: HTMLElement })
