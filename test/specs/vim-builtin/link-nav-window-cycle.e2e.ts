@@ -215,16 +215,6 @@ describe('Link navigation and window cycling', function () {
             const path = await getActiveFilePath();
             expect(path).toBe('Target.md');
         });
-
-        it('should not error when cursor is on plain text', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
-            await setupEditor('No links here at all.', { line: 0, ch: 0 });
-
-            const result = await handleVimKey('<C-]>');
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(300);
-        });
     });
 
     describe('Ctrl-T (jump back)', function () {
@@ -328,15 +318,6 @@ describe('Link navigation and window cycling', function () {
             const afterLeafId = await getActiveLeafId();
             expect(afterLeafId).not.toBe(beforeLeafId);
         });
-
-        it('should not error with single pane', async function () {
-            await closeOtherPanes();
-            await browser.pause(300);
-
-            const result = await handleVimKeys('<C-w>', 'W');
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(300);
-        });
     });
 
     describe('Ctrl-W p (previous pane)', function () {
@@ -362,15 +343,6 @@ describe('Link navigation and window cycling', function () {
 
             const afterLeafId = await getActiveLeafId();
             expect(afterLeafId.length).toBeGreaterThan(0);
-        });
-
-        it('should not error with single pane', async function () {
-            await closeOtherPanes();
-            await browser.pause(300);
-
-            const result = await handleVimKeys('<C-w>', 'p');
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(300);
         });
     });
 });

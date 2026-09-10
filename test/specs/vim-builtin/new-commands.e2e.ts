@@ -5,6 +5,8 @@ import {
     vimKeys,
     getCursorPos,
     getEditorValue,
+    getWorkspaceSnapshot,
+    loadTwoFileWorkspace,
     sendVimEscape,
 } from '../../helpers';
 
@@ -78,6 +80,10 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                         CodeMirrorAdapter?: {
                             Vim?: {
                                 handleEx: (cm: unknown, input: string) => void;
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
                             };
                         };
                     }
@@ -116,6 +122,10 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
                         CodeMirrorAdapter?: {
                             Vim?: {
                                 handleEx: (cm: unknown, input: string) => void;
+                                handleKey: (
+                                    cm: unknown,
+                                    key: string,
+                                ) => boolean;
                             };
                         };
                     }
@@ -364,44 +374,18 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
             await browser.pause(300);
         });
 
-        it('[crash-guard] ZZ should close the current tab without error', async function () {
+        it('ZZ closes the current tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
             await setupEditor('test content', { line: 0, ch: 0 });
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(2);
 
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm as
-                            Record<string, unknown> | undefined;
-                        if (!adapter) return { error: 'No adapter' };
-                        const Vim = (
-                            window as unknown as {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        Vim.handleKey(adapter, 'Z');
-                        Vim.handleKey(adapter, 'Z');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+            await vimKeys('Z', 'Z');
+
+            await browser.waitUntil(
+                async () =>
+                    (await getWorkspaceSnapshot()).markdownLeafCount === 1,
+                { timeout: 5000, interval: 100 },
             );
-            expect(result).toHaveProperty('success', true);
         });
     });
 
@@ -411,44 +395,18 @@ describe('New vim commands — @:, &, ZZ, ZQ, insert Ctrl-A/E/Y', function () {
             await browser.pause(300);
         });
 
-        it('[crash-guard] ZQ should close the current tab without error', async function () {
+        it('ZQ closes the current tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
             await setupEditor('unsaved content', { line: 0, ch: 0 });
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(2);
 
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm as
-                            Record<string, unknown> | undefined;
-                        if (!adapter) return { error: 'No adapter' };
-                        const Vim = (
-                            window as unknown as {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        Vim.handleKey(adapter, 'Z');
-                        Vim.handleKey(adapter, 'Q');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+            await vimKeys('Z', 'Q');
+
+            await browser.waitUntil(
+                async () =>
+                    (await getWorkspaceSnapshot()).markdownLeafCount === 1,
+                { timeout: 5000, interval: 100 },
             );
-            expect(result).toHaveProperty('success', true);
         });
     });
 

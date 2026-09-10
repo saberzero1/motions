@@ -1,7 +1,29 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { sendVimEscape } from '../helpers';
+import {
+    dismissNotices,
+    getNotices,
+    getWorkspaceSnapshot,
+    handleEx,
+    loadTwoFileWorkspace,
+} from '../helpers';
+
+async function isPickerOpen(): Promise<boolean> {
+    return (await browser.executeObsidian(
+        () => document.querySelector('.vim-motions-picker') !== null,
+    )) as boolean;
+}
+
+async function closePicker(): Promise<void> {
+    await browser.keys(['Escape']);
+    await browser.waitUntil(async () => !(await isPickerOpen()), {
+        timeout: 5000,
+        interval: 100,
+        timeoutMsg: 'expected the buffer picker instance to close on Escape',
+    });
+}
+
 describe('Ex commands extended', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -184,62 +206,21 @@ describe('Ex commands extended', function () {
         expect(afterPath).not.toBe(beforePath);
     });
 
-    it(':only should close all other tabs', async function () {
-        await browser.executeObsidian(async ({ app }) => {
-            const existing4 = app.vault.getAbstractFileByPath('TestFile4.md');
-            if (existing4) await app.vault.delete(existing4);
-            await app.vault.create('TestFile4.md', 'Only test 1');
-            const existing5 = app.vault.getAbstractFileByPath('TestFile5.md');
-            if (existing5) await app.vault.delete(existing5);
-            await app.vault.create('TestFile5.md', 'Only test 2');
-        });
-        await obsidianPage.openFile('TestFile4.md');
-        await browser.pause(200);
-        await obsidianPage.openFile('TestFile5.md');
-        await browser.pause(300);
+    it(':only closes every other markdown tab', async function () {
+        await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+        expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(2);
 
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (view) view.editor.focus();
-        });
-        await browser.pause(300);
+        const result = await handleEx('only');
 
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'only');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-
-        await browser.pause(300);
-        await obsidianPage.openFile('Welcome.md');
-        await browser.pause(200);
+        expect(result.unknownCommand).toBe(false);
+        await browser.waitUntil(
+            async () => (await getWorkspaceSnapshot()).markdownLeafCount === 1,
+            { timeout: 5000, interval: 100 },
+        );
+        expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
     });
 
-    it(':back should navigate history backward', async function () {
+    it(':back dispatches Obsidian’s history-back command', async function () {
         await obsidianPage.openFile('Welcome.md');
         await browser.pause(300);
 
@@ -259,35 +240,10 @@ describe('Ex commands extended', function () {
         });
         await browser.pause(300);
 
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'back');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+        const result = await handleEx('back');
 
-        await browser.pause(500);
+        expect(result.unknownCommand).toBe(false);
+        expect(result.dispatchedCommands).toContain('app:go-back');
     });
 
     it(':forward should navigate history forward', async function () {
@@ -384,7 +340,7 @@ describe('Ex commands extended', function () {
         await browser.pause(500);
     });
 
-    it(':explorer should not error', async function () {
+    it(':explorer dispatches reveal-active-file', async function () {
         await obsidianPage.openFile('Welcome.md');
         await browser.pause(300);
 
@@ -396,67 +352,66 @@ describe('Ex commands extended', function () {
         });
         await browser.pause(300);
 
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'explorer');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+        const result = await handleEx('explorer');
+
+        expect(result.unknownCommand).toBe(false);
+        expect(result.dispatchedCommands).toContain(
+            'file-explorer:reveal-active-file',
+        );
     });
 
-    it(':ls should open buffer list without error', async function () {
+    it(':ls opens the buffer picker', async function () {
         await obsidianPage.openFile('Welcome.md');
         await browser.pause(300);
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'ls');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
+        expect(await isPickerOpen()).toBe(false);
+
+        const result = await handleEx('ls');
+
+        expect(result.unknownCommand).toBe(false);
+        await browser.waitUntil(async () => await isPickerOpen(), {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: 'expected :ls to open the buffer picker',
         });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+        await closePicker();
+    });
+
+    it(':violations! clears recorded invariant violations', async function () {
+        const violationMessage = 'violations bang e2e control';
+        await browser.executeObsidian(async ({ app }, message: string) => {
+            const plugin = app.plugins.plugins['vim-motions'] as unknown as {
+                loadData(): Promise<Record<string, unknown> | null>;
+                loadSettings(): Promise<void>;
+            };
+            const loadData = plugin.loadData.bind(plugin);
+            plugin.loadData = async () => ({
+                ...(await loadData()),
+                configMode: message,
+            });
+            try {
+                await plugin.loadSettings();
+            } finally {
+                plugin.loadData = loadData;
+                await plugin.loadSettings();
+            }
+        }, violationMessage);
+        await dismissNotices();
+
+        await handleEx('violations');
+        expect(
+            (await getNotices()).some((notice) =>
+                notice.includes(violationMessage),
+            ),
+        ).toBe(true);
+        await dismissNotices();
+
+        const result = await handleEx('violations!');
+        expect(result.unknownCommand).toBe(false);
+        await dismissNotices();
+
+        await handleEx('violations');
+        expect(await getNotices()).toContain(
+            'No invariant violations recorded.',
+        );
     });
 });

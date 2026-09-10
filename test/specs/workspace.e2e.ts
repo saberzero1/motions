@@ -1,7 +1,102 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { sendVimEscape, loadSingleFileWorkspace } from '../helpers';
+import {
+    getWorkspaceSnapshot,
+    handleEx,
+    loadSingleFileWorkspace,
+    loadTwoFileWorkspace,
+    sendVimEscape,
+    setupEditor,
+    vimKeys,
+} from '../helpers';
+
+async function getInteractiveSurfaceCount(): Promise<number> {
+    return (await browser.executeObsidian(
+        () =>
+            document.querySelectorAll(
+                '.vim-motions-picker, .vim-motions-info-modal, .vim-motions-prompt-modal-container, .modal-container',
+            ).length,
+    )) as number;
+}
+
+async function waitForInteractiveSurface(): Promise<void> {
+    await browser.waitUntil(
+        async () => (await getInteractiveSurfaceCount()) > 0,
+        {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: 'expected a Vim Motions picker or modal to open',
+        },
+    );
+}
+
+async function closeInteractiveSurface(): Promise<void> {
+    await browser.keys(['Escape']);
+    await browser.waitUntil(
+        async () => (await getInteractiveSurfaceCount()) === 0,
+        {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: 'expected the modal instance to close on Escape',
+        },
+    );
+
+    await browser.keys(['g', 'O']);
+    await waitForInteractiveSurface();
+    await browser.keys(['Escape']);
+    await browser.waitUntil(
+        async () => (await getInteractiveSurfaceCount()) === 0,
+        {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: 'expected the scope-check modal to close on Escape',
+        },
+    );
+}
+
+async function isFoldedAt(line: number): Promise<boolean> {
+    return (await browser.executeObsidian(
+        ({ app, obsidian, require: req }, targetLine: number) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return false;
+            const { foldedRanges } = req('@codemirror/language') as {
+                foldedRanges: (state: unknown) => {
+                    iter: (from?: number) => {
+                        value: unknown;
+                        from: number;
+                        to: number;
+                        next: () => void;
+                    };
+                };
+            };
+            const cm6View = (view.editor as unknown as Record<string, unknown>)
+                .cm as
+                | {
+                      state: {
+                          doc: {
+                              line: (n: number) => { from: number; to: number };
+                          };
+                      };
+                  }
+                | undefined;
+            if (!cm6View) return false;
+            const docLine = cm6View.state.doc.line(targetLine + 1);
+            const iter = foldedRanges(cm6View.state).iter(docLine.from);
+            while (iter.value) {
+                if (iter.from <= docLine.to && iter.to >= docLine.from)
+                    return true;
+                if (iter.from > docLine.to) break;
+                iter.next();
+            }
+            return false;
+        },
+        line,
+    )) as boolean;
+}
+
 describe('Workspace navigation (Phase 2)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -12,271 +107,104 @@ describe('Workspace navigation (Phase 2)', function () {
         await loadSingleFileWorkspace('Welcome.md');
     });
 
-    it('[crash-guard] gt should not error with single tab', async function () {
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (view) view.editor.focus();
-        });
-        await browser.pause(300);
+    it('gt activates the next tab', async function () {
+        await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'first');
+        expect((await getWorkspaceSnapshot()).activeFile).toBe('Welcome.md');
 
-        await sendVimEscape();
-        await browser.pause(50);
-        await browser.keys(['g', 't']);
-        await browser.pause(300);
+        await vimKeys('g', 't');
 
-        const result = await browser.executeObsidian(({ app }) => {
-            return { hasActiveLeaf: !!app.workspace.getLeaf(false) };
-        });
-        expect(result).toHaveProperty('hasActiveLeaf', true);
+        await browser.waitUntil(
+            async () =>
+                (await getWorkspaceSnapshot()).activeFile === 'Target.md',
+            { timeout: 5000, interval: 100 },
+        );
     });
 
-    it(':sidebar left should not error', async function () {
-        const errored = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'sidebar left');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(errored).toHaveProperty('success', true);
+    it(':sidebar left dispatches the left sidebar toggle', async function () {
+        const result = await handleEx('sidebar left');
+
+        expect(result.unknownCommand).toBe(false);
+        expect(result.dispatchedCommands).toContain('app:toggle-left-sidebar');
     });
 
-    it(':ob should list commands without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'ob');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+    it(':ob opens the command list', async function () {
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('ob');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it(':reg should open register viewer without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'reg');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+    it(':reg opens the register viewer', async function () {
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('reg');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it(':marks should open marks viewer without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'marks');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+    it(':marks opens the marks viewer', async function () {
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('marks');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it(':w should save without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'w');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+    it(':w dispatches Obsidian’s save command', async function () {
+        const result = await handleEx('w');
+
+        expect(result.unknownCommand).toBe(false);
+        expect(result.dispatchedCommands).toContain('editor:save-file');
     });
 
-    it(':bn should switch to next tab without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'bn');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+    it(':bn activates the next tab', async function () {
+        await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'first');
+        expect((await getWorkspaceSnapshot()).activeFile).toBe('Welcome.md');
+
+        const result = await handleEx('bn');
+
+        expect(result.unknownCommand).toBe(false);
+        await browser.waitUntil(
+            async () =>
+                (await getWorkspaceSnapshot()).activeFile === 'Target.md',
+            { timeout: 5000, interval: 100 },
+        );
     });
 
-    it('za should toggle fold without error', async function () {
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return;
-            view.editor.setValue(
-                '# Heading\n\nSome content under heading\n\nMore content',
-            );
-            view.editor.setCursor(0, 0);
-            view.editor.focus();
-        });
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(50);
-        await browser.keys(['z', 'a']);
-        await browser.pause(200);
+    it('za folds the heading at the cursor', async function () {
+        await setupEditor(
+            '# Heading\n\nSome content under heading\n\nMore content',
+            { line: 0, ch: 0 },
+        );
+        expect(await isFoldedAt(0)).toBe(false);
 
-        const result = await browser.executeObsidian(({ app }) => {
-            return { hasActiveLeaf: !!app.workspace.getLeaf(false) };
+        await vimKeys('z', 'a');
+
+        await browser.waitUntil(async () => await isFoldedAt(0), {
+            timeout: 5000,
+            interval: 100,
         });
-        expect(result).toHaveProperty('hasActiveLeaf', true);
     });
 
-    it('gd on a wikilink should not error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleKey: (
-                                    cm: unknown,
-                                    key: string,
-                                ) => boolean;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                view.editor.setValue('Go to [[Welcome]] now');
-                view.editor.setCursor(0, 10);
-                view.editor.focus();
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleKey(adapter, 'g');
-                Vim.handleKey(adapter, 'd');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+    it('gd on a wikilink activates the linked file', async function () {
+        await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+        await setupEditor('Go to [[Welcome]] now', { line: 0, ch: 10 });
+        expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
+
+        await vimKeys('g', 'd');
+
+        await browser.waitUntil(
+            async () =>
+                (await getWorkspaceSnapshot()).activeFile === 'Welcome.md',
+            { timeout: 5000, interval: 100 },
+        );
     });
 
     it('gd outside a link should no-op', async function () {
@@ -304,9 +232,9 @@ describe('Workspace navigation (Phase 2)', function () {
         expect(result).toHaveProperty('value', 'No links here');
     });
 
-    it('gx on a URL should not error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
+    it('gx on a URL opens that URL externally', async function () {
+        const openedUrl = (await browser.executeObsidian(
+            ({ app, obsidian }) => {
                 const Vim = (
                     window as unknown as Record<string, unknown> & {
                         CodeMirrorAdapter?: {
@@ -319,26 +247,35 @@ describe('Workspace navigation (Phase 2)', function () {
                         };
                     }
                 ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
+                if (!Vim) return null;
                 const view = app.workspace.getActiveViewOfType(
                     obsidian.MarkdownView,
                 );
-                if (!view) return { error: 'No view' };
+                if (!view) return null;
                 view.editor.setValue('Visit https://example.com today');
                 view.editor.setCursor(0, 10);
                 view.editor.focus();
                 const cm = (view.editor as unknown as Record<string, unknown>)
                     .cm as Record<string, unknown>;
                 const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleKey(adapter, 'g');
-                Vim.handleKey(adapter, 'x');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+                if (!adapter) return null;
+                let captured: string | null = null;
+                const originalOpen = window.open;
+                window.open = ((url?: string | URL) => {
+                    captured = url?.toString() ?? null;
+                    return null;
+                }) as typeof window.open;
+                try {
+                    Vim.handleKey(adapter, 'g');
+                    Vim.handleKey(adapter, 'x');
+                } finally {
+                    window.open = originalOpen;
+                }
+                return captured;
+            },
+        )) as string | null;
+
+        expect(openedUrl).toBe('https://example.com');
     });
 
     it('gx outside a URL should no-op', async function () {
@@ -365,184 +302,61 @@ describe('Workspace navigation (Phase 2)', function () {
         expect(result).toHaveProperty('value', 'No URLs here');
     });
 
-    it(':buffers should open buffer list without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'buffers');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+    it(':buffers opens the buffer list', async function () {
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('buffers');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it(':backlinks should open backlinks modal without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'backlinks');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+    it(':backlinks opens the backlinks list', async function () {
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('backlinks');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it(':contextactions ex command should open context actions modal without error', async function () {
+    it(':contextactions opens the context actions modal', async function () {
         // gra key binding was removed when gr became the replaceWithRegister
         // operator. contextActions is now accessible via the :contextactions
         // ex command.
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                view.editor.setValue('- [ ] A task item');
-                view.editor.setCursor(0, 5);
-                view.editor.focus();
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'contextactions');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+        await setupEditor('- [ ] A task item', { line: 0, ch: 5 });
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('contextactions');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it(':grep should search vault without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'grep Welcome');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(500);
-        await sendVimEscape();
-        await browser.pause(200);
+    it(':grep opens vault search results', async function () {
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        const result = await handleEx('grep Welcome');
+
+        expect(result.unknownCommand).toBe(false);
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
-    it('gO should open outline modal without error', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleKey: (
-                                    cm: unknown,
-                                    key: string,
-                                ) => boolean;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                view.editor.setValue(
-                    '# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text',
-                );
-                view.editor.setCursor(0, 0);
-                view.editor.focus();
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleKey(adapter, 'g');
-                Vim.handleKey(adapter, 'O');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
-        await browser.pause(300);
-        await sendVimEscape();
-        await browser.pause(200);
+    it('gO opens the outline modal', async function () {
+        await setupEditor(
+            '# Heading 1\n\nSome text\n\n## Heading 2\n\nMore text',
+            { line: 0, ch: 0 },
+        );
+        expect(await getInteractiveSurfaceCount()).toBe(0);
+
+        await vimKeys('g', 'O');
+
+        await waitForInteractiveSurface();
+        await closeInteractiveSurface();
     });
 
     it('gd on a wikilink with display name should resolve the file path', async function () {
@@ -872,33 +686,10 @@ describe('Workspace navigation (Phase 2)', function () {
         expect(leavesAfter).toBe(leavesBefore);
     });
 
-    it(':ob should execute a command by id', async function () {
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                Vim.handleEx(adapter, 'ob editor:save-file');
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        });
-        expect(result).toHaveProperty('success', true);
+    it(':ob dispatches a command by id', async function () {
+        const result = await handleEx('ob editor:save-file');
+
+        expect(result.unknownCommand).toBe(false);
+        expect(result.dispatchedCommands).toContain('editor:save-file');
     });
 });

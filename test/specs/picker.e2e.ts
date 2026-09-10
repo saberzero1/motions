@@ -1,6 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { sendVimEscape } from '../helpers';
+import { dismissNotices, getNotices, handleEx as observeEx } from '../helpers';
 
 type ExecResult = { success: true } | { error: string };
 
@@ -239,19 +239,23 @@ describe('Picker', function () {
 
     describe(':resume', function () {
         it('should show notice when no previous session', async function () {
-            await browser.executeObsidian(() => {
-                const mod = (
-                    window as unknown as Record<string, unknown> & {
-                        _pickerModule?: {
-                            clearLastSession?: () => void;
-                        };
-                    }
-                )._pickerModule;
-                if (mod?.clearLastSession) mod.clearLastSession();
-            });
-            const result = await handleEx('resume');
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(300);
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+            await dismissNotices();
+            expect(await getNotices()).not.toContain(
+                'No previous picker to resume',
+            );
+
+            const result = await observeEx('resume');
+
+            expect(result.unknownCommand).toBe(false);
+            await browser.waitUntil(
+                async () =>
+                    (await getNotices()).includes(
+                        'No previous picker to resume',
+                    ),
+                { timeout: 5000, interval: 100 },
+            );
         });
     });
 

@@ -3,13 +3,51 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     getEditorValue,
-    getCursorPos,
     getRegisterContent,
+    getInfoModalTitles,
+    getNotices,
+    getVimMarkLetters,
+    getWorkspaceSnapshot,
+    dismissNotices,
+    handleEx,
+    loadSingleFileWorkspace,
+    loadTwoFileWorkspace,
     sendVimEscape,
     vimKeys,
 } from '../../helpers';
 import { testWithNeovim, startNvim, stopNvim } from '../../neovim/test-wrapper';
 import { SUITES } from '../../neovim/test-definitions';
+
+async function readActiveFileFromDisk(): Promise<string | null> {
+    return (await browser.executeObsidian(async ({ app }) => {
+        const file = app.workspace.getActiveFile();
+        if (!file) return null;
+        return await app.vault.read(file);
+    })) as string | null;
+}
+
+async function waitForMarkdownLeafCount(expected: number): Promise<void> {
+    await browser.waitUntil(
+        async () =>
+            (await getWorkspaceSnapshot()).markdownLeafCount === expected,
+        {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: `expected ${expected} markdown leaves`,
+        },
+    );
+}
+
+async function waitForActiveFile(expected: string): Promise<void> {
+    await browser.waitUntil(
+        async () => (await getWorkspaceSnapshot()).activeFile === expected,
+        {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: `expected ${expected} to become the active file`,
+        },
+    );
+}
 
 describe('Expanded Ex commands', function () {
     before(async function () {
@@ -44,187 +82,224 @@ describe('Expanded Ex commands', function () {
         });
     }
 
-    function handleEx(cmd: string) {
-        return browser.executeObsidian(({ app, obsidian }, cmdStr: string) => {
-            try {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleEx: (cm: unknown, input: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return { error: 'No Vim API' };
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return { error: 'No view' };
-                const cm = (view.editor as unknown as Record<string, unknown>)
-                    .cm as Record<string, unknown>;
-                const adapter = cm?.cm;
-                if (!adapter) return { error: 'No adapter' };
-                view.editor.focus();
-                Vim.handleEx(adapter, cmdStr);
-                return { success: true };
-            } catch (e) {
-                return { error: String(e) };
-            }
-        }, cmd);
-    }
-
     describe('Phase 1: File operations', function () {
-        it('[crash-guard] :update should save without error', async function () {
-            await setupEditor('test content', { line: 0, ch: 0 });
+        it(':update dispatches Obsidian\u2019s save command', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
+            await setupEditor('update test', { line: 0, ch: 0 });
+
             const result = await handleEx('update');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.error).toBeUndefined();
+            expect(result.dispatchedCommands).toContain('editor:save-file');
         });
 
-        it('[crash-guard] :xit should save and close without error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
-            await setupEditor('xit test', { line: 0, ch: 0 });
+        it(':xit saves and closes the active leaf', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            const before = await getWorkspaceSnapshot();
+            expect(before.markdownLeafCount).toBe(2);
+
             const result = await handleEx('xit');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain('editor:save-file');
+            expect(result.dispatchedCommands).toContain('workspace:close');
+            await waitForMarkdownLeafCount(1);
         });
 
-        it('[crash-guard] :find should open file by partial name', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleEx: (
-                                            cm: unknown,
-                                            input: string,
-                                        ) => void;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim API' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        view.editor.focus();
-                        Vim.handleEx(adapter, 'find Welcome');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
+        it(':find opens the file matching a partial name', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
+
+            const result = await handleEx('find Welcome');
+
+            expect(result.unknownCommand).toBe(false);
+            await waitForActiveFile('Welcome.md');
+        });
+
+        it(':version reports the plugin name and version', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
+            await dismissNotices();
+
+            const result = await handleEx('version');
+
+            expect(result.unknownCommand).toBe(false);
+            const notices = await getNotices();
+            expect(
+                notices.some((n) => /Vim Motions v\d+\.\d+\.\d+/.test(n)),
+            ).toBe(true);
+        });
+
+        it(':edit! discards buffer changes and re-reads the file', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
+            const onDisk = await readActiveFileFromDisk();
+            expect(onDisk).not.toBeNull();
+            const scratch = `scratch-${Date.now()}`;
+            await setupEditor(scratch, { line: 0, ch: 0 });
+            expect(await getEditorValue()).toBe(scratch);
+
+            const result = await handleEx('edit!');
+
+            expect(result.unknownCommand).toBe(false);
+            await browser.waitUntil(
+                async () => (await getEditorValue()) === onDisk,
+                {
+                    timeout: 5000,
+                    interval: 100,
+                    timeoutMsg: 'buffer was not restored from disk',
                 },
             );
-            expect(result).toHaveProperty('success', true);
         });
 
-        it('[crash-guard] :version should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
-            const result = await handleEx('version');
-            expect(result).toHaveProperty('success', true);
-        });
+        it(':saveas without an argument reports its usage', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
+            await dismissNotices();
 
-        it('[crash-guard] :e! should revert file without error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
-            const result = await handleEx('edit!');
-            expect(result).toHaveProperty('success', true);
-        });
-
-        it('[crash-guard] :saveas with no arg should show usage notice', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
             const result = await handleEx('saveas');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(await getNotices()).toContain('Usage: :saveas {filename}');
         });
     });
 
     describe('Phase 2: Buffer navigation', function () {
-        it('[crash-guard] :bfirst should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':bfirst activates the first buffer', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
+
             const result = await handleEx('bfirst');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            await waitForActiveFile('Welcome.md');
         });
 
-        it('[crash-guard] :blast should not error', async function () {
+        it(':blast activates the last buffer', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'first');
+            expect((await getWorkspaceSnapshot()).activeFile).toBe(
+                'Welcome.md',
+            );
+
             const result = await handleEx('blast');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            await waitForActiveFile('Target.md');
         });
 
-        it('[crash-guard] :bwipeout should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':bwipeout closes the active buffer', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(2);
+
             const result = await handleEx('bwipeout');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain('workspace:close');
+            await waitForMarkdownLeafCount(1);
         });
     });
 
     describe('Phase 3: Split/tab commands', function () {
-        it('[crash-guard] :split should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':split opens a horizontal split', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(1);
+
             const result = await handleEx('split');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain(
+                'workspace:split-horizontal',
+            );
+            await waitForMarkdownLeafCount(2);
         });
 
-        it('[crash-guard] :vsplit should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':vsplit opens a vertical split', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(1);
+
             const result = await handleEx('vsplit');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain(
+                'workspace:split-vertical',
+            );
+            await waitForMarkdownLeafCount(2);
         });
 
-        it('[crash-guard] :tabclose should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':tabclose closes the active tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(2);
+
             const result = await handleEx('tabclose');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain('workspace:close');
+            await waitForMarkdownLeafCount(1);
         });
 
-        it('[crash-guard] :tabonly should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':tabonly closes every other tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).markdownLeafCount).toBe(2);
+
             const result = await handleEx('tabonly');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            await waitForMarkdownLeafCount(1);
+            expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
         });
 
-        it('[crash-guard] :tabfirst should not error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
+        it(':tabfirst activates the first tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
+
             const result = await handleEx('tabfirst');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            await waitForActiveFile('Welcome.md');
         });
 
-        it('[crash-guard] :tablast should not error', async function () {
+        it(':tablast activates the last tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'first');
+            expect((await getWorkspaceSnapshot()).activeFile).toBe(
+                'Welcome.md',
+            );
+
             const result = await handleEx('tablast');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            await waitForActiveFile('Target.md');
         });
     });
 
     describe('Phase 4: Utility commands', function () {
         it(':delmarks a should delete mark a', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
             await setupEditor('hello', { line: 0, ch: 0 });
             await vimKeys('m', 'a');
             await browser.pause(100);
+            expect(await getVimMarkLetters()).toContain('a');
+
             const result = await handleEx('delmarks a');
-            expect(result).toHaveProperty('success', true);
+
+            expect(result.unknownCommand).toBe(false);
+            expect(await getVimMarkLetters()).not.toContain('a');
         });
 
-        it('[crash-guard] :changes should not error', async function () {
+        it(':changes opens the change list', async function () {
+            await loadSingleFileWorkspace('Welcome.md');
             await setupEditor('test', { line: 0, ch: 0 });
+            expect(await getInfoModalTitles()).not.toContain('Changes');
+
             const result = await handleEx('changes');
-            expect(result).toHaveProperty('success', true);
-            await sendVimEscape();
+
+            expect(result.unknownCommand).toBe(false);
+            await browser.waitUntil(
+                async () => (await getInfoModalTitles()).includes('Changes'),
+                {
+                    timeout: 5000,
+                    interval: 100,
+                    timeoutMsg: 'the Changes modal never opened',
+                },
+            );
+            await browser.keys(['Escape']);
             await browser.pause(200);
         });
     });
@@ -233,7 +308,7 @@ describe('Expanded Ex commands', function () {
         it(':yank should not error', async function () {
             await setupEditor('line one\nline two', { line: 0, ch: 0 });
             const result = await handleEx('yank');
-            expect(result).toHaveProperty('success', true);
+            expect(result.unknownCommand).toBe(false);
             const reg = await getRegisterContent('"');
             expect(reg).not.toBeNull();
             expect(reg!.text).toContain('line one');
@@ -248,7 +323,7 @@ describe('Expanded Ex commands', function () {
         it(':nohlsearch should not error', async function () {
             await setupEditor('test', { line: 0, ch: 0 });
             const result = await handleEx('nohlsearch');
-            expect(result).toHaveProperty('success', true);
+            expect(result.unknownCommand).toBe(false);
             const content = await getEditorValue();
             expect(content).toBe('test');
         });

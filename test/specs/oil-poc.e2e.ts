@@ -5,6 +5,8 @@ import {
     PAUSE,
     ensureLivePreview,
     ensureSourceMode,
+    dismissNotices,
+    getNotices,
     isLivePreview,
     isSourceMode,
 } from '../helpers';
@@ -509,8 +511,15 @@ describe('Oil explorer', function () {
     describe('no-op save', function () {
         it(':w with no changes shows no-changes notice', async function () {
             await openOilAndWait();
+            await dismissNotices();
+            expect(await getNotices()).not.toContain('Oil: no changes');
+
             const commitResult = await runExCommand('w');
-            expect(commitResult).toHaveProperty('success', true);
+            expect(commitResult.error).toBeUndefined();
+            await browser.waitUntil(
+                async () => (await getNotices()).includes('Oil: no changes'),
+                { timeout: 5000, interval: 100 },
+            );
         });
     });
 

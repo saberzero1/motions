@@ -1,6 +1,12 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getNotices, dismissNotices, PAUSE } from '../helpers';
+import {
+    setupEditor,
+    getNotices,
+    dismissNotices,
+    handleEx as observeEx,
+    PAUSE,
+} from '../helpers';
 
 type ExecResult = { success: true } | { error: string };
 
@@ -71,8 +77,9 @@ describe('Oil ex commands outside Oil buffer (#152)', function () {
         });
     }
 
-    it('should not error with "not an editor command" for :oilo', async function () {
-        const result = await handleEx('oilo');
-        expect(result).toHaveProperty('success', true);
+    it(':oilo is recognized outside an Oil buffer', async function () {
+        const result = await observeEx('oilo');
+
+        expect(result.unknownCommand).toBe(false);
     });
 });

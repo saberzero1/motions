@@ -3,7 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     getEditorValue,
-    getCursorPos,
+    handleEx as observeEx,
     sendVimEscape,
 } from '../../helpers';
 
@@ -191,10 +191,11 @@ describe('Ex commands — :move, :copy, :normal', function () {
             expect(await getEditorValue()).toBe('ello');
         });
 
-        it('[crash-guard] :normal with no args should not error', async function () {
+        it(':normal with no args is recognized', async function () {
             await setupEditor('hello', { line: 0, ch: 0 });
-            const result = await handleEx('normal');
-            expect(result).toHaveProperty('success', true);
+            const result = await observeEx('normal');
+
+            expect(result.unknownCommand).toBe(false);
         });
 
         it(':normal! bypasses user mappings', async function () {

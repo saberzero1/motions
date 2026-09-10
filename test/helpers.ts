@@ -461,6 +461,60 @@ export async function loadSingleFileWorkspace(
     await browser.pause(PAUSE.MODE_SWITCH);
 }
 
+export async function loadTwoFileWorkspace(
+    firstFile = 'Welcome.md',
+    secondFile = 'Target.md',
+    active: 'first' | 'second' = 'second',
+): Promise<void> {
+    await obsidianPage.loadWorkspaceLayout({
+        main: {
+            id: 'test-main',
+            type: 'split',
+            children: [
+                {
+                    id: 'test-tabs',
+                    type: 'tabs',
+                    children: [
+                        {
+                            id: 'test-leaf-first',
+                            type: 'leaf',
+                            state: {
+                                type: 'markdown',
+                                state: { file: firstFile, mode: 'source' },
+                            },
+                        },
+                        {
+                            id: 'test-leaf-second',
+                            type: 'leaf',
+                            state: {
+                                type: 'markdown',
+                                state: { file: secondFile, mode: 'source' },
+                            },
+                        },
+                    ],
+                },
+            ],
+            direction: 'vertical',
+        },
+        active: active === 'first' ? 'test-leaf-first' : 'test-leaf-second',
+        lastOpenFiles: [],
+    });
+    const expected = active === 'first' ? firstFile : secondFile;
+    await browser
+        .waitUntil(
+            async () =>
+                (await browser.executeObsidian(({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    return view?.file?.path ?? null;
+                })) === expected,
+            { timeout: 5000, interval: 100 },
+        )
+        .catch(() => {});
+    await browser.pause(PAUSE.MODE_SWITCH);
+}
+
 export function unsupported(
     description: string,
     reason: string,
@@ -737,6 +791,178 @@ export async function setPluginSettingAndReload(
         value,
     );
     await browser.pause(PAUSE.EDITOR_SETTLE);
+}
+
+export interface ExCommandResult {
+    /** No exception crossed the `Vim.handleEx` boundary. */
+    ok: boolean;
+    /** Set when the driver could not reach the ex handler at all. */
+    error?: string;
+    /**
+     * The fork reported `Not an editor command ":<input>"` — i.e. nothing was
+     * dispatched.  A test whose subject is an ex command MUST assert this is
+     * false, otherwise renaming the command to a nonexistent one still passes.
+     */
+    unknownCommand: boolean;
+    /** Every `.cm-vim-message` the fork emitted during the call. */
+    messages: string[];
+    /**
+     * Obsidian command ids the ex command dispatched synchronously.  Commands
+     * that delegate (`:update` → `editor:save-file`) are observable here even
+     * when their effect is not, e.g. because Obsidian's idle autosave would
+     * reach the same end state on its own and mask a broken `:update`.
+     */
+    dispatchedCommands: string[];
+}
+
+/**
+ * Drive the fork's ex-command handler and report what the fork did with it.
+ *
+ * `Vim.handleEx` returns void, so "it did not throw" proves nothing on its
+ * own — that is the vacuity this helper exists to close.  `unknownCommand`
+ * distinguishes a dispatched command from a fabricated one; pair it with an
+ * assertion about the state the command is responsible for producing.
+ */
+export async function handleEx(input: string): Promise<ExCommandResult> {
+    return (await browser.executeObsidian(
+        ({ app, obsidian }, cmdStr: string) => {
+            const readMessages = (): string[] =>
+                Array.from(document.querySelectorAll('.cm-vim-message')).map(
+                    (el) => el.textContent?.trim() ?? '',
+                );
+            const dispatchedCommands: string[] = [];
+            const commands = app.commands as unknown as {
+                executeCommandById: (id: string) => boolean;
+            };
+            const realExecute = commands.executeCommandById.bind(commands);
+            try {
+                const Vim = (
+                    window as unknown as Record<string, unknown> & {
+                        CodeMirrorAdapter?: {
+                            Vim?: {
+                                handleEx: (cm: unknown, input: string) => void;
+                            };
+                        };
+                    }
+                ).CodeMirrorAdapter?.Vim;
+                if (!Vim)
+                    return {
+                        ok: false,
+                        error: 'handleEx: no Vim API',
+                        unknownCommand: false,
+                        messages: [],
+                        dispatchedCommands,
+                    };
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view)
+                    return {
+                        ok: false,
+                        error: 'handleEx: no MarkdownView',
+                        unknownCommand: false,
+                        messages: [],
+                        dispatchedCommands,
+                    };
+                const cm = (view.editor as unknown as Record<string, unknown>)
+                    .cm as Record<string, unknown>;
+                const adapter = cm?.cm;
+                if (!adapter)
+                    return {
+                        ok: false,
+                        error: 'handleEx: no CodeMirror adapter',
+                        unknownCommand: false,
+                        messages: [],
+                        dispatchedCommands,
+                    };
+                view.editor.focus();
+                document
+                    .querySelectorAll('.cm-vim-message')
+                    .forEach((el) => el.remove());
+                commands.executeCommandById = (id: string): boolean => {
+                    dispatchedCommands.push(id);
+                    return realExecute(id);
+                };
+                try {
+                    Vim.handleEx(adapter, cmdStr);
+                } finally {
+                    commands.executeCommandById = realExecute;
+                }
+                const messages = readMessages();
+                return {
+                    ok: true,
+                    unknownCommand: messages.some((m) =>
+                        m.startsWith('Not an editor command'),
+                    ),
+                    messages,
+                    dispatchedCommands,
+                };
+            } catch (e) {
+                commands.executeCommandById = realExecute;
+                return {
+                    ok: false,
+                    error: String(e),
+                    unknownCommand: readMessages().some((m) =>
+                        m.startsWith('Not an editor command'),
+                    ),
+                    messages: readMessages(),
+                    dispatchedCommands,
+                };
+            }
+        },
+        input,
+    )) as ExCommandResult;
+}
+
+export interface WorkspaceSnapshot {
+    /** File paths of every markdown leaf, in `iterateAllLeaves` order. */
+    filePaths: string[];
+    markdownLeafCount: number;
+    activeFile: string | null;
+    activeLeafId: string | null;
+}
+
+export async function getWorkspaceSnapshot(): Promise<WorkspaceSnapshot> {
+    return (await browser.executeObsidian(({ app }) => {
+        const filePaths: string[] = [];
+        app.workspace.iterateAllLeaves((leaf) => {
+            if (leaf.view.getViewType() !== 'markdown') return;
+            filePaths.push(
+                (leaf.view as unknown as { file?: { path: string } }).file
+                    ?.path ?? '',
+            );
+        });
+        const active = app.workspace.getMostRecentLeaf();
+        return {
+            filePaths,
+            markdownLeafCount: filePaths.length,
+            activeFile: app.workspace.getActiveFile()?.path ?? null,
+            activeLeafId:
+                (active as unknown as { id?: string } | null)?.id ?? null,
+        };
+    })) as WorkspaceSnapshot;
+}
+
+export async function getVimMarkLetters(): Promise<string[]> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return [];
+        const cm = (
+            (view.editor as unknown as Record<string, unknown>).cm as Record<
+                string,
+                unknown
+            >
+        )?.cm as { state?: { vim?: { marks?: Record<string, unknown> } } };
+        return Object.keys(cm?.state?.vim?.marks ?? {});
+    })) as string[];
+}
+
+export async function getInfoModalTitles(): Promise<string[]> {
+    return (await browser.executeObsidian(() =>
+        Array.from(
+            document.querySelectorAll('.vim-motions-info-modal-title'),
+        ).map((el) => el.textContent?.trim() ?? ''),
+    )) as string[];
 }
 
 export async function getNotices(): Promise<string[]> {

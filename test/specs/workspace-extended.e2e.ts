@@ -1,7 +1,62 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { sendVimEscape } from '../helpers';
+import {
+    dismissNotices,
+    getNotices,
+    getWorkspaceSnapshot,
+    handleEx,
+    loadSingleFileWorkspace,
+    loadTwoFileWorkspace,
+    setupEditor,
+    vimHandleKeys,
+    vimKeys,
+} from '../helpers';
+
+async function countFolds(): Promise<number> {
+    return (await browser.executeObsidian(({ app, obsidian, require: req }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) return 0;
+        const { foldedRanges } = req('@codemirror/language') as {
+            foldedRanges: (state: unknown) => {
+                iter: () => { value: unknown; next: () => void };
+            };
+        };
+        const cm6View = (view.editor as unknown as Record<string, unknown>)
+            .cm as { state: unknown } | undefined;
+        if (!cm6View) return 0;
+        const iter = foldedRanges(cm6View.state).iter();
+        let count = 0;
+        while (iter.value) {
+            count++;
+            iter.next();
+        }
+        return count;
+    })) as number;
+}
+
+async function getModalCount(): Promise<number> {
+    return (await browser.executeObsidian(
+        () => document.querySelectorAll('.modal-container').length,
+    )) as number;
+}
+
+async function waitForModal(): Promise<void> {
+    await browser.waitUntil(async () => (await getModalCount()) > 0, {
+        timeout: 5000,
+        interval: 100,
+        timeoutMsg: 'expected a modal to open',
+    });
+}
+
+async function closeModal(): Promise<void> {
+    await browser.keys(['Escape']);
+    await browser.waitUntil(async () => (await getModalCount()) === 0, {
+        timeout: 5000,
+        interval: 100,
+        timeoutMsg: 'expected the modal instance to close on Escape',
+    });
+}
 describe('Workspace extended', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -327,465 +382,146 @@ describe('Workspace extended', function () {
     });
 
     describe('Fold operations', function () {
-        it('zc should fold heading at cursor without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue(
-                            '# Heading\n\nContent under heading\n\nMore content',
-                        );
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'c');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+        it('zc folds the heading at the cursor', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor(
+                '# Heading\n\nContent under heading\n\nMore content',
+                { line: 0, ch: 0 },
             );
-            expect(result).toHaveProperty('success', true);
+            expect(await countFolds()).toBe(0);
+
+            await vimKeys('z', 'c');
+
+            expect(await countFolds()).toBe(1);
         });
 
-        it('zo should unfold without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue(
-                            '# Heading\n\nContent under heading\n\nMore content',
-                        );
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'c');
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'o');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+        it('zo unfolds the heading at the cursor', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor(
+                '# Heading\n\nContent under heading\n\nMore content',
+                { line: 0, ch: 0 },
             );
-            expect(result).toHaveProperty('success', true);
+            await vimKeys('z', 'c');
+            expect(await countFolds()).toBe(1);
+
+            await vimKeys('z', 'o');
+
+            expect(await countFolds()).toBe(0);
         });
 
-        it('zM should fold all without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue('# H1\ntext\n## H2\ntext');
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'M');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
+        it('zM folds all headings', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor('# H1\ntext\n## H2\ntext', { line: 0, ch: 0 });
+            expect(await countFolds()).toBe(0);
+
+            await vimKeys('z', 'M');
+
+            expect(await countFolds()).toBeGreaterThan(0);
         });
 
-        it('zR should unfold all without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue('# H1\ntext\n## H2\ntext');
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'M');
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'R');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
+        it('zR unfolds all headings', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor('# H1\ntext\n## H2\ntext', { line: 0, ch: 0 });
+            await vimKeys('z', 'M');
+            expect(await countFolds()).toBeGreaterThan(0);
+
+            await vimKeys('z', 'R');
+
+            expect(await countFolds()).toBe(0);
         });
     });
 
     describe('Recursive fold operations', function () {
-        it('zO should unfold recursively without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue(
-                            '# Heading\n\nContent\n\n## Sub\n\nMore',
-                        );
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'O');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
+        it('zO unfolds nested headings at the cursor', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor('# Heading\n\nContent\n\n## Sub\n\nMore', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('z', 'C');
+            expect(await countFolds()).toBeGreaterThan(0);
+
+            await vimKeys('z', 'O');
+
+            expect(await countFolds()).toBe(0);
         });
 
-        it('zC should fold recursively without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue(
-                            '# Heading\n\nContent\n\n## Sub\n\nMore',
-                        );
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'C');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
+        it('zC folds nested headings at the cursor', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor('# Heading\n\nContent\n\n## Sub\n\nMore', {
+                line: 0,
+                ch: 0,
+            });
+            expect(await countFolds()).toBe(0);
+
+            await vimKeys('z', 'C');
+
+            expect(await countFolds()).toBeGreaterThan(0);
         });
 
-        it('zA should toggle fold recursively without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue(
-                            '# Heading\n\nContent\n\n## Sub\n\nMore',
-                        );
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'z');
-                        Vim.handleKey(adapter, 'A');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
+        it('zA folds nested headings when they are open', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor('# Heading\n\nContent\n\n## Sub\n\nMore', {
+                line: 0,
+                ch: 0,
+            });
+            expect(await countFolds()).toBe(0);
+
+            await vimKeys('z', 'A');
+
+            expect(await countFolds()).toBeGreaterThan(0);
         });
     });
 
     describe('Tab navigation', function () {
-        it('gT should switch to previous tab without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'g');
-                        Vim.handleKey(adapter, 'T');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+        it('gT activates the previous tab', async function () {
+            await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'second');
+            expect((await getWorkspaceSnapshot()).activeFile).toBe('Target.md');
+
+            await vimKeys('g', 'T');
+
+            await browser.waitUntil(
+                async () =>
+                    (await getWorkspaceSnapshot()).activeFile === 'Welcome.md',
+                { timeout: 5000, interval: 100 },
             );
-            expect(result).toHaveProperty('success', true);
         });
     });
 
     describe('Workspace keybindings', function () {
-        it('gf should open file switcher without error', async function () {
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'g');
-                        Vim.handleKey(adapter, 'f');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(300);
-            await sendVimEscape();
-            await browser.pause(200);
+        it('gf opens the file switcher', async function () {
+            await loadSingleFileWorkspace();
+            expect(await getModalCount()).toBe(0);
+
+            await vimKeys('g', 'f');
+
+            await waitForModal();
+            await closeModal();
         });
 
-        it(':renamenote ex command should trigger rename without error', async function () {
+        it(':renamenote dispatches Obsidian’s rename command', async function () {
             // grn key binding was removed when gr became the replaceWithRegister
             // operator. renameNote is now accessible via the :renamenote ex command.
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleEx: (
-                                            cm: unknown,
-                                            input: string,
-                                        ) => void;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleEx(adapter, 'renamenote');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+            await loadSingleFileWorkspace();
+
+            const result = await handleEx('renamenote');
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain(
+                'workspace:edit-file-title',
             );
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(300);
-            await sendVimEscape();
-            await browser.pause(200);
         });
 
-        it(':showbacklinks ex command should show backlinks without error', async function () {
+        it(':showbacklinks dispatches Obsidian’s backlinks command', async function () {
             // grr key binding was removed when gr became the replaceWithRegister
             // operator (grr = replace current line with register). showBacklinks
             // is now accessible via the :showbacklinks ex command.
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleEx: (
-                                            cm: unknown,
-                                            input: string,
-                                        ) => void;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleEx(adapter, 'showbacklinks');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
-            );
-            expect(result).toHaveProperty('success', true);
+            await loadSingleFileWorkspace();
+
+            const result = await handleEx('showbacklinks');
+
+            expect(result.unknownCommand).toBe(false);
+            expect(result.dispatchedCommands).toContain('backlink:open');
         });
 
         it('<C-w>h should focus left pane without error', async function () {
@@ -1160,46 +896,17 @@ describe('Workspace extended', function () {
             expect(result).toHaveProperty('success', true);
         });
 
-        it('g<C-g> should show document stats without error', async function () {
-            await obsidianPage.openFile('Welcome.md');
-            await browser.pause(300);
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    try {
-                        const Vim = (
-                            window as unknown as Record<string, unknown> & {
-                                CodeMirrorAdapter?: {
-                                    Vim?: {
-                                        handleKey: (
-                                            cm: unknown,
-                                            key: string,
-                                        ) => boolean;
-                                    };
-                                };
-                            }
-                        ).CodeMirrorAdapter?.Vim;
-                        if (!Vim) return { error: 'No Vim' };
-                        const view = app.workspace.getActiveViewOfType(
-                            obsidian.MarkdownView,
-                        );
-                        if (!view) return { error: 'No view' };
-                        view.editor.setValue('some text here with words');
-                        view.editor.setCursor(0, 0);
-                        view.editor.focus();
-                        const cm = (
-                            view.editor as unknown as Record<string, unknown>
-                        ).cm as Record<string, unknown>;
-                        const adapter = cm?.cm;
-                        if (!adapter) return { error: 'No adapter' };
-                        Vim.handleKey(adapter, 'g');
-                        Vim.handleKey(adapter, '<C-g>');
-                        return { success: true };
-                    } catch (e) {
-                        return { error: String(e) };
-                    }
-                },
+        it('g<C-g> shows document statistics', async function () {
+            await loadSingleFileWorkspace();
+            await setupEditor('some text here with words', { line: 0, ch: 0 });
+            await dismissNotices();
+            expect(await getNotices()).toEqual([]);
+
+            await vimHandleKeys('g\u0007');
+
+            expect(await getNotices()).toContain(
+                'Line 1 of 1; Word 5; Char 25',
             );
-            expect(result).toHaveProperty('success', true);
         });
     });
 

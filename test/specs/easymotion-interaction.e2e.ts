@@ -1,7 +1,21 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 
-import { sendVimEscape } from '../helpers';
+import { setupEditor, vimHandleKeys } from '../helpers';
+
+async function getEasyMotionLabelCount(): Promise<number> {
+    return (await browser.executeObsidian(
+        () =>
+            activeDocument.querySelector('.vim-motions-easymotion')?.children
+                .length ?? 0,
+    )) as number;
+}
+
+async function isEasyMotionOverlayOpen(): Promise<boolean> {
+    return (await browser.executeObsidian(
+        () => activeDocument.querySelector('.vim-motions-easymotion') !== null,
+    )) as boolean;
+}
 describe('EasyMotion interaction', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -46,7 +60,7 @@ describe('EasyMotion interaction', function () {
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
         expect(result).toHaveProperty('hasLabels', true);
-        await sendVimEscape();
+        await browser.keys(['Escape']);
         await browser.pause(200);
     });
 
@@ -130,44 +144,33 @@ describe('EasyMotion interaction', function () {
         })) as { success: boolean; hasOverlay: boolean };
         expect(result).toHaveProperty('success', true);
         expect(result).toHaveProperty('hasOverlay', true);
-        await sendVimEscape();
+        await browser.keys(['Escape']);
         await browser.pause(200);
     });
 
-    it('leader-leader-f should prompt for char and show labels', async function () {
-        const result = (await browser.executeObsidian(({ app, obsidian }) => {
-            const Vim = (
-                window as unknown as Record<string, unknown> & {
-                    CodeMirrorAdapter?: {
-                        Vim?: {
-                            handleKey: (cm: unknown, key: string) => boolean;
-                        };
-                    };
-                }
-            ).CodeMirrorAdapter?.Vim;
-            if (!Vim) return { error: 'No Vim' };
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return { error: 'No view' };
-            view.editor.setValue('foo boo moo zoo');
-            view.editor.setCursor(0, 0);
-            view.editor.focus();
-            const cm = (view.editor as unknown as Record<string, unknown>)
-                .cm as Record<string, unknown>;
-            const adapter = cm?.cm;
-            if (!adapter) return { error: 'No adapter' };
-            Vim.handleKey(adapter, '\\');
-            Vim.handleKey(adapter, '\\');
-            Vim.handleKey(adapter, 'f');
-            Vim.handleKey(adapter, 'o');
-            const hasOverlay = !!activeDocument.querySelector(
-                '.vim-motions-easymotion',
-            );
-            return { success: true, hasOverlay };
-        })) as { success: boolean; hasOverlay: boolean };
-        expect(result).toHaveProperty('success', true);
-        await sendVimEscape();
-        await browser.pause(200);
+    it('leader-leader-f followed by a character shows labels', async function () {
+        await browser.keys(['Escape']);
+        await browser.waitUntil(
+            async () => !(await isEasyMotionOverlayOpen()),
+            {
+                timeout: 5000,
+                interval: 100,
+            },
+        );
+        await setupEditor('foo boo moo zoo', { line: 0, ch: 0 });
+        expect(await isEasyMotionOverlayOpen()).toBe(false);
+
+        await vimHandleKeys('\\\\f');
+        await browser.keys(['o']);
+
+        await browser.waitUntil(
+            async () => (await getEasyMotionLabelCount()) > 0,
+            { timeout: 5000, interval: 100 },
+        );
+        await browser.keys(['Escape']);
+        await browser.waitUntil(
+            async () => !(await isEasyMotionOverlayOpen()),
+            { timeout: 5000, interval: 100 },
+        );
     });
 });
