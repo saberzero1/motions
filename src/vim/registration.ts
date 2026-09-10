@@ -90,6 +90,15 @@ export class VimRegistration {
 
     defineEx(name: string, shortName: string, fn: ExCommandFn): void {
         this.vim.defineEx(name, shortName, fn);
+        // The fork keys its dispatcher by abbreviation, so two commands
+        // sharing one (`:fold` and `:forward` both take `fo`) leave only the
+        // later registration reachable — `matchCommand_('fold')` finds `fo`,
+        // sees it names `forward`, and gives up. Anchoring the full name keeps
+        // the exact spelling resolvable regardless of registration order.
+        // `undefineEx` removes every entry naming the command, so both go.
+        if (shortName && shortName !== name) {
+            this.vim.defineEx(name, '', fn);
+        }
         this.pushReg({ type: 'ex', name });
     }
 
