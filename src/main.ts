@@ -92,7 +92,6 @@ import {
     createUndoTreeViewFactory,
 } from './vim/undo-tree-view';
 import { JumpList } from './vim/jumplist';
-import { VimInfoModal } from './ui/vim-info-modal';
 
 import { EditorView, ViewPlugin } from '@codemirror/view';
 import { ChangeSet, Extension, Transaction } from '@codemirror/state';
@@ -2471,6 +2470,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.enableUndoTree
                 ? this.navigateUndoTreeTo.bind(this)
                 : undefined,
+            this.changeList,
         );
 
         this.registerHarpoonExCommands();
@@ -2609,30 +2609,6 @@ export default class VimMotionsPlugin extends Plugin {
             });
             this.registration.mapCommand('g+', 'action', 'undoTreeNewer', {});
         }
-
-        // --- :changes command (needs ChangeList instance) ---
-        const cl = this.changeList;
-        this.registration.defineEx('changes', 'cha', () => {
-            const entries = cl.getEntries();
-            const idx = cl.getIndex();
-            const rows = entries.map((pos, i) => [
-                i === idx ? '>' : ' ',
-                String(i),
-                String(pos.line + 1),
-                String(pos.ch),
-            ]);
-            new VimInfoModal(
-                this.app,
-                'Changes',
-                [
-                    { header: '' },
-                    { header: '#' },
-                    { header: 'Line' },
-                    { header: 'Col' },
-                ],
-                rows,
-            ).open();
-        });
 
         // --- Status bar and scrolloff ---
         if (this.settings.enableStatusBar) {
@@ -3505,6 +3481,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.enableUndoTree
                 ? this.navigateUndoTreeTo.bind(this)
                 : undefined,
+            this.changeList,
         );
         if (this.settings.enableYankRing && this.registration) {
             registerYankRing(this.registration, vim, this.yankRingManager);

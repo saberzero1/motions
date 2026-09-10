@@ -26,7 +26,6 @@ interface Registration {
 const noopMotion: MotionFn = (_cm, head) => head;
 const noopAction: ActionFn = () => {};
 const noopOperator: OperatorFn = () => {};
-const noopEx: ExCommandFn = () => {};
 
 const SPECIAL_KEYS: Record<string, string> = {
     ' ': '<Space>',
@@ -165,7 +164,7 @@ export class VimRegistration {
                 this.vim.defineOperator(reg.name, noopOperator);
                 break;
             case 'ex':
-                this.vim.defineEx(reg.name, '', noopEx);
+                this.vim.undefineEx(reg.name);
                 break;
         }
     }

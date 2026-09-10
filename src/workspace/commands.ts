@@ -11,6 +11,7 @@ import { executeCommand, getCommandRegistry } from '../util/commands';
 import { getResolvedLinks } from '../util/metadata';
 import type { JumpList } from '../vim/jumplist';
 import type { UndoTree } from '../vim/undo-tree';
+import type { ChangeList } from '../vim/changelist';
 import { navigateWithJump, navigateWithJumpSetActive } from './navigate';
 import { getViolations, clearViolations } from '../util/invariant';
 import {
@@ -436,8 +437,17 @@ export function registerObCommand(
 }
 
 function createEditCommand(app: App): ExCommandFn {
-    return (_cm, params) => {
-        const filename = (params.argString ?? '').trim();
+    const editForce = createEditForceCommand(app);
+    return (cm, params) => {
+        const force = /^\s*(?:e|ed|edi|edit)!/i.test(params.input ?? '');
+        const filename = (params.argString ?? '')
+            .trim()
+            .slice(force ? 1 : 0)
+            .trim();
+        if (force && !filename) {
+            editForce(cm, params);
+            return;
+        }
         if (!filename) return;
         void navigateWithJump(app, filename, '');
     };
@@ -802,6 +812,7 @@ export function registerExCommands(
     jumpList?: JumpList,
     undoTree?: UndoTree,
     navigateUndoTreeTo?: (fromSeq: number, toSeq: number) => void,
+    changeList?: ChangeList,
 ): void {
     const backlinksCommand = createBacklinksCommand(app);
     const grepCommand = createGrepCommand(app);
@@ -936,7 +947,6 @@ export function registerExCommands(
     }
 
     reg.defineEx('edit', 'e', createEditCommand(app));
-    reg.defineEx('edit!', '', createEditForceCommand(app));
     reg.defineEx('enew', 'ene', createEnewCommand(app));
     reg.defineEx('saveas', 'sav', createSaveAsCommand(app));
     reg.defineEx('update', 'up', () =>
@@ -1014,6 +1024,29 @@ export function registerExCommands(
     reg.defineEx('delmarks', 'delm', createDelmarksCommand(onMarksChanged));
     if (jumpList) {
         reg.defineEx('jumps', 'ju', createJumpsCommand(app, jumpList));
+    }
+    if (changeList) {
+        reg.defineEx('changes', 'cha', () => {
+            const entries = changeList.getEntries();
+            const idx = changeList.getIndex();
+            const rows = entries.map((pos, i) => [
+                i === idx ? '>' : ' ',
+                String(i),
+                String(pos.line + 1),
+                String(pos.ch),
+            ]);
+            new VimInfoModal(
+                app,
+                'Changes',
+                [
+                    { header: '' },
+                    { header: '#' },
+                    { header: 'Line' },
+                    { header: 'Col' },
+                ],
+                rows,
+            ).open();
+        });
     }
 
     if (undoTree) {
@@ -1206,7 +1239,12 @@ export function registerExCommands(
         }
     });
 
-    reg.defineEx('violations', 'viol', () => {
+    reg.defineEx('violations', 'viol', (_cm, params) => {
+        if (/^\s*viol\w*!/i.test(params.input ?? '')) {
+            clearViolations();
+            new Notice('Violations cleared.');
+            return;
+        }
         const vList = getViolations();
         if (vList.length === 0) {
             new Notice('No invariant violations recorded.');
@@ -1220,10 +1258,6 @@ export function registerExCommands(
             )
             .join('\n');
         new Notice(`${vList.length} violation(s):\n${summary}`, 15000);
-    });
-    reg.defineEx('violations!', '', () => {
-        clearViolations();
-        new Notice('Violations cleared.');
     });
     reg.defineEx('tablestate', 'tables', () => {
         const state = getTableDebugState(app);
