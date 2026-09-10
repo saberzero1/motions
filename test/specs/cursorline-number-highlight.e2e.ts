@@ -4,6 +4,8 @@ import {
     setupEditor,
     sendVimEscape,
     ensureLivePreview,
+    ensureSourceMode,
+    vimKeys,
     PAUSE,
 } from '../helpers';
 
@@ -135,6 +137,7 @@ interface Geometry {
     error?: string;
     layerHeight: number | null;
     blockHeight: number;
+    unwrappedHeight: number;
     lineDecoration: boolean;
 }
 
@@ -148,13 +151,15 @@ async function measureCursorLine(): Promise<Geometry> {
             dom.querySelectorAll('.cm-content > .cm-line'),
         );
         const cursorLine = lines[1];
-        if (!cursorLine) return { error: 'no cursor line' };
+        const unwrapped = lines[0];
+        if (!cursorLine || !unwrapped) return { error: 'no cursor line' };
         const marker = dom.querySelector(
             '.vim-motions-cursorline-layer .vim-motions-cursorline',
         );
         return {
             layerHeight: marker ? marker.getBoundingClientRect().height : null,
             blockHeight: cursorLine.getBoundingClientRect().height,
+            unwrappedHeight: unwrapped.getBoundingClientRect().height,
             lineDecoration: cursorLine.classList.contains(
                 'vim-motions-cursorline',
             ),
@@ -190,8 +195,10 @@ describe('cursorlineopt=screenline on a wrapped line', function () {
         const g = await measureCursorLine();
         expect(g.error).toBeUndefined();
 
-        // The fixture is only meaningful if the line actually wrapped.
-        expect(g.blockHeight).toBeGreaterThan(48);
+        // The fixture is only meaningful if the line actually wrapped. Measured
+        // against a real single-row line rather than a pixel constant, so the
+        // guard holds on platforms with a different default line height.
+        expect(g.blockHeight).toBeGreaterThan(g.unwrappedHeight * 1.8);
         expect(g.layerHeight).not.toBeNull();
         // One row, not the block: this is the assertion that distinguishes
         // `screenline` from `line`. A Decoration.line cannot satisfy it.
@@ -222,5 +229,125 @@ describe('cursorlineopt=screenline on a wrapped line', function () {
         const g = await measureCursorLine();
         expect(g.layerHeight).toBeNull();
         expect(g.lineDecoration).toBe(false);
+    });
+});
+
+describe('cursorlineopt=screenline edge cases', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await browser.pause(PAUSE.OBSIDIAN_LOAD);
+        await ensureLivePreview();
+    });
+
+    after(async function () {
+        await configure({ cursorline: true, cursorlineopt: 'number' });
+    });
+
+    beforeEach(async function () {
+        await configure({ cursorline: true, cursorlineopt: 'screenline' });
+    });
+
+    async function layerRowCount(): Promise<number> {
+        return (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const dom = (
+                view?.editor as unknown as { cm?: { dom?: HTMLElement } }
+            )?.cm?.dom;
+            if (!dom) throw new Error('layerRowCount: no dom');
+            return dom.querySelectorAll(
+                '.vim-motions-cursorline-layer .vim-motions-cursorline',
+            ).length;
+        })) as number;
+    }
+
+    async function countSelector(selector: string): Promise<number> {
+        return (await browser.executeObsidian(
+            ({ app, obsidian }, sel: string) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                const dom = (
+                    view?.editor as unknown as { cm?: { dom?: HTMLElement } }
+                )?.cm?.dom;
+                if (!dom) throw new Error('countSelector: no dom');
+                return dom.querySelectorAll(sel).length;
+            },
+            selector,
+        )) as number;
+    }
+
+    it('draws exactly one row on an empty line', async function () {
+        await setupEditor('alpha\n\nbravo', { line: 1, ch: 0 });
+        await sendVimEscape();
+        await configure({ cursorline: true, cursorlineopt: 'screenline' });
+        expect(await layerRowCount()).toBe(1);
+    });
+
+    it('draws exactly one row while a fold is closed', async function () {
+        await setupEditor(
+            ['# Head', 'body one', 'body two', '', 'tail'].join('\n'),
+            { line: 0, ch: 0 },
+        );
+        await sendVimEscape();
+        await vimKeys('z', 'c');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await configure({ cursorline: true, cursorlineopt: 'screenline' });
+        // Without this the case is vacuous: a `zc` that folded nothing leaves
+        // an ordinary line, which trivially yields one row.
+        expect(await countSelector('.cm-foldPlaceholder')).toBeGreaterThan(0);
+        // A closed fold replaces lines with a placeholder widget; the cursor
+        // sits on the fold's first line and must still get one row, not zero
+        // (coordsAtPos returning null) and not one per folded line.
+        expect(await layerRowCount()).toBe(1);
+        await vimKeys('z', 'o');
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        expect(await layerRowCount()).toBe(1);
+    });
+
+    it('draws exactly one row in a right-to-left editor', async function () {
+        await setupEditor('alpha bravo charlie\nsecond\nthird', {
+            line: 1,
+            ch: 0,
+        });
+        await sendVimEscape();
+        await browser.executeObsidian(({ app }) => {
+            const vault = app.vault as unknown as {
+                setConfig?: (k: string, v: unknown) => void;
+            };
+            vault.setConfig?.('rightToLeft', true);
+        });
+        // The vault config does not reach an already-constructed EditorView;
+        // a mode round-trip rebuilds it so the direction actually applies.
+        await ensureSourceMode();
+        await ensureLivePreview();
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        const rtl = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const cm = (
+                view?.editor as unknown as { cm?: { textDirection?: number } }
+            )?.cm;
+            return cm?.textDirection ?? null;
+        })) as number | null;
+
+        await configure({ cursorline: true, cursorlineopt: 'screenline' });
+        expect(await layerRowCount()).toBe(1);
+
+        await browser.executeObsidian(({ app }) => {
+            const vault = app.vault as unknown as {
+                setConfig?: (k: string, v: unknown) => void;
+            };
+            vault.setConfig?.('rightToLeft', false);
+        });
+        await ensureSourceMode();
+        await ensureLivePreview();
+        // CodeMirror's Direction.RTL is 1. `not.toBeNull()` would also accept
+        // 0 (LTR), i.e. a run that never entered RTL at all and proved nothing.
+        expect(rtl).toBe(1);
     });
 });

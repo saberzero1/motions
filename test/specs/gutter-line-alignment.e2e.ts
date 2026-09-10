@@ -35,13 +35,21 @@ const NORMAL_LINE = 'plain single row';
 const WRAPPING_LINE = 'lorem ipsum dolor sit amet consectetur '
     .repeat(12)
     .trim();
+const WRAPPING_HEADING = `# ${'wrapping heading text '.repeat(10).trim()}`;
 const TAIL_LINE = 'tail';
 
-const DOC = [HEADING_LINE, NORMAL_LINE, WRAPPING_LINE, TAIL_LINE].join('\n');
+const DOC = [
+    HEADING_LINE,
+    NORMAL_LINE,
+    WRAPPING_LINE,
+    WRAPPING_HEADING,
+    TAIL_LINE,
+].join('\n');
 
 const HEADING = 0;
 const NORMAL = 1;
 const WRAPPED = 2;
+const WRAPPED_HEADING = 3;
 
 const TOLERANCE_PX = 2;
 
@@ -112,9 +120,9 @@ async function measureGutterAlignment(): Promise<Measurement> {
         const lineEls = Array.from(
             dom.querySelectorAll('.cm-content > .cm-line'),
         );
-        if (lineEls.length !== 4)
+        if (lineEls.length !== 5)
             return {
-                error: `expected 4 rendered lines, got ${lineEls.length}`,
+                error: `expected 5 rendered lines, got ${lineEls.length}`,
             };
 
         // A DOM Range over the first non-space character yields that glyph's
@@ -191,7 +199,7 @@ describe('Gutter line-number vertical alignment (#184)', function () {
         await ensureLivePreview();
         // Cursor on the last line so the heading renders with its markup
         // concealed and is not the current line.
-        await setupEditor(DOC, { line: 3, ch: 0 });
+        await setupEditor(DOC, { line: 4, ch: 0 });
         // Must follow setState/setValue: Obsidian rebuilds the CodeMirror
         // instance on a mode change, resetting the gutter compartment.
         await setLineNumberGutter(true);
@@ -214,6 +222,12 @@ describe('Gutter line-number vertical alignment (#184)', function () {
         // assertions trivially true.
         expect(lines[HEADING].blockHeight).toBeGreaterThan(normal * 1.3);
         expect(lines[WRAPPED].blockHeight).toBeGreaterThan(normal * 1.8);
+        // A wrapped heading is tall for BOTH reasons at once, so it must be
+        // taller than the unwrapped heading rather than merely taller than a
+        // body line.
+        expect(lines[WRAPPED_HEADING].blockHeight).toBeGreaterThan(
+            lines[HEADING].blockHeight * 1.5,
+        );
     });
 
     it('aligns the number with the heading text on a tall heading line', function () {
@@ -221,6 +235,14 @@ describe('Gutter line-number vertical alignment (#184)', function () {
         const lines = measurement.lines as LineMeasurement[];
         expect(
             Math.abs(lines[HEADING].delta - lines[NORMAL].delta),
+        ).toBeLessThanOrEqual(TOLERANCE_PX);
+    });
+
+    it('aligns the number on a heading that is tall AND wrapped', function () {
+        expect(measurement.error).toBeUndefined();
+        const lines = measurement.lines as LineMeasurement[];
+        expect(
+            Math.abs(lines[WRAPPED_HEADING].delta - lines[NORMAL].delta),
         ).toBeLessThanOrEqual(TOLERANCE_PX);
     });
 
