@@ -126,3 +126,101 @@ describe('CursorLineNr gating', function () {
     suite('standalone line-number gutter', { statuscolumn: '' });
     suite('unified statuscolumn gutter', { statuscolumn: '%s %l ' });
 });
+
+const WRAPPING_LINE = 'lorem ipsum dolor sit amet consectetur '
+    .repeat(12)
+    .trim();
+
+interface Geometry {
+    error?: string;
+    layerHeight: number | null;
+    blockHeight: number;
+    lineDecoration: boolean;
+}
+
+async function measureCursorLine(): Promise<Geometry> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        const dom = (view?.editor as unknown as { cm?: { dom?: HTMLElement } })
+            ?.cm?.dom;
+        if (!dom) return { error: 'no dom' };
+        const lines = Array.from(
+            dom.querySelectorAll('.cm-content > .cm-line'),
+        );
+        const cursorLine = lines[1];
+        if (!cursorLine) return { error: 'no cursor line' };
+        const marker = dom.querySelector(
+            '.vim-motions-cursorline-layer .vim-motions-cursorline',
+        );
+        return {
+            layerHeight: marker ? marker.getBoundingClientRect().height : null,
+            blockHeight: cursorLine.getBoundingClientRect().height,
+            lineDecoration: cursorLine.classList.contains(
+                'vim-motions-cursorline',
+            ),
+        };
+    })) as Geometry;
+}
+
+describe('cursorlineopt=screenline on a wrapped line', function () {
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await browser.pause(PAUSE.OBSIDIAN_LOAD);
+        await ensureLivePreview();
+        await setupEditor(['first', WRAPPING_LINE, 'last'].join('\n'), {
+            line: 1,
+            ch: 0,
+        });
+        await sendVimEscape();
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await configure({ number: true, statuscolumn: '' });
+    });
+
+    after(async function () {
+        await configure({
+            number: false,
+            cursorline: true,
+            cursorlineopt: 'number',
+        });
+    });
+
+    it('covers one display row, not the whole wrapped block', async function () {
+        await configure({ cursorline: true, cursorlineopt: 'screenline' });
+        const g = await measureCursorLine();
+        expect(g.error).toBeUndefined();
+
+        // The fixture is only meaningful if the line actually wrapped.
+        expect(g.blockHeight).toBeGreaterThan(48);
+        expect(g.layerHeight).not.toBeNull();
+        // One row, not the block: this is the assertion that distinguishes
+        // `screenline` from `line`. A Decoration.line cannot satisfy it.
+        expect(g.layerHeight as number).toBeLessThan(g.blockHeight / 2);
+        expect(g.lineDecoration).toBe(false);
+        expect(await hasSelector(NUMBER_HL)).toBe(false);
+    });
+
+    it('highlights the number too with screenline,number', async function () {
+        await configure({
+            cursorline: true,
+            cursorlineopt: 'screenline,number',
+        });
+        const g = await measureCursorLine();
+        expect(g.layerHeight).not.toBeNull();
+        expect(await hasSelector(NUMBER_HL)).toBe(true);
+    });
+
+    it('covers the whole block with line, and draws no layer', async function () {
+        await configure({ cursorline: true, cursorlineopt: 'line' });
+        const g = await measureCursorLine();
+        expect(g.layerHeight).toBeNull();
+        expect(g.lineDecoration).toBe(true);
+    });
+
+    it('draws no layer when cursorline is off', async function () {
+        await configure({ cursorline: false, cursorlineopt: 'screenline' });
+        const g = await measureCursorLine();
+        expect(g.layerHeight).toBeNull();
+        expect(g.lineDecoration).toBe(false);
+    });
+});

@@ -20,7 +20,10 @@ vi.mock('obsidian', () => ({
 
 import type { VimMotionsSettings } from '../../src/settings';
 import { DEFAULT_SETTINGS } from '../../src/settings';
-import { migrateConfigModeSettings } from '../../src/settings-migration';
+import {
+    migrateConfigModeSettings,
+    migrateCursorlineoptSettings,
+} from '../../src/settings-migration';
 
 const applyMigration = (
     data:
@@ -75,5 +78,36 @@ describe('configMode migration', () => {
     it('defaults to lua-vimrc when no legacy keys exist', () => {
         const settings = applyMigration({});
         expect(settings.configMode).toBe('lua-vimrc');
+    });
+});
+
+describe('migrateCursorlineoptSettings', () => {
+    it('leaves a fresh install alone so it gets the new default', () => {
+        expect(migrateCursorlineoptSettings(null)).toBeNull();
+        expect(DEFAULT_SETTINGS.cursorlineopt).toBe('both');
+    });
+
+    it('pins an existing install without the key to the old default', () => {
+        const data: Record<string, unknown> = { cursorline: true };
+        migrateCursorlineoptSettings(data as Partial<VimMotionsSettings>);
+        expect(data.cursorlineopt).toBe('number');
+    });
+
+    it('never overwrites a value the user already has', () => {
+        for (const stored of ['number', 'line', 'both', 'screenline']) {
+            const data: Record<string, unknown> = { cursorlineopt: stored };
+            migrateCursorlineoptSettings(data as Partial<VimMotionsSettings>);
+            expect(data.cursorlineopt).toBe(stored);
+        }
+    });
+
+    it('resolves an existing install to the value it rendered before', () => {
+        const data: Record<string, unknown> = { cursorline: true };
+        const merged = Object.assign(
+            {},
+            DEFAULT_SETTINGS,
+            migrateCursorlineoptSettings(data as Partial<VimMotionsSettings>),
+        );
+        expect(merged.cursorlineopt).toBe('number');
     });
 });
