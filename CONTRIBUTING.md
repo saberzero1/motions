@@ -746,6 +746,17 @@ describe('My feature', function () {
 - `getRegisterContent(register)` — Get register contents.
 - `sendVimEscape()` — Send Escape via Vim API. Throws if no MarkdownView or Vim adapter.
 - `loadSingleFileWorkspace(filePath)` — Load a workspace with a single file. Waits for MarkdownView to become active.
+- `loadTwoFileWorkspace(first?, second?, active?)` — Two markdown leaves in one tab container. Use for anything that needs more than one buffer (`:bn`, `:bfirst`, `gt`, `:tabclose`).
+- `handleEx(input)` — Drive the fork's ex-command handler. Returns `{ ok, error?, unknownCommand, messages, dispatchedCommands }`. **`Vim.handleEx` returns `void`, so "it did not throw" proves nothing** — assert `unknownCommand === false` on every ex-command test. The fork sets it when it emits `Not an editor command ":<input>"`, and it is the control that makes a fabricated command name fail. `dispatchedCommands` lists the Obsidian command ids the ex command dispatched synchronously, which is how to assert delegating commands such as `:w` → `editor:save-file`.
+- `getWorkspaceSnapshot()` — `{ filePaths, markdownLeafCount, activeFile, activeLeafId }` for leaf-count and active-buffer assertions.
+- `getVimMarkLetters()` — Mark letters set on the active editor's vim state.
+- `getInfoModalTitles()` — Titles of open `VimInfoModal`s. **Only `VimInfoModal` renders `.vim-motions-info-modal-title`**; picker and `SuggestModal` surfaces render `.modal-container` / `.prompt` / `.vim-motions-prompt-modal-container` and no title span, so asserting a title on those manufactures a false failure.
+
+Three rules that each cost a wrong diagnosis and are easy to repeat:
+
+- **Assert the surface is absent before the call and present after.** A presence-only assertion passes on a modal left over from an earlier test.
+- **A test that opens a modal must close the instance before it ends.** `wdio.conf.mts`'s `afterTest` force-removes modal DOM without calling `close()`, so the Obsidian `Scope` stays on the keymap stack and silently eats the next test's first keystroke. This is what once made `gO` look permanently broken when it only failed after `:contextactions`.
+- **Never assert on-disk file content for save-type commands.** Obsidian's idle autosave reaches the same end state within ~2 s and masks a completely broken `:w`. Assert `handleEx().dispatchedCommands` instead.
 - `ensureLivePreview()` — Switch active editor to Live Preview mode. Waits for mode change.
 - `ensureSourceMode()` — Switch active editor to Source mode. Waits for mode change.
 - `isLivePreview()` — Check if active editor is in Live Preview.
