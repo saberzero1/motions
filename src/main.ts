@@ -178,6 +178,7 @@ import { injectVimFn } from './lua/fn';
 import { AutocmdManager } from './lua/autocmd';
 import {
     migrateConfigModeSettings,
+    migrateCursorlineoptSettings,
     migrateSigncolumnSettings,
 } from './settings-migration';
 import type { lua_State } from './lib/fengari';
@@ -5499,8 +5500,8 @@ export default class VimMotionsPlugin extends Plugin {
         if (data) {
             delete (data as Record<string, unknown>).configOverrides;
         }
-        const migrated = migrateSigncolumnSettings(
-            migrateConfigModeSettings(data),
+        const migrated = migrateCursorlineoptSettings(
+            migrateSigncolumnSettings(migrateConfigModeSettings(data)),
         );
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated ?? {});
         this.migrateLegacySettings(migrated);

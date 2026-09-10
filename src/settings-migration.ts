@@ -35,6 +35,24 @@ export function migrateConfigModeSettings(
     return data;
 }
 
+/**
+ * `cursorlineopt` defaulted to `number` before it gained Neovim's full grammar;
+ * the default is now Neovim's `both`. An install that already has settings on
+ * disk but no stored `cursorlineopt` predates the change, so it keeps the old
+ * value and sees no visual change. A fresh install (`data === null`) falls
+ * through to the new default.
+ */
+export function migrateCursorlineoptSettings(
+    data: Partial<VimMotionsSettings> | null,
+): Partial<VimMotionsSettings> | null {
+    if (!data) return data;
+    const raw = data as Record<string, unknown>;
+    if (!('cursorlineopt' in raw)) {
+        raw.cursorlineopt = 'number';
+    }
+    return data;
+}
+
 export function migrateSigncolumnSettings(
     data: Partial<VimMotionsSettings> | null,
 ): Partial<VimMotionsSettings> | null {

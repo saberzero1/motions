@@ -11,6 +11,11 @@ import {
 import type { SettingDefinitionItem } from 'obsidian';
 import VimMotionsPlugin from './main';
 import { isBundledVimActive } from './vim/bundled-vim';
+import {
+    CURSORLINE_OPTIONS,
+    parseCursorlineOpt,
+    type CursorlineOpt,
+} from './vim/cursorline-option';
 import { VimrcFileSuggest } from './ui/vimrc-file-suggest';
 import { getVimApi } from './vim/vim-api';
 import {
@@ -173,7 +178,7 @@ export interface VimMotionsSettings {
     linenumbermode: 'hybrid' | 'dual' | 'dual-rel-abs';
     statuscolumn: string;
     cursorline: boolean;
-    cursorlineopt: 'number' | 'line' | 'both';
+    cursorlineopt: CursorlineOpt;
     foldcolumn: boolean;
     enableHarpoon: boolean;
     enableYankRing: boolean;
@@ -311,7 +316,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     linenumbermode: 'hybrid',
     statuscolumn: '',
     cursorline: true,
-    cursorlineopt: 'number',
+    cursorlineopt: 'both',
     foldcolumn: false,
     enableHarpoon: true,
     enableYankRing: true,
@@ -1265,11 +1270,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'cursorlineopt',
-                                    options: {
-                                        number: 'Number',
-                                        line: 'Line',
-                                        both: 'Both',
-                                    },
+                                    options: { ...CURSORLINE_OPTIONS },
                                     disabled: () =>
                                         this.isOverridden('cursorlineopt'),
                                 },
@@ -3942,16 +3943,13 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             )
             .addDropdown((dropdown) =>
                 dropdown
-                    .addOptions({
-                        number: 'Number',
-                        line: 'Line',
-                        both: 'Both',
-                    })
+                    .addOptions({ ...CURSORLINE_OPTIONS })
                     .setValue(this.plugin.settings.cursorlineopt)
                     .setDisabled(isOverridden('cursorlineopt'))
                     .onChange(async (value) => {
-                        this.plugin.settings.cursorlineopt = value as
-                            'number' | 'line' | 'both';
+                        const parsed = parseCursorlineOpt(value);
+                        if (!parsed) return;
+                        this.plugin.settings.cursorlineopt = parsed;
                         this.plugin.clearSettingOverride('cursorlineopt');
                         await this.plugin.saveSettings();
                         this.plugin.reconfigureCursorlineHighlight();

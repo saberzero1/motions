@@ -1,6 +1,7 @@
 import type { VimApi } from '../types/vim-api';
 import type { CursorShape, CursorShapes } from '../settings';
 import { isValidSignColumnValue } from './sign-column';
+import { parseCursorlineOpt } from './cursorline-option';
 
 let textwidthValue = 80;
 let statuscolumnValue = '';
@@ -309,19 +310,18 @@ export function registerVimOptions(
         if (value === undefined) return;
         notify('cursorline', !!value, `set ${value ? '' : 'no'}cursorline`);
     });
-    vim.defineOption(
-        'cursorlineopt',
-        'number',
-        'string',
-        ['culopt'],
-        (value) => {
-            if (value === undefined) return;
-            const str = typeof value === 'string' ? value : '';
-            if (str === 'number' || str === 'line' || str === 'both') {
-                notify('cursorlineopt', str, `set cursorlineopt=${str}`);
-            }
-        },
-    );
+    vim.defineOption('cursorlineopt', 'both', 'string', ['culopt'], (value) => {
+        if (value === undefined) return;
+        const str = typeof value === 'string' ? value : '';
+        const normalized = parseCursorlineOpt(str);
+        if (normalized) {
+            notify(
+                'cursorlineopt',
+                normalized,
+                `set cursorlineopt=${normalized}`,
+            );
+        }
+    });
     vim.defineOption('linenumbermode', 'hybrid', 'string', ['lnm'], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';

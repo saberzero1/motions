@@ -1384,6 +1384,19 @@ settings:
     );
 }
 
+/* `cursorlineopt=screenline` draws a measured rectangle over the cursor's
+   display row instead of a line decoration, so it needs its own stacking
+   context below the text. */
+.cm-editor .vim-motions-cursorline-layer {
+    z-index: -1;
+    contain: size style;
+}
+
+.cm-editor .vim-motions-cursorline-layer .vim-motions-cursorline {
+    position: absolute;
+    pointer-events: none;
+}
+
 /* --- Animated cursor --- */
 
 .vim-motions-animated-cursor-canvas {

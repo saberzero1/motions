@@ -3,6 +3,7 @@ import type { App } from 'obsidian';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import type { LeaderRegistry } from '../ui/which-key';
 import { getCmAdapter } from '../vim/vim-api';
+import { parseCursorlineOpt } from '../vim/cursorline-option';
 import {
     setTextwidth,
     setClipboardOption,
@@ -47,6 +48,10 @@ interface StrOpt {
     type: 'string';
     settingsKey: string;
     validValues?: string[];
+    // Neovim list-valued options accept orderings and aliases that would be
+    // absurd to enumerate in validValues; normalize collapses them to the
+    // canonical spelling, or returns null to reject.
+    normalize?: (value: string) => string | null;
 }
 
 interface SideEffectOpt {
@@ -270,12 +275,12 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     cursorlineopt: {
         type: 'string',
         settingsKey: 'cursorlineopt',
-        validValues: ['number', 'line', 'both'],
+        normalize: parseCursorlineOpt,
     },
     culopt: {
         type: 'string',
         settingsKey: 'cursorlineopt',
-        validValues: ['number', 'line', 'both'],
+        normalize: parseCursorlineOpt,
     },
     signcolumn: {
         type: 'string',
@@ -692,7 +697,10 @@ function applyKnownSetOption(
         return true;
     }
 
-    const str = typeof optValue === 'string' ? optValue : '';
+    const raw = typeof optValue === 'string' ? optValue : '';
+    const normalized = spec.normalize ? spec.normalize(raw) : raw;
+    if (normalized === null) return true;
+    const str = normalized;
     if (spec.validValues && !spec.validValues.includes(str)) return true;
     onSettingOverride?.(spec.settingsKey, str, `set ${optName}=${str}`);
     try {
