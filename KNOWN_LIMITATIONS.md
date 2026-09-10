@@ -2060,6 +2060,13 @@ Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and c
 
 EasyMotion and hint mode bindings call `unmapDefaultBinding(leader)` before `mapCommand` registration. This removes the leader key's default Vim binding (e.g. `<Space>` → `l`, `,` → `repeatLastCharacterSearch`) from codemirror-vim's keymap so that `mapCommand` multi-key sequences starting with the leader can accumulate in the input buffer. The vimrc parser correctly handles `let mapleader = " "` (space inside quotes). EasyMotion works with any leader key, including space, comma, and semicolon.
 
+> [!warning] This claim is currently contradicted by its own tests and is unverified
+> The two `vimrc.e2e.ts` cases that were supposed to prove this — including the one named for [#6](https://github.com/saberzero1/motions/issues/6) — asserted a hardcoded `success`/`triggered` pair returned by the test itself. They could not fail, so they never verified the claim above at any point.
+>
+> Rewritten to assert the EasyMotion label overlay, they fail: after `vimrcLoaded`, the resolved leader reads back as `\`, not the configured `" "` or `","`, and the label count stays 0 where >0 is expected. Both are now marked `unsupported()` carrying that evidence, rather than restored to a passing lie.
+>
+> This is **not yet a confirmed regression.** Two red overlay tests earlier in the same sweep turned out to be test-side contamination — a leaked modal `Scope` eating the first keystroke — so the honest status is "claimed fixed, never actually tested, now failing under test". Needs a real diagnosis: confirm in isolation whether `let mapleader` from `.obsidian.vimrc` reaches the leader registry at all, and if it does not, whether that is the documented vimrc I/O timing gate (see [set textwidth via vimrc](#set-textwidth-via-vimrc-may-not-affect-gq)) rather than a leader-specific fault.
+
 `unmapDefaultBinding` passes `{ includeDefaults: true }` to `vim.unmap()`, which is required because codemirror-vim's default keymap entries are tagged with `_isDefault` and `unmap()` silently skips them without this flag. Without `includeDefaults`, keys with built-in bindings (`,`, `;`, `-`, `+`, etc.) would not be unmapped, causing the default single-key binding to consume the first keystroke before the multi-key EasyMotion sequence (e.g. `,,w`) could accumulate.
 
 The plugin now unmaps the leader key's default binding centrally — after vimrc loading, in `reregisterLeaderFeatures()`, and in `reloadFeatures()` — independent of which features are enabled. Previously, `unmapDefaultBinding(leader)` was only called inside `registerEasyMotion()`, so keys with default bindings (most notably space, whose `<Space>` → `l` default caused it to move the cursor right instead of acting as leader) only worked as leader when EasyMotion was enabled. All leader-dependent features (table manipulation, hint mode, settings leader bindings) now work with any leader key even when EasyMotion is disabled. ([#21](https://github.com/saberzero1/motions/issues/21))
@@ -2183,7 +2190,7 @@ The fork's `findPosV` applies three corrections to CM6's `moveVertically` result
 
 ([#26](https://github.com/saberzero1/motions/issues/26))
 
-**Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents), `test/specs/spikes/spike-gk-issue26-repro.e2e.ts` (6 tests covering reporter's exact content with consecutive h2 headings, long wrapped lines, and empty lines).
+**Test coverage**: `test/specs/widget-navigation.e2e.ts` (6 tests covering gj/gk/j/k through single and multiple `$$` blocks), `test/specs/vim-builtin/g-commands.e2e.ts` (7 tests covering gk/gj horizontal position preservation across h1–h6 headings and mixed heading/list/text documents), `test/specs/gk-column-drift-issue26.e2e.ts` (2 tests covering the reporter's exact content with consecutive h2 headings, a long wrapped line, and empty lines), and `test/specs/gk-theme-variations.e2e.ts` (2 representative theme-geometry variants).
 
 ## ~~Block visual mode (CTRL-V) insert not supported~~ (Fixed)
 
