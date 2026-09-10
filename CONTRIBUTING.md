@@ -635,7 +635,6 @@ test/
   specs/                     # E2E tests (Tier 2 — plugin features)
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests
-    spikes/                  # Exploratory/discovery tests
   neovim/                    # Neovim golden comparison infrastructure
     test-definitions.ts      # Test case definitions (shared by golden recording + e2e)
     golden-data/             # Recorded Neovim output (committed, CI compares against these)
@@ -663,7 +662,6 @@ test-vault/
 
 - **Tier 1** (`test/specs/vim-builtin/`) — Core Vim behavior. Use `testWithNeovim()` as the primary format. These tests compare the plugin's behavior against headless Neovim using golden files.
 - **Tier 2** (`test/specs/`) — Plugin features (text objects, navigation, workspace, operators, vimrc, settings, Lua config). Standard WDIO tests.
-- **Spikes** (`test/specs/spikes/`) — Exploratory/R&D tests for investigating behavior.
 
 ### E2E test patterns
 
@@ -783,7 +781,7 @@ npm run test:unit
 - Use `editor.focus()` to focus the editor, **not** `$('.cm-content').click()`.
 - For Vim key sequences that may conflict with browser keys, use `Vim.handleKey(adapter, key)` inside `executeObsidian` instead of `browser.keys`.
 - Special characters `<` and `>` cannot be reliably dispatched through `browser.keys` or `Vim.handleKey` in WDIO — they conflict with vim's angle-bracket notation parser. The fork's own test suite (`test/vim_test.js`) sends these as DOM `keydown` events with proper `keyCode`/`key` properties via its `typeKey` helper. For features requiring `<`/`>` (e.g., surround tag operations), verify behavior via fork tests and skip the plugin e2e test with a reference to the fork test name.
-- Spike/discovery tests go in `test/specs/spikes/`.
+- Exploratory checks belong on a short-lived branch or in a local scratch file. User-facing behavior must live in the normal Tier 1 or Tier 2 suite before merge.
 - The global `afterTest` hook in `wdio.conf.mts` cleans up overlays, modals, notices, and Vim state between every test. Individual tests should not need manual cleanup unless they test cleanup behavior itself.
 - For tests requiring Obsidian's full rendering pipeline (link decorations, metadata cache), use vault fixture files under `test-vault/fixtures/` instead of `setupEditor`. Open each fixture file once in a `before()` hook to warm the link cache. Use `obsidianPage.openFile()` instead of `setupEditor` to ensure CM6 decorations render.
 - When querying the active editor's DOM, use `.workspace-leaf.mod-active .cm-editor` instead of `.cm-editor` — multiple `.cm-editor` elements may exist on the page (sidebar, modals).

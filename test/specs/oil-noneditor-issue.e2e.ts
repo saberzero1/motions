@@ -1,6 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { PAUSE } from '../../helpers';
+import { PAUSE } from '../helpers';
 
 async function cleanupOilViews(): Promise<void> {
     await browser.executeObsidian(({ app }) => {
@@ -171,7 +171,7 @@ function logDiagnostics(label: string, d: OilDiagnostics): void {
     console.log(`  Buffer (first 200): "${d.bufferContent}"`);
 }
 
-describe('Spike: Oil from non-editor context reproduction', function () {
+describe('Oil opening without an editor', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await browser.pause(2000);
@@ -182,7 +182,7 @@ describe('Spike: Oil from non-editor context reproduction', function () {
         await browser.pause(300);
     });
 
-    it('Scenario 1: Oil after detaching all editor leaves (empty workspace)', async function () {
+    it('opens with vim and concealed entries from an empty workspace', async function () {
         await detachAllEditorLeaves();
         const viewTypeBefore = await getActiveViewType();
         console.log(`\nBefore Oil open — active view: ${viewTypeBefore}`);
@@ -190,22 +190,12 @@ describe('Spike: Oil from non-editor context reproduction', function () {
         await openOilViaExCommand();
         const d = await getOilDiagnostics();
         logDiagnostics('Scenario 1: Empty workspace → Oil', d);
-    });
-
-    it('Scenario 2: Oil from a markdown file (control — should work)', async function () {
-        await obsidianPage.openFile('Welcome.md');
-        await browser.pause(500);
-
-        await openOilViaExCommand();
-        const d = await getOilDiagnostics();
-        logDiagnostics('Scenario 2: MarkdownView → Oil (control)', d);
-
         expect(d.isOilView).toBe(true);
         expect(d.hasVimAdapter).toBe(true);
         expect(d.hasConcealIcons).toBe(true);
     });
 
-    it('Scenario 3: Oil opened, closed, reopened from empty pane', async function () {
+    it('reopens with vim after the last editor and prior Oil view are closed', async function () {
         await obsidianPage.openFile('Welcome.md');
         await browser.pause(300);
         await openOilViaExCommand();
@@ -219,15 +209,20 @@ describe('Spike: Oil from non-editor context reproduction', function () {
         await openOilViaExCommand();
         const d = await getOilDiagnostics();
         logDiagnostics('Scenario 3: Md → Oil → close → detach → Oil', d);
+        expect(d.isOilView).toBe(true);
+        expect(d.hasVimAdapter).toBe(true);
+        expect(d.hasConcealIcons).toBe(true);
     });
 
-    it('Scenario 4: Two Oil opens without any MarkdownView in between', async function () {
+    it('opens twice with vim without a MarkdownView between opens', async function () {
         await detachAllEditorLeaves();
         await browser.pause(300);
 
         await openOilViaExCommand();
         const d1 = await getOilDiagnostics();
         logDiagnostics('Scenario 4a: First Oil open (cold)', d1);
+        expect(d1.isOilView).toBe(true);
+        expect(d1.hasVimAdapter).toBe(true);
 
         await cleanupOilViews();
         await browser.pause(500);
@@ -235,24 +230,8 @@ describe('Spike: Oil from non-editor context reproduction', function () {
         await openOilViaExCommand();
         const d2 = await getOilDiagnostics();
         logDiagnostics('Scenario 4b: Second Oil open (still cold)', d2);
-    });
-
-    it('Scenario 5: Open Oil via obsidian command (not plugin method)', async function () {
-        await detachAllEditorLeaves();
-        await browser.pause(300);
-
-        await browser.executeObsidian(({ app }) => {
-            (
-                app as unknown as {
-                    commands?: {
-                        executeCommandById?: (id: string) => void;
-                    };
-                }
-            ).commands?.executeCommandById?.('vim-motions:oil-open');
-        });
-        await browser.pause(1500);
-
-        const d = await getOilDiagnostics();
-        logDiagnostics('Scenario 5: Oil via command palette (cold)', d);
+        expect(d2.isOilView).toBe(true);
+        expect(d2.hasVimAdapter).toBe(true);
+        expect(d2.hasConcealIcons).toBe(true);
     });
 });

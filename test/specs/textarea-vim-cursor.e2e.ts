@@ -1,6 +1,6 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { focusEditor, PAUSE } from '../../helpers';
+import { focusEditor, PAUSE } from '../helpers';
 
 type PluginRef = {
     settings: Record<string, unknown>;
@@ -181,7 +181,7 @@ async function getOverlayCursorState(): Promise<OverlayCursorState> {
     })) as OverlayCursorState;
 }
 
-describe('Spike: textarea vim cursor state (#130)', function () {
+describe('Textarea vim cursor state (#130)', function () {
     before(async function () {
         this.timeout(30000);
         await browser.reloadObsidian({ vault: 'test-vault' });

@@ -48,8 +48,7 @@ export const config: WebdriverIO.Config = {
         }
     },
 
-    async beforeSuite(suite) {
-        if (suite.title?.includes('Spike:')) return;
+    async beforeSuite() {
         try {
             const hasToggle = await browser.executeObsidian(({ app }) => {
                 return !!(

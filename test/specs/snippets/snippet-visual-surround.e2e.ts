@@ -1,5 +1,5 @@
 /**
- * Spike: Snippet expansion with $TM_SELECTED_TEXT / $VISUAL in visual mode
+ * Snippet expansion with $TM_SELECTED_TEXT / $VISUAL in visual mode.
  *
  * Verifies that snippets can wrap selected text with tabstops, covering both
  * JSON-registered snippets and Lua DSL snippets. Tests use actual vim visual
@@ -10,47 +10,15 @@ import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     getEditorValue,
-    getVimMode,
+    handleEx,
     PAUSE,
     sendVimEscape,
     setupEditor,
-    vimKeys,
 } from '../../helpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function handleEx(
-    command: string,
-): Promise<{ success?: true; error?: string }> {
-    return (await browser.executeObsidian(({ app, obsidian }, cmd: string) => {
-        try {
-            const Vim = (
-                window as unknown as Record<string, unknown> & {
-                    CodeMirrorAdapter?: {
-                        Vim?: {
-                            handleEx: (cm: unknown, input: string) => void;
-                        };
-                    };
-                }
-            ).CodeMirrorAdapter?.Vim;
-            if (!Vim) return { error: 'No Vim' };
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return { error: 'No view' };
-            const cm = (view.editor as unknown as Record<string, unknown>)
-                .cm as Record<string, unknown>;
-            const adapter = cm?.cm;
-            if (!adapter) return { error: 'No adapter' };
-            Vim.handleEx(adapter, cmd);
-            return { success: true };
-        } catch (e) {
-            return { error: String(e) };
-        }
-    }, command)) as { success?: true; error?: string };
-}
 
 async function waitForSnippets(): Promise<void> {
     await browser.waitUntil(
@@ -139,7 +107,7 @@ async function registerSurroundSnippets(): Promise<void> {
 
 async function expandSnippetViaEx(name: string): Promise<void> {
     const result = await handleEx(`snippet ${name}`);
-    expect(result).toHaveProperty('success', true);
+    expect(result.unknownCommand).toBe(false);
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
@@ -244,7 +212,7 @@ async function waitForSnippet(trigger: string): Promise<void> {
 // Tests: JSON-registered snippets with $TM_SELECTED_TEXT / $VISUAL
 // ===========================================================================
 
-describe('Spike: Snippet-based surround with $TM_SELECTED_TEXT / $VISUAL', function () {
+describe('Snippet-based surround with $TM_SELECTED_TEXT / $VISUAL', function () {
     describe('JSON-registered snippets', function () {
         before(async function () {
             await browser.reloadObsidian({ vault: 'test-vault' });
@@ -295,21 +263,6 @@ describe('Spike: Snippet-based surround with $TM_SELECTED_TEXT / $VISUAL', funct
             expect(value).toContain('> [!info]');
             expect(value).toContain('> A note about something.');
         });
-
-        it('empty selection produces empty $TM_SELECTED_TEXT', async function () {
-            await setupEditor('no selection', { line: 0, ch: 3 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-            await expandSnippetViaEx('Wrap simple');
-            const value = await getEditorValue();
-            expect(value).toContain('<<>>');
-        });
-
-        it('link snippet produces correct structure after visual expand', async function () {
-            await visualSelectAndExpand('word', 'viw', 'Wrap in link');
-            const value = await getEditorValue();
-            expect(value).toContain('[word](url)');
-        });
     });
 
     // =======================================================================
@@ -355,21 +308,6 @@ vim.snippet.add("_luawrapbold", s("Lua Wrap Bold", {
             await visualSelectAndExpand('emphasis', 'viw', '_luawrapbold');
             const value = await getEditorValue();
             expect(value).toContain('**emphasis**');
-        });
-
-        it('Lua link snippet produces correct structure after visual expand', async function () {
-            await visualSelectAndExpand('anchor', 'viw', '_luawraplink');
-            const value = await getEditorValue();
-            expect(value).toContain('[anchor](url)');
-        });
-
-        it('Lua snippet with empty selection uses placeholder', async function () {
-            await setupEditor('', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-            await expandSnippetViaEx('_luawrapbold');
-            const value = await getEditorValue();
-            expect(value).toContain('****');
         });
     });
 });

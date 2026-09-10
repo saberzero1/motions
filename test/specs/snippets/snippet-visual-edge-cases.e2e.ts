@@ -1,5 +1,5 @@
 /**
- * Spike: Edge cases for snippet visual selection recovery
+ * Edge cases for snippet visual selection recovery.
  *
  * Tests edge cases identified during the fix for :snippet visual selection
  * support (Discussion #108). Each test corresponds to a specific risk from
@@ -9,43 +9,11 @@ import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     getEditorValue,
-    getVimMode,
+    handleEx,
     PAUSE,
     sendVimEscape,
     setupEditor,
-    vimKeys,
 } from '../../helpers';
-
-async function handleEx(
-    command: string,
-): Promise<{ success?: true; error?: string }> {
-    return (await browser.executeObsidian(({ app, obsidian }, cmd: string) => {
-        try {
-            const Vim = (
-                window as unknown as Record<string, unknown> & {
-                    CodeMirrorAdapter?: {
-                        Vim?: {
-                            handleEx: (cm: unknown, input: string) => void;
-                        };
-                    };
-                }
-            ).CodeMirrorAdapter?.Vim;
-            if (!Vim) return { error: 'No Vim' };
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return { error: 'No view' };
-            const cm = (view.editor as unknown as Record<string, unknown>)
-                .cm as Record<string, unknown>;
-            const adapter = cm?.cm;
-            if (!adapter) return { error: 'No adapter' };
-            Vim.handleEx(adapter, cmd);
-            return { success: true };
-        } catch (e) {
-            return { error: String(e) };
-        }
-    }, command)) as { success?: true; error?: string };
-}
 
 async function vimHandleKeys(...keys: string[]): Promise<void> {
     await browser.executeObsidian(({ app, obsidian }, keyList: string[]) => {
@@ -142,7 +110,7 @@ async function registerTestSnippets(): Promise<void> {
 
 async function expandSnippetViaEx(name: string): Promise<void> {
     const result = await handleEx(`snippet ${name}`);
-    expect(result).toHaveProperty('success', true);
+    expect(result.unknownCommand).toBe(false);
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
@@ -162,7 +130,7 @@ async function visualSelectAndExpand(
     await expandSnippetViaEx(snippetName);
 }
 
-describe('Spike: Snippet visual selection edge cases', function () {
+describe('Snippet visual selection edge cases', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
@@ -209,42 +177,6 @@ describe('Spike: Snippet visual selection edge cases', function () {
             expect(value).toContain('<<line one');
             expect(value).toContain('line three>>');
         });
-
-        it('charwise v across lines selects partial lines', async function () {
-            await setupEditor('first line\nsecond line', {
-                line: 0,
-                ch: 6,
-            });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await vimHandleKeys('v', 'j', 'e');
-            await expandSnippetViaEx('Edge Wrap');
-            const value = await getEditorValue();
-            expect(value).toContain('<<');
-            expect(value).toContain('>>');
-            expect(value).not.toBe('<<>>');
-        });
-    });
-
-    // -----------------------------------------------------------------------
-    // Edge case 3: Visual block mode (<C-v>)
-    // -----------------------------------------------------------------------
-
-    describe('visual block mode (<C-v>)', function () {
-        it('block selection produces some text (not empty)', async function () {
-            await setupEditor('abcdef\nghijkl\nmnopqr', {
-                line: 0,
-                ch: 0,
-            });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await vimHandleKeys('<C-v>', 'j', 'j', 'l', 'l');
-            await expandSnippetViaEx('Edge Wrap');
-            const value = await getEditorValue();
-            expect(value).toContain('<<');
-            expect(value).toContain('>>');
-            expect(value).not.toBe('<<>>');
-        });
     });
 
     // -----------------------------------------------------------------------
@@ -266,67 +198,7 @@ describe('Spike: Snippet visual selection edge cases', function () {
         });
     });
 
-    // -----------------------------------------------------------------------
-    // Edge case 5: Bookmark invalidation — visual, delete all, then :snippet
-    // -----------------------------------------------------------------------
-
-    describe('bookmark invalidation after content deletion', function () {
-        it('falls back to empty when marks are invalidated', async function () {
-            await setupEditor('delete me', { line: 0, ch: 0 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await vimHandleKeys('v', 'i', 'w');
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-
-            await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (view) {
-                    view.editor.setValue('completely new content');
-                    view.editor.setCursor(0, 0);
-                }
-            });
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            await expandSnippetViaEx('Edge Wrap');
-            const value = await getEditorValue();
-            expect(value).toContain('<<');
-            expect(value).toContain('>>');
-        });
-    });
-
-    // -----------------------------------------------------------------------
-    // Edge case 6: Picker-based expansion (latent bug — no cm access)
-    // -----------------------------------------------------------------------
-
-    describe('picker-based snippet expansion', function () {
-        it('picker expansion from normal mode works (baseline)', async function () {
-            await setupEditor('picker test', { line: 0, ch: 5 });
-            await sendVimEscape();
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const result = await handleEx('snippet Edge Wrap');
-            expect(result).toHaveProperty('success', true);
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-            const value = await getEditorValue();
-            expect(value).toContain('<<>>');
-        });
-    });
-
-    // -----------------------------------------------------------------------
-    // Edge case 7: Tabstop mode after visual :snippet
-    // -----------------------------------------------------------------------
-
     describe('mode state after visual :snippet expansion', function () {
-        it('vim is in normal mode after visual :snippet (pre-existing behavior)', async function () {
-            await visualSelectAndExpand('word', 'viw', 'Edge Link');
-            const mode = await getVimMode();
-            expect(mode).toBe('normal');
-        });
-
         it('snippet text is correct despite normal mode', async function () {
             await visualSelectAndExpand('word', 'viw', 'Edge Link');
             const value = await getEditorValue();

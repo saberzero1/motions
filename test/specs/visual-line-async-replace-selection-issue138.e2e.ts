@@ -3,14 +3,13 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     getEditorValue,
-    getSelection,
     getVimMode,
     sendVimEscape,
     PAUSE,
-} from '../../helpers';
+} from '../helpers';
 
 /**
- * Spike: Issue #138 — Note Refactor "Extract selection" doesn't remove content in V-LINE
+ * Issue #138 — Note Refactor "Extract selection" did not remove content in V-LINE.
  *
  * Root cause hypothesis: The `withExpandedSelection` wrapper in
  * `visual-line-command-fix.ts` expands the CM6 selection synchronously,
@@ -26,104 +25,35 @@ import {
  *   4. ...awaits: createFile, writeContent, generateLink...
  *   5. doc.replaceSelection(link) — CM6 selection is now cursor-only → NOOP
  *
- * This spike verifies:
+ * This regression suite verifies:
  *   1. getSelection() works in V-LINE (already patched) ✓
  *   2. Synchronous replaceSelection() works in V-LINE (via executeCommand) ✓
- *   3. ASYNC replaceSelection() FAILS in V-LINE (the bug) ✗
- *   4. Direct replaceSelection() without executeCommand also fails ✗
+ *   3. Async replaceSelection() works in V-LINE.
+ *   4. Direct replaceSelection() without executeCommand works.
  *
  * @see https://github.com/saberzero1/motions/issues/138
  * @see https://github.com/lynchjames/note-refactor-obsidian (Note Refactor)
  */
-describe('Spike: Issue #138 — V-LINE async replaceSelection', function () {
+describe('Visual-line async replaceSelection (#138)', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
     });
 
     afterEach(async function () {
+        await browser.executeObsidian(({ app }) => {
+            try {
+                app.commands.removeCommand('issue138:async-replace');
+            } catch {
+                // The command is only registered by the first test.
+            }
+        });
         await sendVimEscape();
         await browser.pause(PAUSE.MODE_SWITCH);
     });
 
-    describe('Baseline: getSelection in V-LINE mode', function () {
-        it('editor.getSelection() should return V-LINE text (patched)', async function () {
-            await setupEditor('line one\nline two\nline three\nline four', {
-                line: 0,
-                ch: 0,
-            });
-
-            // Enter visual-line mode and select 2 lines: V, j
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await browser.keys(['V']);
-            await browser.pause(PAUSE.KEY_GAP);
-            await browser.keys(['j']);
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const mode = await getVimMode();
-            expect(mode).toBe('visual');
-
-            const selection = await getSelection();
-            console.log('V-LINE getSelection():', JSON.stringify(selection));
-            expect(selection).toContain('line one');
-            expect(selection).toContain('line two');
-            expect(selection).not.toContain('line three');
-        });
-    });
-
-    describe('Sync replaceSelection via executeCommandById', function () {
-        it('synchronous replaceSelection should work in V-LINE via executeCommand', async function () {
-            await setupEditor('line one\nline two\nline three\nline four', {
-                line: 1,
-                ch: 0,
-            });
-
-            // Enter visual-line mode on line 2: V (selects "line two")
-            await sendVimEscape();
-            await browser.pause(PAUSE.MODE_SWITCH);
-            await browser.keys(['V']);
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            const mode = await getVimMode();
-            expect(mode).toBe('visual');
-
-            // Simulate a SYNCHRONOUS command that calls replaceSelection
-            // This mimics what a synchronous plugin command would do
-            const result = await browser.executeObsidian(
-                ({ app, obsidian }) => {
-                    const view = app.workspace.getActiveViewOfType(
-                        obsidian.MarkdownView,
-                    );
-                    if (!view) return { error: 'no view' };
-
-                    // Manually execute via app.commands to go through the wrapper
-                    // We use toggle-numbered-list as a proxy (synchronous command)
-                    (
-                        app as unknown as {
-                            commands: {
-                                executeCommandById: (id: string) => boolean;
-                            };
-                        }
-                    ).commands.executeCommandById(
-                        'editor:toggle-numbered-list',
-                    );
-                    return { ok: true };
-                },
-            );
-            await browser.pause(PAUSE.EDITOR_SETTLE);
-
-            console.log('Sync executeCommand result:', result);
-            const value = await getEditorValue();
-            console.log('After sync command:', JSON.stringify(value));
-
-            // The numbered list should affect the selected line
-            expect(value).toContain('1.');
-        });
-    });
-
     describe('Bug reproduction: async replaceSelection in V-LINE', function () {
-        it('ASYNC replaceSelection should replace the V-LINE text (currently FAILS)', async function () {
+        it('async command replaceSelection replaces the visual-line text', async function () {
             await setupEditor('line one\nline two\nline three\nline four', {
                 line: 1,
                 ch: 0,
@@ -170,8 +100,8 @@ describe('Spike: Issue #138 — V-LINE async replaceSelection', function () {
 
                 // Register a fake "Note Refactor" command with async callback
                 commands.commands.addCommand({
-                    id: 'spike138:async-replace',
-                    name: 'Spike 138: Async Replace',
+                    id: 'issue138:async-replace',
+                    name: 'Issue 138: Async replace',
                     callback: async () => {
                         const view = app.workspace.getActiveViewOfType(
                             obsidian.MarkdownView,
@@ -207,7 +137,7 @@ describe('Spike: Issue #138 — V-LINE async replaceSelection', function () {
                             executeCommandById: (id: string) => boolean;
                         };
                     }
-                ).commands.executeCommandById('spike138:async-replace');
+                ).commands.executeCommandById('issue138:async-replace');
             });
 
             // Wait for the async operation to complete
@@ -222,23 +152,9 @@ describe('Spike: Issue #138 — V-LINE async replaceSelection', function () {
             expect(value).toContain('[[extracted-note]]');
             expect(value).not.toContain('line two');
             expect(value).not.toContain('line three');
-
-            // Cleanup: remove fake command
-            await browser.executeObsidian(({ app }) => {
-                const commands = app as unknown as {
-                    commands: {
-                        removeCommand: (id: string) => void;
-                    };
-                };
-                try {
-                    commands.commands.removeCommand('spike138:async-replace');
-                } catch {
-                    // ignore if not available
-                }
-            });
         });
 
-        it('direct async replaceSelection without executeCommand also fails', async function () {
+        it('direct async replaceSelection replaces the visual-line text', async function () {
             await setupEditor('alpha\nbeta\ngamma\ndelta\nepsilon', {
                 line: 1,
                 ch: 0,
@@ -302,7 +218,7 @@ describe('Spike: Issue #138 — V-LINE async replaceSelection', function () {
     });
 
     describe('Exploring replaceSelection in V-LINE without async', function () {
-        it('synchronous replaceSelection called directly (no executeCommand)', async function () {
+        it('direct synchronous replaceSelection replaces the visual-line text', async function () {
             await setupEditor('aaa\nbbb\nccc\nddd', { line: 1, ch: 0 });
 
             // Enter visual-line mode and select line 2: V
