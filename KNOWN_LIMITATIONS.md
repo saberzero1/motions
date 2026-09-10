@@ -500,7 +500,9 @@ The following settings are intentionally **not** exposed via vimrc:
 
 `ignorecase`, `smartcase`, `hlsearch`, `incsearch`, and `gdefault` are now configurable via `:set` / `vim.opt` (defaults match Neovim: `ignorecase` on, `smartcase` on, `hlsearch` on, `incsearch` on, `gdefault` off). `wrap` is controlled by Obsidian's editor settings and is not exposed as a vim option.
 
-`signcolumn` accepts `auto`, `auto:N`, `yes`, `yes:N`, `no` (N = 1–4, character slots). `auto` shows the sign column when marks exist and hides it when empty (causes layout shift, matching Neovim). `yes` always reserves gutter space. Clicking a mark label in the sign column moves the cursor to that line. Global marks (`A`–`Z`) render in a distinct color from local marks (`a`–`z`). `cursorlineopt=screenline` is not supported.
+`signcolumn` accepts `auto`, `auto:N`, `yes`, `yes:N`, `no` (N = 1–4, character slots). `auto` shows the sign column when marks exist and hides it when empty (causes layout shift, matching Neovim). `yes` always reserves gutter space. Clicking a mark label in the sign column moves the cursor to that line. Global marks (`A`–`Z`) render in a distinct color from local marks (`a`–`z`).
+
+`cursorlineopt` follows Neovim's `CursorLineNr` rule: the cursor line's number is highlighted only when `cursorline` is on **and** `cursorlineopt` contains `number` (or is `both`), and never while `cursorline` is off. Three deliberate divergences remain. `cursorlineopt=screenline` is not supported. The default is `number`, where Neovim's is `both` — changing it would add a line background for every existing user, so it is left alone. Comma-separated lists (`line,number`, `number,screenline`) are rejected; use `both`, which Neovim defines as an alias for `line,number`.
 
 `linenumbermode` is deprecated in favor of `statuscolumn`. `linenumbermode=dual` internally sets `statuscolumn="%l %r"`. Changing `linenumbermode` no longer requires an Obsidian restart — `reconfigureLineNumberGutter()` forwards the mode to both line-number compartments, and that path reached no editor view until `iterateEditorViews()` was corrected.
 
