@@ -339,8 +339,8 @@ When configuration mode includes vimrc (Lua + Vimrc or Vimrc only), vimrc values
 
 Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`"). Changing a setting via the Settings UI clears the override for that key.
 
-> [!info] Gutter settings require one restart
-> Settings that control CM6 gutter extensions (`number`, `relativenumber`, `signcolumn`, `foldcolumn`, `cursorline`, `statuscolumn`) take effect on the next Obsidian restart after the first config file change. This matches the Settings UI behavior — these extensions are created once at startup.
+> [!info] Gutter settings apply immediately
+> Settings that control CM6 gutter extensions (`number`, `relativenumber`, `signcolumn`, `foldcolumn`, `cursorline`, `statuscolumn`) take effect as soon as the config file is loaded, matching the Settings UI. These extensions are registered once at startup inside CodeMirror compartments, which are then reconfigured in place. Earlier releases required one Obsidian restart, because that reconfiguration resolved the wrong editor property and so reached no open editor.
 
 ## Settings not available via vimrc
 
