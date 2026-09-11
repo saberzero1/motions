@@ -9,7 +9,7 @@ import type { OilEntry, OilMergedDiff } from './types';
 import { OIL_VIEW_TYPE, type OilView } from './oil-view';
 import { executeCommand } from '../util/commands';
 import { navigateWithJump, navigateWithJumpFile } from '../workspace/navigate';
-import { getCmAdapterFromEditorView } from '../vim/vim-api';
+import { getCmAdapterFromEditorView, getVimApi } from '../vim/vim-api';
 import { StateEffect } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
@@ -38,7 +38,9 @@ export class OilManager {
         private readonly app: App,
         private readonly cache: OilCache,
         private readonly settings: VimMotionsSettings,
-    ) {}
+    ) {
+        this.sortKey = settings.oilDefaultSort;
+    }
 
     install(plugin: Plugin): void {
         this.cleanupLegacyTempFiles();
@@ -223,9 +225,17 @@ export class OilManager {
         }
         if (!view) return false;
         const dirPath = view.getDirPath();
-        const currentContent = view.getBufferContent();
-        const rendered = this.renderDirectoryToBuffer(dirPath);
-        return currentContent !== rendered;
+        const diff = computeDiff(
+            parseBufferLines(view.getBufferContent()),
+            this.cache.snapshot(dirPath),
+            dirPath,
+        );
+        return (
+            diff.creates.length > 0 ||
+            diff.deletes.length > 0 ||
+            diff.renames.length > 0 ||
+            diff.foreignIds.length > 0
+        );
     }
 
     private getEffectiveShowHidden(): boolean {
@@ -268,6 +278,9 @@ export class OilManager {
         if (!view) return;
         const entry = this.getEntryAtCursor(view);
         if (!entry) return;
+        getVimApi()
+            ?.getRegisterController()
+            .registers['"']?.setText(entry.path);
         void navigator.clipboard.writeText(entry.path);
         new Notice(`Oil: yanked ${entry.path}`);
     }
@@ -521,8 +534,12 @@ export class OilManager {
 
     renderDirectoryToBuffer(dirPath: string): string {
         const showHidden = this.getEffectiveShowHidden();
-        const sort = this.settings.oilDefaultSort ?? this.sortKey;
-        const rawEntries = renderDirectory(this.app, dirPath, showHidden, sort);
+        const rawEntries = renderDirectory(
+            this.app,
+            dirPath,
+            showHidden,
+            this.sortKey,
+        );
         const entries = this.cache.loadDirectory(dirPath, rawEntries);
         return entriesToBufferText(entries);
     }
@@ -537,12 +554,11 @@ export class OilManager {
         const hiddenEntries = await discoverHiddenEntries(this.app, dirPath);
         if (hiddenEntries.length === 0) return;
 
-        const sort = this.settings.oilDefaultSort ?? this.sortKey;
         const indexedEntries = renderDirectory(
             this.app,
             dirPath,
             showHidden,
-            sort,
+            this.sortKey,
         );
         const allRaw = [...indexedEntries, ...hiddenEntries];
 

@@ -308,15 +308,7 @@ export class OilKeybindingManager {
                 void manager.navigateToDirectory(view.getDirPath());
             },
             oilYankPath: () => {
-                const view = getActiveOilView();
-                if (!view) return;
-                const cursorLine = getCursorLine(view);
-                if (cursorLine === null) return;
-                const lineText = view.getLineText(cursorLine);
-                const entry = manager.getEntryAtLine(lineText);
-                if (!entry) return;
-                void navigator.clipboard.writeText(entry.path);
-                new Notice(`Oil: yanked ${entry.path}`);
+                manager.yankPathAtCursor();
             },
             oilHelp: () => {
                 if (!getActiveOilView()) return;
