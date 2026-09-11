@@ -9,6 +9,7 @@ import {
     loadSingleFileWorkspace,
     setupEditor,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -119,6 +120,10 @@ async function executeVimCommand(command: string): Promise<void> {
 
 describe('Neovim RPC connection lifecycle', function () {
     this.timeout(20000);
+
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
 
     beforeEach(async () => {
         const loaded = await browser.executeObsidian(({ app }) =>
@@ -329,8 +334,16 @@ describe('Neovim RPC connection lifecycle', function () {
         expect(state.pid).toBeNull();
     });
 
-    it('refuses a Neovim API level below 12', async () => {
+    it('refuses a Neovim API level below 12', async function () {
+        if (process.platform === 'win32') {
+            console.warn(
+                'SKIP: the old-API executable stub scenario is POSIX-only.',
+            );
+            this.skip();
+            return;
+        }
         const directory = mkdtempSync(join(tmpdir(), 'vim-motions-old-nvim-'));
+        const stubProgramPath = join(directory, 'nvim-old.js');
         const stubPath = join(directory, 'nvim-old');
         const response = [
             0x94, 0x01, 0x01, 0xc0, 0x92, 0x01, 0x81, 0xa7, 0x76, 0x65, 0x72,
@@ -338,8 +351,12 @@ describe('Neovim RPC connection lifecycle', function () {
             0x65, 0x76, 0x65, 0x6c, 0x0b,
         ];
         writeFileSync(
+            stubProgramPath,
+            `const response = Buffer.from(${JSON.stringify(response)});\nlet sent = false;\nprocess.stdin.on('data', () => { if (!sent) { sent = true; process.stdout.write(response); } });\nsetInterval(() => {}, 1000);\n`,
+        );
+        writeFileSync(
             stubPath,
-            `#!/usr/bin/env node\nconst response = Buffer.from(${JSON.stringify(response)});\nlet sent = false;\nprocess.stdin.on('data', () => { if (!sent) { sent = true; process.stdout.write(response); } });\nsetInterval(() => {}, 1000);\n`,
+            `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/nvim-old.js" "$@"\n`,
         );
         chmodSync(stubPath, 0o755);
         try {

@@ -6,6 +6,7 @@ import {
     isLivePreview,
     loadSingleFileWorkspace,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 const FIXTURE_PATH = 'rpc-latency-runtime.md';
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
@@ -714,6 +715,10 @@ async function proveRpcEngagementAndForkIsolation(): Promise<void> {
 describe('M7 RPC key-to-paint latency certification', function () {
     this.timeout(600000);
     let originalPropertiesInDocument: unknown;
+
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
 
     before(async () => {
         await setRpcEnabled(false);

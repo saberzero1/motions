@@ -7,6 +7,7 @@ import {
     loadSingleFileWorkspace,
     setupEditor,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -337,6 +338,10 @@ function buildKeyCases(): KeyCase[] {
 }
 
 describe('Neovim RPC key delegation', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
     this.timeout(900000);
 
     beforeEach(async () => {

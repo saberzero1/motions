@@ -11,6 +11,7 @@ import {
     setupEditor,
     vimHandleKeysSync,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -346,6 +347,10 @@ async function readActiveFile(): Promise<string> {
 }
 
 describe('Neovim RPC Markdown text objects', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
     this.timeout(900000);
 
     before(async () => {

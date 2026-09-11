@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { resolve } from 'node:path';
 import { getNotices, loadSingleFileWorkspace, setupEditor } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -187,6 +188,10 @@ async function getWriteSnapshot(): Promise<WriteSnapshot> {
 }
 
 describe('Neovim RPC write and read routing', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
     this.timeout(180000);
 
     beforeEach(async () => {

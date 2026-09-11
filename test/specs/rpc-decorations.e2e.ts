@@ -2,6 +2,7 @@ import { browser, expect } from '@wdio/globals';
 import fs from 'node:fs';
 import { resolve } from 'node:path';
 import { getNotices, loadSingleFileWorkspace, setupEditor } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -228,13 +229,7 @@ describe('Neovim RPC decorations', function () {
     let spawnedPid: number | null = null;
 
     before(async function () {
-        if (!fs.existsSync(FLASH_FIXTURE)) {
-            console.warn(
-                `SKIP: ${FLASH_FIXTURE} is absent. Run \`bash scripts/fetch-test-plugins.sh\`.`,
-            );
-            this.skip();
-            return;
-        }
+        requireRpcPrerequisites(this, { fixtures: [FLASH_FIXTURE] });
         await loadSingleFileWorkspace();
         await setupEditor(FIXTURE, { line: 0, ch: 0 });
         await setRpcEnabled(true);

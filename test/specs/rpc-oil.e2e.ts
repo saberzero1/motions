@@ -2,6 +2,7 @@ import { browser, expect } from '@wdio/globals';
 import { resolve } from 'node:path';
 import { Key } from 'webdriverio';
 import { getNotices, loadSingleFileWorkspace, setupEditor } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -38,6 +39,7 @@ interface OilSnapshot {
 }
 
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
+const FLASH_FIXTURE = 'test-vault/lua/flash/init.lua';
 const FIXTURE_DIR = 'rpc-oil-fixture';
 const SENTINEL = 'rpc oil sentinel\nsecond line';
 const spawnedPids = new Set<number>();
@@ -269,6 +271,10 @@ async function waitForMarkdown(path = 'Welcome.md'): Promise<void> {
 }
 
 describe('Neovim RPC Oil isolation', function () {
+    before(function () {
+        requireRpcPrerequisites(this, { fixtures: [FLASH_FIXTURE] });
+    });
+
     this.timeout(300000);
 
     beforeEach(async () => {

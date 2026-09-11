@@ -6,6 +6,7 @@ import {
     loadTwoFileWorkspace,
     setupEditor,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -247,6 +248,10 @@ async function rawByteComparison(): Promise<{ cm: number[]; raw: number[] }> {
 }
 
 describe('Neovim RPC IME composition', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
     this.timeout(180000);
 
     beforeEach(async () => {

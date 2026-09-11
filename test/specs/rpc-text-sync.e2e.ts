@@ -6,6 +6,7 @@ import {
     loadTwoFileWorkspace,
     setupEditor,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -347,6 +348,10 @@ async function readDiskFiles(
 }
 
 describe('Neovim RPC text synchronisation', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
     this.timeout(180000);
 
     beforeEach(async () => {

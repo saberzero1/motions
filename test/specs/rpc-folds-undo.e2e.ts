@@ -7,6 +7,7 @@ import {
     loadSingleFileWorkspace,
     setupEditor,
 } from '../helpers';
+import { requireRpcPrerequisites } from './rpc-prerequisites';
 
 interface RpcState {
     connected: boolean;
@@ -243,6 +244,10 @@ async function undoTree(): Promise<UndoTreeDict> {
 }
 
 describe('Neovim RPC folds and undo tree', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
     this.timeout(30000);
     let spawnedPid: number | null = null;
 
