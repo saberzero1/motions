@@ -63,6 +63,7 @@ export class NeovimDocumentSync {
     private lineNotificationCleanup: (() => void) | null = null;
     private writeNotificationCleanup: (() => void) | null = null;
     private readNotificationCleanup: (() => void) | null = null;
+    private cursorNotificationCleanup: (() => void) | null = null;
     private activation = 0;
     private activationPromise: Promise<void> = Promise.resolve();
     private remirroring = false;
@@ -74,6 +75,7 @@ export class NeovimDocumentSync {
     constructor(
         private readonly app: App,
         private readonly rpc: MsgpackRpcClient,
+        private textwidth: number,
     ) {
         this.frontmatterFold = new NeovimFrontmatterFold(app, rpc);
     }
@@ -97,6 +99,10 @@ export class NeovimDocumentSync {
             'vim_motions_read',
             (args) => this.handleReadRequest(args),
         );
+        this.cursorNotificationCleanup = this.rpc.onNotification(
+            'vim_motions_cursor',
+            (args) => this.handleCursorNotification(args),
+        );
         this.remirroring = true;
         try {
             await this.rpc.request('nvim_buf_attach', [buffer, true, {}]);
@@ -119,10 +125,12 @@ export class NeovimDocumentSync {
         const lineNotificationCleanup = this.lineNotificationCleanup;
         const writeNotificationCleanup = this.writeNotificationCleanup;
         const readNotificationCleanup = this.readNotificationCleanup;
+        const cursorNotificationCleanup = this.cursorNotificationCleanup;
         this.leafChangeRef = null;
         this.lineNotificationCleanup = null;
         this.writeNotificationCleanup = null;
         this.readNotificationCleanup = null;
+        this.cursorNotificationCleanup = null;
         this.editorView = null;
         this.buffer = null;
         this.mirror = [];
@@ -131,6 +139,7 @@ export class NeovimDocumentSync {
                 () => lineNotificationCleanup?.(),
                 () => writeNotificationCleanup?.(),
                 () => readNotificationCleanup?.(),
+                () => cursorNotificationCleanup?.(),
                 () => {
                     if (leafChangeRef) this.app.workspace.offref(leafChangeRef);
                 },
@@ -145,6 +154,17 @@ export class NeovimDocumentSync {
 
     getBuffer(): number | null {
         return this.buffer;
+    }
+
+    async setTextwidth(textwidth: number): Promise<void> {
+        this.textwidth = textwidth;
+        const buffer = this.buffer;
+        if (buffer === null || this.disposed) return;
+        await this.rpc.request('nvim_set_option_value', [
+            'textwidth',
+            textwidth,
+            { buf: buffer },
+        ]);
     }
 
     bufferPositionToOffset(row: number, byteColumn: number): number | null {
@@ -215,6 +235,7 @@ export class NeovimDocumentSync {
                 'acwrite',
                 { buf: buffer },
             ]);
+            await this.setTextwidth(this.textwidth);
             await this.rpc.request('nvim_set_option_value', [
                 'modified',
                 false,
@@ -265,6 +286,17 @@ export class NeovimDocumentSync {
         void this.trackActivation().catch((error: unknown) =>
             this.reportFailure(error),
         );
+    }
+
+    private handleCursorNotification(args: unknown[]): void {
+        if (
+            this.disposed ||
+            args[0] !== this.buffer ||
+            typeof args[1] !== 'number' ||
+            typeof args[2] !== 'number'
+        )
+            return;
+        this.syncCursor(args[1], args[2]);
     }
 
     private applyLines(first: number, last: number, data: string[]): void {

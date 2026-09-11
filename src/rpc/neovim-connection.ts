@@ -149,6 +149,7 @@ export class NeovimConnection {
     async connect(
         configuredPath: string,
         configuredConfigPath: string,
+        textwidth: number,
     ): Promise<boolean> {
         if (!Platform.isDesktop) return false;
         const binaryPath = resolveNeovimBinaryPath(configuredPath);
@@ -218,7 +219,11 @@ export class NeovimConnection {
                 await this.disconnectChild(child, rpc);
                 return false;
             }
-            const documentSync = new NeovimDocumentSync(this.app, rpc);
+            const documentSync = new NeovimDocumentSync(
+                this.app,
+                rpc,
+                textwidth,
+            );
             this.documentSync = documentSync;
             await documentSync.start();
             if (operation !== this.operation || this.child !== child) {
@@ -313,8 +318,13 @@ export class NeovimConnection {
     async request(method: string, args: unknown[]): Promise<unknown> {
         if (!this.connected || !this.rpc)
             throw new Error('Neovim is not connected');
+        await this.documentSync?.waitForActivation();
         await this.keyDelegation?.flush();
         return this.rpc.request(method, args);
+    }
+
+    async setTextwidth(textwidth: number): Promise<void> {
+        await this.documentSync?.setTextwidth(textwidth);
     }
 
     isKeyDelegating(): boolean {
