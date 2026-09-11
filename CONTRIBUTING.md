@@ -121,6 +121,13 @@ The tests run in a headless Obsidian instance with Xvfb. The test vault is in `t
 
 **CI infrastructure**: In CI, the e2e workflow shards spec files into 36 groups (matching the GitHub Actions concurrent job limit) and runs each shard inside a custom Docker image (`ghcr.io/<repo>/e2e-runner:latest`) that includes Xvfb, herbstluftwm, Node.js 24, and Electron system dependencies. The discover job distributes specs round-robin; each runner executes 2–3 specs sequentially. This keeps the matrix under the 256-job GitHub Actions cap. The entrypoint starts the virtual display with readiness polling — no manual `apt-get install` or `sleep`-based setup needed per runner. The image is defined in `.github/docker/e2e-runner/Dockerfile` and built by `.github/workflows/docker-e2e-runner.yml` on Dockerfile changes or manual dispatch. The same sharded spec distribution also runs on `macos-latest` (ARM) and `windows-latest` runners via the `e2e-cross-platform` job — no virtual display setup is needed on those platforms since GitHub macOS/Windows runners provide native GUI sessions. `wdio-obsidian-service` handles Obsidian download, ChromeDriver version matching, and platform-specific launch. Windows shards retry up to 3 times on `EPERM` errors (Windows NTFS file locking during `obsidian-launcher`'s atomic rename).
 
+**The latency benchmark is not a blocking gate.** `test/specs/rpc-latency.e2e.ts` is excluded from the shard distribution and runs in its own Linux-only `e2e-latency` job that always exits 0. It measures key-to-paint latency for the fork and RPC backends, and shared runners move those percentiles on their own — the runner's baseline p95 is roughly three times the locally certified figure, which is enough to defeat the spec's own delay control. When it fails, the job emits a `::warning::` annotation and writes a per-condition p50/p95/p99 table to the job summary via `scripts/report-latency.mjs`, so a genuine regression is still visible. Read the summary as a trend rather than a threshold. To run it locally:
+
+```bash
+nix develop
+npx wdio run ./wdio.conf.mts --spec test/specs/rpc-latency.e2e.ts
+```
+
 ## Codebase structure
 
 ```

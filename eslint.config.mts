@@ -14,6 +14,7 @@ export default defineConfig(
         '.sisyphus',
         'esbuild.config.mjs',
         'version-bump.mjs',
+        'scripts/report-latency.mjs',
         'versions.json',
         'main.js',
         'package.json',
