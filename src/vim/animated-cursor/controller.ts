@@ -238,23 +238,19 @@ class CursorController implements Tickable {
             scrollTop !== this.cachedScrollTop ||
             scrollLeft !== this.cachedScrollLeft;
 
-        if (vu.selectionSet) {
+        const selectionHead = vu.state.selection.main.head;
+        const cursorPositionChanged = selectionHead !== this.cachedSelectionHead;
+        
+        if (vu.selectionSet || cursorPositionChanged) {
             this.needsPositionUpdate = true;
             this.active = true;
             this.lastMoveTime = performance.now();
             getAnimatedCursorManager().wake();
         } else if (scrollChanged) {
-            const selectionHead = vu.state.selection.main.head;
-            if (selectionHead === this.cachedDocPos) {
-                this.needsPositionUpdate = true;
-                this.active = true;
-                this.snapOnNextTick = true;
-                getAnimatedCursorManager().wake();
-            } else {
-                this.needsPositionUpdate = true;
-                this.active = true;
-                getAnimatedCursorManager().wake();
-            }
+            this.needsPositionUpdate = true;
+            this.active = true;
+            this.snapOnNextTick = true;
+            getAnimatedCursorManager().wake();
         }
 
         this.cachedScrollTop = scrollTop;
