@@ -265,14 +265,35 @@ describe('Neovim RPC write and read routing', function () {
         // reloads the editor and discards the unsaved content -- on macOS that
         // beat the assertion and made a correct re-seed look like a disk read.
         await replaceLineThroughNeovim('unsaved in obsidian');
+        await browser.waitUntil(
+            async () => (await getWriteSnapshot()).cm === 'unsaved in obsidian',
+            {
+                timeout: 5000,
+                interval: 50,
+                timeoutMsg:
+                    'precondition: Obsidian never held the unsaved text',
+            },
+        );
         const before = await getWriteSnapshot();
-        expect({
-            cm: before.cm,
-            diskDiffers: before.disk !== 'unsaved in obsidian',
-        }).toEqual({ cm: 'unsaved in obsidian', diskDiffers: true });
+        expect(before.disk).not.toBe('unsaved in obsidian');
 
         await request('nvim_command', ['edit!']);
-        await browser.pause(250);
+        await browser.waitUntil(
+            async () => {
+                const snapshot = await getWriteSnapshot();
+                return (
+                    snapshot.buffer === 'unsaved in obsidian' &&
+                    snapshot.cm === 'unsaved in obsidian' &&
+                    snapshot.modified === false
+                );
+            },
+            {
+                timeout: 5000,
+                interval: 50,
+                timeoutMsg:
+                    'after :e! the mirror never settled on the unsaved text',
+            },
+        );
         expect(await getWriteSnapshot()).toEqual({
             buffer: 'unsaved in obsidian',
             buftype: 'acwrite',

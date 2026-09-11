@@ -406,25 +406,44 @@ describe('Neovim RPC messages', function () {
         await dispatchKeys('iX\u001b');
         await dismissNotices();
         await dispatchKeys('u');
-        await browser.pause(100);
-        const value = await browser.executeObsidian(({ app, obsidian }) =>
-            app.workspace
-                .getActiveViewOfType(obsidian.MarkdownView)
-                ?.editor.getValue(),
+        const editorValue = async () =>
+            browser.executeObsidian(({ app, obsidian }) =>
+                app.workspace
+                    .getActiveViewOfType(obsidian.MarkdownView)
+                    ?.editor.getValue(),
+            );
+        await browser.waitUntil(
+            async () => (await editorValue()) === BASIC_FIXTURE,
+            {
+                timeout: 5000,
+                interval: 50,
+                timeoutMsg: 'the undo never reached CM6',
+            },
         );
-        await expect(value).toBe(BASIC_FIXTURE);
+        await expect(await editorValue()).toBe(BASIC_FIXTURE);
         await expect(await getNotices()).toEqual([]);
     });
 
     it('ignores search counts while moving to the next match', async () => {
         await dispatchKeys('/alpha\r');
-        await browser.pause(100);
-        const cursor = await browser.executeObsidian(({ app, obsidian }) =>
-            app.workspace
-                .getActiveViewOfType(obsidian.MarkdownView)
-                ?.editor.getCursor(),
+        const cursorPos = async () =>
+            browser.executeObsidian(({ app, obsidian }) =>
+                app.workspace
+                    .getActiveViewOfType(obsidian.MarkdownView)
+                    ?.editor.getCursor(),
+            );
+        await browser.waitUntil(
+            async () => {
+                const at = await cursorPos();
+                return at?.line === 0 && at?.ch === 11;
+            },
+            {
+                timeout: 5000,
+                interval: 50,
+                timeoutMsg: 'the search never moved the cursor to 0:11',
+            },
         );
-        await expect(cursor).toEqual({ line: 0, ch: 11 });
+        await expect(await cursorPos()).toEqual({ line: 0, ch: 11 });
         await expect(await getNotices()).toEqual([]);
     });
 
