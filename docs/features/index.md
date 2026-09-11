@@ -40,4 +40,6 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 ## Configuration
 
+- **[[neovim-backend|Neovim backend]]** — opt-in desktop connection to a user-supplied Neovim 0.12+ process. Neovim owns active-note editing over msgpack-RPC while Obsidian keeps workspace, vault, picker, and embedded-editor ownership.
+
 All features are configurable via the [[settings|Settings UI]], [[lua-config|.obsidian.init.lua]], or [[vimrc|.obsidian.vimrc]]. Configuration files support **hot-reload on save** and can be managed via Obsidian commands. See the [[keybindings|keybinding cheat sheet]] for a complete reference of all motions and commands.

@@ -399,6 +399,19 @@ src/
     loader.ts              # Two-phase vimrc loader: readAndParseVimrcFile (no CM needed) → applyVimrcCommands (14 types explicit); KNOWN_SET_OPTIONS registry for all :set options
 ```
 
+CI and RPC test tooling:
+
+```
+.dockerignore                              # Minimal root Docker build context for the E2E runner
+.github/docker/e2e-runner/Dockerfile       # Linux E2E image with pinned Neovim
+.github/workflows/docker-e2e-runner.yml    # E2E image build and publish workflow
+.github/workflows/e2e.yml                  # Sharded Linux, macOS, and Windows E2E jobs
+scripts/install-neovim.sh                  # Linux/macOS official-release installer and API-floor check
+scripts/install-neovim.ps1                 # Windows official-release installer and API-floor check
+scripts/neovim-version.txt                 # Single cross-platform Neovim version pin
+test/specs/rpc-prerequisites.ts            # Shared Neovim/API-level/fixture skip guard for RPC specs
+```
+
 ## Adding a new feature
 
 ### New motion or text object
@@ -649,6 +662,7 @@ test/
   coverage-report.ts         # Coverage report generator
   tsconfig.json              # Test-specific TypeScript config
   specs/                     # E2E tests (Tier 2 — plugin features)
+    rpc-prerequisites.ts     # Shared Neovim/API-level/fixture skip guard for all RPC specs
     rpc-lifecycle.e2e.ts     # Neovim spawn, attach, version floor, crash, and teardown lifecycle
     rpc-lifecycle.negative-control.md # Observed teardown and version-check sabotage failures
     rpc-text-sync.e2e.ts     # Active-editor line-event sync and raw-byte oracle coverage
