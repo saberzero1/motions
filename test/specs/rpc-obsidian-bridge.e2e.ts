@@ -822,6 +822,7 @@ describe('Neovim RPC Obsidian feature bridge', function () {
                             true,
                         ])) as string[]
                     ).join('\n'),
+                    expectedText: targetContent,
                 })}`,
             );
         }

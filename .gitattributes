@@ -1,0 +1,14 @@
+# Keep the working tree byte-identical on every platform.
+#
+# Windows runners default to core.autocrlf=true, which rewrites committed LF
+# files to CRLF on checkout. Neovim then reads such a fixture as fileformat=dos
+# and reports LF-only lines, so a spec comparing Neovim's buffer against the
+# vault file fails on Windows alone. Specs that build their content at runtime
+# are unaffected, which is why only the committed-fixture comparison broke.
+* text=auto eol=lf
+
+# PowerShell is the one place CRLF is conventional.
+*.ps1 text eol=crlf
+
+# Treesitter grammars must never be line-ending converted.
+*.wasm binary
