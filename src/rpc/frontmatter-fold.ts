@@ -10,53 +10,65 @@ const luaFrontmatterPattern = FRONTMATTER_DELIMITER_PATTERN.replace(
 );
 const foldExpressionSource = `local rendered = ...
 local delimiter = ${JSON.stringify(luaFrontmatterPattern)}
+local cached_tick = -1
+local cached_levels = {}
 _G.vim_motions_rpc_foldexpr = function()
     local lnum = vim.v.lnum
+    local tick = vim.api.nvim_buf_get_changedtick(0)
+    if tick == cached_tick then return cached_levels[lnum] or 0 end
     local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
     local function heading_level(line)
         local hashes = line:match("^(#+)%s")
         return hashes and #hashes or nil
     end
+    local closing = nil
     if rendered and lines[1] and lines[1]:match(delimiter) then
-        local closing = nil
         for index = 2, #lines do
             if lines[index]:match(delimiter) then
                 closing = index
                 break
             end
         end
-        if closing and lnum <= closing then
-            if lnum == 1 then return ">100" end
-            if lnum == closing then return "<100" end
-            return 100
-        end
     end
-    local line = lines[lnum] or ""
-    local level = heading_level(line)
-    if level then return ">" .. level end
+    local next_heading = {}
+    local following = nil
+    for index = #lines, 1, -1 do
+        local line = lines[index] or ""
+        if not line:match("^%s*$") then
+            following = heading_level(line)
+        end
+        next_heading[index] = following
+    end
     local parent_level = 0
-    for index = lnum - 1, 1, -1 do
-        local candidate = heading_level(lines[index] or "")
-        if candidate then
-            parent_level = candidate
-            break
-        end
-    end
-    local callout_start = line:match("^%s*>%s*%[!.+%]") ~= nil
-    local quoted = line:match("^%s*>") ~= nil
-    if callout_start then return ">" .. (parent_level + 1) end
-    if quoted then return parent_level + 1 end
-    if line:match("^%s*$") then
-        for index = lnum + 1, #lines do
-            local next_line = lines[index] or ""
-            if not next_line:match("^%s*$") then
-                local next_level = heading_level(next_line)
-                if next_level and next_level <= parent_level then return 0 end
-                break
+    local levels = {}
+    for index, line in ipairs(lines) do
+        if closing and index <= closing then
+            if index == 1 then
+                levels[index] = ">100"
+            elseif index == closing then
+                levels[index] = "<100"
+            else
+                levels[index] = 100
+            end
+        else
+            local level = heading_level(line)
+            if level then
+                levels[index] = ">" .. level
+                parent_level = level
+            elseif line:match("^%s*>%s*%[!.+%]") then
+                levels[index] = ">" .. (parent_level + 1)
+            elseif line:match("^%s*>") then
+                levels[index] = parent_level + 1
+            elseif line:match("^%s*$") and next_heading[index] and next_heading[index] <= parent_level then
+                levels[index] = 0
+            else
+                levels[index] = parent_level
             end
         end
     end
-    return parent_level
+    cached_tick = tick
+    cached_levels = levels
+    return cached_levels[lnum] or 0
 end`;
 
 export class NeovimFrontmatterFold {
