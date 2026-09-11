@@ -8,6 +8,8 @@ tags:
 
 Harpoon-style file pinning gives you instant access to a small set of frequently-used files. Pin files to numbered slots, jump to them with `<leader>1`–`<leader>9`, and the plugin remembers where your cursor was.
 
+When the optional Neovim RPC backend is connected, Harpoon mappings and ex commands dispatch to the same host store. Slot arguments and stored cross-file cursor positions are preserved across the bridge.
+
 ## Pinning files
 
 Pin the current file with `<leader>ha` or `:HarpoonAdd`. The file is added to the next available slot. If the file is already pinned, nothing happens.

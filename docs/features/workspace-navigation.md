@@ -8,6 +8,8 @@ tags:
 
 Vim Motions provides Neovim-style window management that works across all Obsidian views. This includes a global key handler that intercepts keystrokes even when no editor is focused, allowing you to control the entire workspace with your keyboard.
 
+When the optional Neovim RPC backend is active, the editor mappings in this page are generated in Neovim and dispatched to the same Obsidian workspace actions. Counted tab targets such as `3gt`, go-to-definition variants, and lowercase workspace ex commands preserve their counts and arguments across the bridge. The host explicitly owns `<C-o>` and `<C-i>` so the jump list can cross notes despite Neovim using one reused buffer; explicit counts such as `2<C-o>` are forwarded.
+
 ## Pane and split navigation
 
 Manage your workspace layout using standard Vim window commands. The plugin supports splitting panes, navigating between them, and closing tabs using the `<C-w>` prefix.
@@ -121,6 +123,9 @@ When the treesitter bridge is available, heading folds and heading/code placehol
 When **Fold-aware navigation** is enabled (**Settings → Vim Motions → Fold-aware navigation**, on by default), jumping into a folded section with a categorized motion automatically unfolds it, matching Neovim's `foldopen` option. Plain vertical motions such as `j` and `k` leave folds closed — exactly as in Neovim. The default categories are `block,hor,mark,percent,search,undo`, which means structural motions (`]h`, `{`, `}`), horizontal motions (`w`, `f`, `$`), mark jumps (`'a`, `` `a ``), `%`, search (`n`, `/`), and undo/redo all trigger auto-unfold. Use `set foldopen=…` (alias `set fdo=…`) in your vimrc or Lua config for fine-grained control — for example, `set foldopen=all` to unfold on every motion, or `set foldopen=block,search` to unfold only on structural and search motions.
 
 When **Fold persistence** is enabled (**Settings → Vim Motions → Fold persistence**), fold state is remembered across file switches and sessions. Folds are restored when re-opening a previously folded file.
+
+> [!info] Neovim RPC ownership
+> With the Neovim RPC backend connected, Neovim owns fold commands and fold state. The existing redraw provider mirrors visible `foldclosed()` ranges into CM6, so both render the same folds without replaying commands in two engines. Markdown headings, callouts, and frontmatter are supplied by a window-local `foldexpr`; `zf{motion}` remains Neovim's native operator. Cross-session fold persistence is unavailable in RPC mode because persisted CM6 offsets cannot restore Neovim-owned state safely.
 
 The viewport automatically scrolls to keep the cursor visible after any fold or unfold operation, including Obsidian's **Toggle fold properties** command. The scroll is scoped to actual fold state changes (`is-collapsed` class toggle) — class mutations from third-party plugins (e.g., Meta Bind input fields in the properties panel) do not trigger unwanted scroll jumps.
 

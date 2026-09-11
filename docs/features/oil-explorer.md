@@ -56,7 +56,7 @@ Oil ex commands are always registered, even outside an Oil buffer. If you invoke
 | `:oilclose`        | `:oilcl`     | `q`, `<C-c>` | Close oil buffer                 |
 | `:oiltogglehidden` | `:oilt`      | `g.`         | Toggle hidden files              |
 | `:oilcyclesort`    | `:oilcy`     | `gs`         | Cycle sort order                 |
-| `:oilyankpath`     | `:oily`      | `y.`         | Yank file path to clipboard      |
+| `:oilyankpath`     | `:oily`      | `y.`         | Yank path to register/clipboard  |
 | `:oilreveal`       | `:oilrev`    | `gf`         | Reveal in Obsidian file explorer |
 | `:oilopenexternal` | `:oilopene`  | `gx`         | Open in default app              |
 | `:oilhelp`         | `:oilh`      | `g?`         | Show keybinding help modal       |
@@ -101,7 +101,7 @@ vim.obsidian.oil.root()           -- navigate to vault root
 vim.obsidian.oil.refresh()        -- refresh current listing
 vim.obsidian.oil.toggle_hidden()  -- toggle dotfile visibility
 vim.obsidian.oil.cycle_sort()     -- cycle sort order
-vim.obsidian.oil.yank_path()      -- copy path to clipboard
+vim.obsidian.oil.yank_path()      -- yank path to unnamed register and clipboard
 vim.obsidian.oil.reveal()         -- reveal in Obsidian file explorer
 vim.obsidian.oil.open_entry()     -- open file/directory under cursor
 ```
@@ -126,6 +126,10 @@ When you close Oil (via `q`, `:q`, `:wq`, or `vim.ob.oil.close()`), the editor r
 ### Obsidian hotkey handling
 
 Oil's Ctrl-key keybindings (`<C-t>`, `<C-s>`, `<C-h>`, `<C-l>`, `<C-c>`) are registered on the editor's Obsidian Scope, which fires before Obsidian's default hotkeys. This means `<C-t>` correctly opens in a new tab instead of triggering Obsidian's "New tab" hotkey, `<C-s>` opens a vertical split instead of saving, and `<C-h>` opens a horizontal split instead of opening search & replace. No manual hotkey unbinding is required for Oil keybindings to work.
+
+### Neovim RPC backend
+
+Oil's embedded editor remains owned by the bundled Vim engine while the Neovim RPC backend is connected. RPC key delegation attaches only to Markdown editors; when Oil is active, no RPC keydown listener is attached and fork interception is disabled. Oil mappings therefore execute once in the embedded editor and never modify Neovim's mirrored Markdown buffer.
 
 ### Focus on tab switch
 

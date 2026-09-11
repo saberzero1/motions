@@ -49,6 +49,9 @@ Unlike `u`/`Ctrl-R` which only navigate the current branch, `g-`/`g+` traverse e
 
 Click any node to navigate to it.
 
+> [!info] Neovim RPC ownership
+> With the Neovim RPC backend connected, `u`, `<C-r>`, `g-`, `g+`, `:undolist`, `:earlier`, and `:later` run natively in Neovim. `:UndoTreeToggle`, `:UndoTreeShow`, and `:UndoTreeHide` remain host commands because they manage an Obsidian workspace leaf. The sidebar fetches Neovim's `vim.fn.undotree()` result instead of displaying CM6's shadow history.
+
 ### Features
 
 - **Relative timestamps** — "3m ago", "1h ago"
