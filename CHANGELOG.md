@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Neovim RPC IME composition bridge (M6b)** — a cursor-positioned input target outside CM6's `contentDOM` owns native composition and keeps preedit out of Neovim. Commits enter through `nvim_input`, preserving insert undo and dot-repeat; ordinary keys are suppressed during composition, while Escape, blur, mode changes, active-note changes, and disconnect cancel preedit and resynchronize ownership.
     - Plugin: `src/rpc/ime-input.ts`, `src/rpc/key-delegation.ts`
     - Styles: `styles.css`
+- **Neovim RPC external-UI messages (M8a)** — attaches the messages, command-line, and popup-menu UI extensions once, dispatches ordered redraw batches while rejecting unhandled grid events before further work, and routes D12 error, warning, and informational message kinds to severity-styled Obsidian Notices with a five-second duplicate cooldown. Routine undo, search, progress, completion, and command-list kinds remain silent; command-line and popup-menu rendering remain deferred.
+    - Plugin: `src/rpc/redraw.ts`, `src/rpc/messages.ts`, `src/rpc/decorations.ts`, `src/rpc/neovim-connection.ts`
 
 ### Changed
 
@@ -91,12 +93,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M5b Markdown text-object coverage** — `test/specs/rpc-text-objects.e2e.ts` runs 65 fork-oracle parity scenarios covering delete, change, yank/register, visual selection, and counted forms for 13 Markdown object shapes, including nested and adjacent delimiters. Every operator checks the document-wipe invariant, one edit is read through the vault adapter, and three subject sabotages are recorded in `rpc-text-objects-negative-controls.md`.
 - **M6a floating-window coverage** — `test/specs/rpc-floats.e2e.ts` compares flash.nvim's prompt content and config-derived placement with Neovim, checks two-float z-index order, close and disconnect cleanup, and a custom float's extmark and border. `rpc-floats-negative-controls.md` records missing-forwarding, one-cell offset, ignored-z-index, and stale-close failures.
 - **M6b IME composition coverage** — `test/specs/rpc-ime.e2e.ts` drives Chromium's native composition path through CDP, verifies byte-exact CJK commit, dot-repeat, cancellation, key suppression, and active-note switching with an independent vault-adapter read. `rpc-ime-negative-controls.md` records CM6-only commit, buffer-API commit, and composing-key forwarding failures.
+- **M8a external-UI message coverage** — `test/specs/rpc-messages.e2e.ts` covers eight scenarios for informational and error Notices, real-key Lua errors, silent undo/search kinds, one-per-message dispatch, duplicate limiting, and 200-key grid-event latency. `rpc-messages-negative-controls.md` records missing-dispatch, noisy-kind, and removed-dedup failures with observed counts and values.
 
 ### Documentation
 
 - `README.md`, `docs/configuration/settings.md`: desktop/arbitrary-code/FFI/external-file/no-sandbox/no-install disclosure and Milestone 1 scope.
 - `KNOWN_LIMITATIONS.md`: current lifecycle-only boundary and separation from fengari plugin auto-fetching.
 - `AGENTS.md`, `CONTRIBUTING.md`: RPC source ownership and lifecycle test locations.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/neovim-backend.md`: M8a message routing, duplicate limiting, and deferred command-line/popup rendering.
+- `AGENTS.md`, `CONTRIBUTING.md`: M8a redraw/message source ownership and acceptance/negative-control locations.
 - `CHANGELOG.md`: Milestone 1 implementation and test coverage.
 - `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 2a text scope, active-editor/single-buffer boundary, and deferred key/frontmatter/decorations work.
 - `AGENTS.md`, `CONTRIBUTING.md`: document-sync source ownership and text-sync acceptance/negative-control locations.

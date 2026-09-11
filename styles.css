@@ -42,6 +42,22 @@
     pointer-events: none;
 }
 
+/* Notice.noticeEl is the inner .notice-message element in current Obsidian,
+   so the class can land on either the container or its child. */
+.notice.vim-motions-rpc-notice-error,
+.notice .vim-motions-rpc-notice-error {
+    border-left: 4px solid var(--text-error);
+    color: var(--text-error);
+    padding-left: 8px;
+}
+
+.notice.vim-motions-rpc-notice-warning,
+.notice .vim-motions-rpc-notice-warning {
+    border-left: 4px solid var(--text-warning);
+    color: var(--text-warning);
+    padding-left: 8px;
+}
+
 .cm-editor .vim-motions-rpc-float {
     position: absolute;
     box-sizing: content-box;

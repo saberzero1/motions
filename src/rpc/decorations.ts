@@ -420,7 +420,13 @@ export class NeovimDecorationBridge {
         await this.rpc.request('nvim_ui_attach', [
             120,
             40,
-            { rgb: true, ext_linegrid: true },
+            {
+                rgb: true,
+                ext_linegrid: true,
+                ext_messages: true,
+                ext_cmdline: true,
+                ext_popupmenu: true,
+            },
         ]);
     }
 
