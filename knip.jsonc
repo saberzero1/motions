@@ -47,6 +47,9 @@
         // Ambient describe/it types for the WDIO e2e specs; used by the type
         // system rather than by an import.
         "@types/mocha",
+        // Loaded dynamically by WebdriverIO's getPuppeteer() bridge; retained for
+        // the separately scoped M6b real-composition acceptance driver.
+        "puppeteer-core",
     ],
 
     "ignoreBinaries": [
