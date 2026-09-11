@@ -9,6 +9,7 @@ import { getVaultConfig } from '../util/vault';
 import { getEditorView } from '../util/editor';
 import type { MsgpackRpcClient } from './msgpack-rpc';
 import type { NeovimDocumentSync } from './document-sync';
+import { NeovimImeInput } from './ime-input';
 
 const specialKeys: Record<string, string> = {
     Backspace: 'BS',
@@ -65,12 +66,25 @@ export class NeovimKeyDelegation {
     private settleOperation = 0;
     private active = false;
     private failureReported = false;
+    private readonly imeInput = new NeovimImeInput(
+        (text) => this.enqueueInput(text),
+        () => this.enqueueInput('<Esc>'),
+        (event) => this.forwardKeydown(event),
+    );
     private readonly onKeydown = (event: KeyboardEvent): void => {
         if (
             event.isComposing ||
             (event as unknown as { keyCode?: number }).keyCode === 229
-        )
+        ) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.imeInput.focus();
             return;
+        }
+        this.forwardKeydown(event);
+    };
+
+    private readonly forwardKeydown = (event: KeyboardEvent): void => {
         if (
             event
                 .composedPath()
@@ -87,16 +101,22 @@ export class NeovimKeyDelegation {
         }
         const notation = keyNotation(event);
         if (!notation) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.enqueueInput(notation);
+    };
+
+    private enqueueInput(inputText: string): void {
         const operation = ++this.settleOperation;
-        const input = this.documentSync
+        const request = this.documentSync
             .prepareKeyInput()
-            .then(() => this.rpc.request('nvim_input', [notation]));
+            .then(() => this.rpc.request('nvim_input', [inputText]));
+        const input = request.then(() => this.syncState(operation));
         this.pendingInputs.add(input);
         void input
-            .then(() => this.syncState(operation))
             .catch((error: unknown) => this.reportFailure(error))
             .finally(() => this.pendingInputs.delete(input));
-    };
+    }
 
     constructor(
         private readonly app: App,
@@ -138,6 +158,7 @@ export class NeovimKeyDelegation {
                 () => {
                     if (leafChangeRef) this.app.workspace.offref(leafChangeRef);
                 },
+                () => this.imeInput.remove(),
                 () => setKeyInterceptActive(false),
             ],
             'Neovim key delegation',
@@ -175,6 +196,7 @@ export class NeovimKeyDelegation {
         const editorView = view ? getEditorView(view) : null;
         this.editorContent = editorView?.contentDOM ?? null;
         this.editorContent?.addEventListener('keydown', this.onKeydown, true);
+        this.imeInput.install(editorView);
         setKeyInterceptActive(this.editorContent !== null);
     }
 
@@ -185,7 +207,10 @@ export class NeovimKeyDelegation {
         )) as NeovimMode;
         const cursor = await this.rpc.request('nvim_win_get_cursor', [0]);
         if (!this.active || operation !== this.settleOperation) return;
-        if (typeof modeValue.mode === 'string') this.onMode(modeValue.mode);
+        if (typeof modeValue.mode === 'string') {
+            this.onMode(modeValue.mode);
+            this.imeInput.setInsertMode(modeValue.mode.startsWith('i'));
+        }
         if (
             Array.isArray(cursor) &&
             typeof cursor[0] === 'number' &&
