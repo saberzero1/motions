@@ -260,17 +260,24 @@ describe('Neovim RPC write and read routing', function () {
     });
 
     it('routes :e! back to the unsaved Obsidian document', async () => {
+        // The divergence is left on disk by the preceding write test. Creating
+        // it here with adapter.write would trip Obsidian's file watcher, which
+        // reloads the editor and discards the unsaved content -- on macOS that
+        // beat the assertion and made a correct re-seed look like a disk read.
         await replaceLineThroughNeovim('unsaved in obsidian');
-        await browser.executeObsidian(async ({ app }, filePath: string) => {
-            await app.vault.adapter.write(filePath, 'stale on disk');
-        }, TEST_FILE);
+        const before = await getWriteSnapshot();
+        expect({
+            cm: before.cm,
+            diskDiffers: before.disk !== 'unsaved in obsidian',
+        }).toEqual({ cm: 'unsaved in obsidian', diskDiffers: true });
+
         await request('nvim_command', ['edit!']);
         await browser.pause(250);
         expect(await getWriteSnapshot()).toEqual({
             buffer: 'unsaved in obsidian',
             buftype: 'acwrite',
             cm: 'unsaved in obsidian',
-            disk: 'stale on disk',
+            disk: before.disk,
             modified: false,
             saveCommandCount: 0,
         });
