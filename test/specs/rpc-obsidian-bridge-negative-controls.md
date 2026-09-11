@@ -73,3 +73,9 @@ Forcing `jumpListWalk` to use count 1 made `2<C-o>` land in `RpcBridgeB.md` at l
 ## M4b Batch 3 mark gutter refresh removed
 
 Suppressing the `onMarksChanged` callback removed `a` from the Vim mark table but left gutter labels as `["a"]`. The targeted run produced **0 passing, 1 failing**.
+
+## Buffer-name normalisation returns a wrong name
+
+`normalizeBufferName` was introduced because `nvim_buf_get_name` returns Windows paths with backslashes, so the `endsWith('/<file>')` comparison in `waitForMirror` could never match and every row that awaited the mirror timed out after 5000 ms. CI showed the product working — the failing payload carried the correct `neovimText` — while 6 rows failed on the path comparison alone.
+
+To confirm the comparison is still load-bearing after normalisation, `normalizeBufferName` was made to return the constant `'garbage-not-a-real-buffer-name'`. The run produced **20 passing, 9 failing**: every row that awaits `waitForMirror`, plus the picker re-seed row, failed. Restoring the real implementation returned **29 passing**.

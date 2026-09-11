@@ -514,11 +514,17 @@ async function setActiveLeaf(id: string): Promise<void> {
     }, id);
 }
 
+// Neovim reports buffer names in the host's native separator form; on Windows
+// that is backslashes, which never match a vault-relative `/`-joined suffix.
+function normalizeBufferName(name: string): string {
+    return name.replace(/\\/g, '/');
+}
+
 async function waitForMirror(path: string): Promise<void> {
     await browser.waitUntil(
         async () => {
             const name = (await request('nvim_buf_get_name', [0])) as string;
-            return name.endsWith(`/${path}`);
+            return normalizeBufferName(name).endsWith(`/${path}`);
         },
         { timeout: 5000, interval: 100 },
     );
@@ -794,7 +800,7 @@ describe('Neovim RPC Obsidian feature bridge', function () {
                         true,
                     ])) as string[];
                     return (
-                        name.endsWith('/Target.md') &&
+                        normalizeBufferName(name).endsWith('/Target.md') &&
                         lines.join('\n') === targetContent
                     );
                 },
