@@ -3,6 +3,24 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import { getCursorLine, vimKeys } from '../helpers';
 
 describe('Structural navigation (Phase 1.3-1.4)', function () {
+    async function expectCursorLine(line: number): Promise<void> {
+        let last = -1;
+        try {
+            await browser.waitUntil(
+                async () => {
+                    last = await getCursorLine();
+                    return last === line;
+                },
+                { timeout: 3000, interval: 50 },
+            );
+        } catch {
+            throw new Error(
+                `cursor never reached line ${line}; last observed ${last}`,
+            );
+        }
+        expect(await getCursorLine()).toBe(line);
+    }
+
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
         await obsidianPage.openFile('Welcome.md');
@@ -21,7 +39,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'h');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
 
         it('[h should jump to previous heading', async function () {
@@ -36,7 +54,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys('[', 'h');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
 
         it(']h with count should skip headings', async function () {
@@ -51,7 +69,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys('2', ']', 'h');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
 
         it('should stay at cursor when no heading found', async function () {
@@ -66,7 +84,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'h');
-            expect(await getCursorLine()).toBe(0);
+            await expectCursorLine(0);
         });
     });
 
@@ -83,7 +101,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', '2');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
 
         it('[1 should jump to previous H1', async function () {
@@ -98,7 +116,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys('[', '1');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
     });
 
@@ -117,7 +135,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'l');
-            expect(await getCursorLine()).toBe(2);
+            await expectCursorLine(2);
         });
 
         it('[l should jump to previous list item at same indent', async function () {
@@ -134,7 +152,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys('[', 'l');
-            expect(await getCursorLine()).toBe(2);
+            await expectCursorLine(2);
         });
     });
 
@@ -151,7 +169,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'n');
-            expect(await getCursorLine()).toBe(0);
+            await expectCursorLine(0);
         });
 
         it('[n should jump to previous link', async function () {
@@ -166,7 +184,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys('[', 'n');
-            expect(await getCursorLine()).toBe(0);
+            await expectCursorLine(0);
         });
     });
 
@@ -183,7 +201,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', '3');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
 
         it(']4 should jump to next H4', async function () {
@@ -198,7 +216,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', '4');
-            expect(await getCursorLine()).toBe(2);
+            await expectCursorLine(2);
         });
 
         it('[3 should jump to previous H3', async function () {
@@ -215,7 +233,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys('[', '3');
-            expect(await getCursorLine()).toBe(4);
+            await expectCursorLine(4);
         });
     });
 
@@ -232,7 +250,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'l');
-            expect(await getCursorLine()).toBe(1);
+            await expectCursorLine(1);
         });
     });
 
@@ -249,7 +267,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'h');
-            expect(await getCursorLine()).toBe(0);
+            await expectCursorLine(0);
         });
 
         it(']n across multiple lines should jump to link on next line', async function () {
@@ -264,7 +282,7 @@ describe('Structural navigation (Phase 1.3-1.4)', function () {
             });
             await browser.pause(300);
             await vimKeys(']', 'n');
-            expect(await getCursorLine()).toBe(1);
+            await expectCursorLine(1);
         });
     });
 });
