@@ -7,6 +7,132 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Neovim RPC connection lifecycle** — adds an opt-in desktop-only backend foundation that spawns a user-configured Neovim, attaches with an in-repo msgpack-RPC client, requires API level 12 (Neovim 0.12+), reports actionable startup/crash errors, and terminates the child on setting disable, Vim disable, plugin unload, or failed attach. Milestone 1 intentionally does not forward keys, synchronize text, or bridge decorations.
+    - Plugin: `src/rpc/msgpack-rpc.ts`, `src/rpc/neovim-connection.ts`, `src/main.ts`, `src/settings.ts`
+- **Neovim RPC active-editor text synchronisation** — mirrors the active Markdown editor into the single Neovim buffer on connection and leaf activation, then applies content-carrying `nvim_buf_lines_event` notifications to CM6 with byte-to-UTF-16 coordinate conversion. Neovim is authoritative for RPC-originated text; key delegation, multi-leaf buffers, decorations, IME, and frontmatter policy remain deferred.
+    - Plugin: `src/rpc/document-sync.ts`, `src/rpc/msgpack-rpc.ts`, `src/rpc/neovim-connection.ts`, `src/main.ts`
+- **Dedicated Neovim configuration setting** — `neovimConfigPath` optionally points the backend at a minimal Obsidian-specific `init.lua`, avoiding terminal-only LSP, dashboard, and statusline startup. Empty preserves the production default of loading the user's normal configuration. A configured path starts under `--clean`, prepends its directory to `runtimepath`, and loads only that file with `-u`; measured startup dropped from 115 ms to 24 ms locally.
+    - Plugin: `src/settings.ts`, `src/main.ts`, `src/rpc/neovim-connection.ts`
+- **Neovim RPC key delegation** — while connected, a lifecycle-owned capture handler forwards every non-composition editor key with `nvim_input`, suppresses the bundled fork through `setKeyInterceptActive`, prevents CM6 input, and synchronizes cursor and exposed mode state after a blocking RPC barrier. Every active-leaf activation seeds Neovim from that editor. IME composition remains deferred to M6.
+    - Plugin: `src/rpc/key-delegation.ts`, `src/rpc/document-sync.ts`, `src/rpc/neovim-connection.ts`, `src/main.ts`
+- **Neovim RPC decorations** — a bundled Lua companion registers one redraw-driven decoration provider, queries all namespaces over visible buffer ranges, and forwards highlight and virtual-text extmarks in buffer coordinates. The host attaches a fixed-size UI only as a redraw clock, discards grid events, maps byte columns through the text-sync coordinate path, resolves Neovim highlight groups, and clears CM6 decorations on disconnect. The companion remains a real `.lua` source file embedded into `main.js` by esbuild's text loader; no runtime file or user configuration is modified.
+    - Plugin: `src/rpc/companion.lua`, `src/rpc/decorations.ts`, `src/rpc/document-sync.ts`, `src/rpc/msgpack-rpc.ts`, `src/rpc/neovim-connection.ts`, `src/types/lua-modules.d.ts`, `src/main.ts`, `esbuild.config.mjs`
+- **Neovim RPC write and read routing** — the named mirror is now buffer-locally `buftype=acwrite`. A buffer-scoped `BufWriteCmd` routes `:w` and `:w!` through Obsidian's `editor:save-file` command and clears Neovim's dirty flag; a buffer-scoped `BufReadCmd` makes `:e` and `:e!` re-seed from the current Obsidian document with line-event echo suppressed instead of loading stale disk content.
+    - Plugin: `src/rpc/companion.lua`, `src/rpc/decorations.ts`, `src/rpc/document-sync.ts`
+- **Neovim RPC Obsidian feature bridge (M4a)** — generates selected mappings and user commands from `VimRegistration`, dispatches every host action through one `obsidian_action` notification channel, and restores the files picker, Oil, Harpoon slot 1, vertical split, next-heading navigation, and lowercase `:sidebar` while Neovim owns editor keys. Lowercase commands register an uppercase Neovim command plus a start-of-command-line guarded abbreviation. Refresh and disconnect remove mappings, commands, abbreviations, and notification listeners before reinstalling.
+    - Plugin: `src/rpc/obsidian-feature-bridge.ts`, `src/rpc/neovim-connection.ts`, `src/rpc/key-delegation.ts`, `src/vim/registration.ts`, `src/picker/picker.ts`, `src/main.ts`
+- **Neovim RPC workspace and navigation bridge (M4b Batch 1)** — extends the registry-driven bridge with pane focus/cycling, horizontal splitting, tab close/cycle/target actions, counted `Ngt`, previous-pane and alternate-file state, pane-to-tab moves, four go-to-definition variants, and 11 lowercase workspace ex callbacks. A general dispatch payload carries mapping counts and command arguments for later parameterized batches; guarded abbreviations keep command names inert inside substitutions.
+    - Plugin: `src/rpc/obsidian-feature-bridge.ts`, `src/vim/registration.ts`, `src/keybindings/action-registry.ts`
+- **Neovim RPC picker bridge (M4b Batch 2)** — generates the remaining built-in picker leader mappings and picker ex callbacks in Neovim. The existing general command payload preserves grep queries and named picker sources, source-specific marks/register pickers and resume reuse the ordinary picker entry point, modal keys remain owned by Obsidian, and file selection re-seeds Neovim through active-leaf activation.
+    - Plugin: `src/rpc/obsidian-feature-bridge.ts`
+- **Neovim RPC Harpoon, marks, and jumplist bridge (M4b Batch 3)** — generates every remaining Harpoon mapping and ex callback, `:marks`/`:delmarks`/`:jumps`, and host-owned `<C-o>`/`<C-i>`. Slot strings and mapping counts use the existing payloads; cross-note navigation waits for active-note re-seeding and restores the stored cursor in both CM6 and Neovim. Lowercase within-buffer marks remain Neovim-native, while uppercase cross-file mark motions are explicitly deferred.
+    - Plugin: `src/rpc/obsidian-feature-bridge.ts`, `src/rpc/neovim-connection.ts`, `src/rpc/document-sync.ts`, `src/vim/harpoon-nav.ts`, `src/workspace/global-defaults.ts`, `src/main.ts`
+- **Neovim RPC folding and undo-tree integration (M4b Batch 5)** — keeps all fold and undo operations native to Neovim, forwards visible fold state beside extmarks on the existing redraw pass, mirrors matching CM6 folds, supplies a Markdown-aware window-local `foldexpr`, and bridges only the three Obsidian sidebar lifecycle commands. The sidebar renders Neovim's native `undotree()` result; 64-bit msgpack integers are decoded for its timestamps. Fold persistence is intentionally unavailable under RPC rather than restoring host offsets into Neovim-owned state.
+    - Plugin: `src/rpc/companion.lua`, `src/rpc/decorations.ts`, `src/rpc/frontmatter-fold.ts`, `src/rpc/key-delegation.ts`, `src/rpc/msgpack-rpc.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/vim/undo-tree.ts`, `src/vim/undo-tree-view.ts`, `src/main.ts`
+
+### Changed
+
+- **Neovim RPC frontmatter handling supports both properties modes** — removes the Source-only connection refusal. Source frontmatter remains fully navigable; rendered frontmatter receives a dedicated-window `foldmethod=expr` fold using the same start-of-document delimiter rule as CodeMirror, and post-key cursor synchronization resolves `foldclosed()` positions to the first body line. Property-widget focus remains owned by Obsidian, while API edits can still update the complete folded document.
+    - Plugin: `src/fold/frontmatter.ts`, `src/fold/provider.ts`, `src/rpc/frontmatter-fold.ts`, `src/rpc/document-sync.ts`, `src/rpc/key-delegation.ts`, `src/rpc/neovim-connection.ts`
+
+### Fixed
+
+- **RPC notes now use a real Markdown buffer instead of the dashboard buffer** — M2a previously wrote into Neovim's intro buffer by forcing its `modifiable` option. With alpha-nvim loaded that buffer remained `buftype=nofile` and `filetype=alpha`, preventing Markdown plugins and filetype configuration from activating even though byte synchronisation passed. The backend creates one listed buffer, names it with the active note's absolute path, makes it current, explicitly runs filetype detection, and reuses it across active-leaf changes. The buffer is now finalized as the `acwrite` mirror described above.
+    - Plugin: `src/rpc/document-sync.ts`, `src/rpc/msgpack-rpc.ts`
+- **RPC acceptance tests no longer load the developer's Neovim configuration** — both lifecycle and text-sync specs use the committed minimal fixture. A Lua marker assertion fails if the configured path is ignored or cleared.
+    - Tests: `test/fixtures/nvim/init.lua`, `test/specs/rpc-lifecycle.e2e.ts`, `test/specs/rpc-text-sync.e2e.ts`
+- **RPC leaf changes no longer overwrite the newly active note with the previous note** — the M2b one-shot seeding path reused the previous Neovim mirror on every later activation and dispatched it into the new CM6 editor, allowing Obsidian autosave to persist cross-note data loss. Activation now always reads the newly active editor, renames the Neovim buffer, detects its filetype, and repopulates it while line-event echo is suppressed. No activation path writes an existing mirror into a different editor.
+    - Plugin: `src/rpc/document-sync.ts`
+- **Harpoon same-leaf navigation preserves stored cursor positions** — changing the file in one leaf fired `active-leaf-change` after that leaf already represented the destination, so cursor tracking overwrote the destination pin with line 0, column 0. Same-leaf activations no longer treat the destination as the leaf being left, and navigation snapshots its target before asynchronous activation.
+    - Plugin: `src/main.ts`, `src/vim/harpoon-nav.ts`
+- **Oil sort cycling changes the rendered order** — directory rendering always read the configured default sort value, so `gs` advanced an internal key that was never used. The manager now initializes its active sort from the configured default and renders with the cycled value.
+    - Plugin: `src/oil/manager.ts`
+- **Oil hidden-file toggle recognizes an unchanged buffer** — dirty detection re-rendered the directory to compare strings, but rendering allocates fresh entry ids, making every unchanged buffer appear modified and blocking `g.`. It now computes changes against the existing Oil snapshot.
+    - Plugin: `src/oil/manager.ts`
+- **Oil path yanks update the unnamed register** — `y.` now writes the selected path to the bundled Vim engine's unnamed register as well as the system clipboard.
+    - Plugin: `src/oil/manager.ts`, `src/oil/keybindings.ts`
+
+### Tests
+
+- **RPC lifecycle acceptance coverage** — 7 WDIO scenarios cover attach/API reporting, runtime disable, Vim disable, unexpected `SIGKILL` and reconnect, plugin unload, missing binaries, and the API-level floor. PID liveness is checked directly, teardown/version-floor sabotages are recorded in `test/specs/rpc-lifecycle.negative-control.md`, and the settings-option inventory records both controls as process-backend settings rather than Vim options. Disposable `.sisyphus/` spike files are excluded from the production lint project.
+- **RPC text synchronisation acceptance coverage** — `test/specs/rpc-text-sync.e2e.ts` checks isolated fixture loading, normal Markdown buffer identity, 210 boundary-valid API edits, cross-line collapse, end/start deletion, append, and the documented invalid UTF-8 boundary divergence against a raw-byte Lua oracle. Its active-leaf regression uses two known file contents, switches both ways, retains a Neovim key edit, and independently reads both files through the vault adapter. Restoring the one-shot seed reproduced `Target.md` as `A original\nA second line` on first activation and `rpc-A original\nA second line` after the later switch, including on disk.
+- **RPC key delegation acceptance coverage** — `test/specs/rpc-keys.e2e.ts` drives 210 insert/operator/visual/count/dot-repeat/undo-redo/macro sequences containing ASCII, astral, combining, and CJK text through the editor DOM, compares `ciwfoo<Esc>w.` with live headless Neovim, checks bridged/unbridged buffer/cursor/mode/register identity, proves single insertion, and records the visible/source D7 measurement. Negative controls produced `xxseed` without fork interception, `xxiseed` without `preventDefault`, CM column 0 instead of 6 without cursor sync, and buffer/register divergence after a bridged-only `x`.
+- **RPC frontmatter acceptance coverage** — six M2c scenarios in `test/specs/rpc-keys.e2e.ts` cover visible-mode connection, repeated upward motion, frontmatter-preserving `dd` with an independent vault read, guarded `gg`, Source-mode navigation, and API edits inside the fold. `test/specs/rpc-keys-negative-controls.md` records the no-fold, no-guard, and Source-fold sabotages and exact cursor/document outcomes.
+- **RPC decoration acceptance coverage** — `test/specs/rpc-decorations.e2e.ts` compares every rendered flash.nvim label against flash's own all-namespace extmark query, verifies label selection in Neovim and CM6, statically excludes polling and grid consumption, and proves the idle bridge is empty. Negative controls observed 39/40 labels after dropping one forwarded extmark, all 40 offsets shifted by one after a byte-column error, and 0/40 decorations without the UI redraw clock.
+- **RPC write/read acceptance coverage** — `test/specs/rpc-write-routing.e2e.ts` verifies Obsidian's save command was invoked, reads saved and deliberately stale content through the vault adapter, checks `:e!` preserves the unsaved editor document, and rejects a stale Neovim `modified` flag. `test/specs/rpc-write-routing-negative-controls.md` records the four required sabotages and observed values.
+- **RPC Obsidian bridge acceptance coverage** — `test/specs/rpc-obsidian-bridge.e2e.ts` covers seven representative host scenarios plus teardown-aware refresh. `test/specs/rpc-obsidian-bridge-negative-controls.md` records isolated missing-map, no-op-dispatch, unguarded-abbreviation, and skipped-teardown failures.
+- **M4b registry and workspace bridge coverage** — `test/unit/vim-registration-inventory.test.ts` guards the measured 75-motion, 78-action, 164-map, and 102-ex registration surface and six M4a selections. The RPC bridge spec adds horizontal split, four-way pane focus, counted and explicit tab targeting, lowercase command/abbreviation safety, wikilink definition navigation, and expanded refresh inventory coverage.
+- **M4b Batch 2 picker bridge coverage** — the RPC bridge spec asserts every picker leader source, lowercase `:buffers`, query-bearing `:grep`, named `:Picker` source selection, modal-key file selection plus post-selection Neovim content, guarded substitution behavior, and duplicate-free refresh. Four subject sabotages prove query, mapping, guard, and re-seed assertions fail independently.
+- **M4b Batch 3 Harpoon, marks, and jumplist coverage** — the RPC bridge spec asserts slot mappings and arguments, optional versus explicit removal, three-file cursor-preserving cycling, cross-note and counted older jumps with independent file/cursor/content checks, `:jumps`, mark-table plus sign-column deletion, substitution safety, and duplicate-free refresh. Four subject sabotages prove slot, host ownership, count, and gutter refresh independently.
+- **M4b Batch 4 Oil isolation coverage** — `test/specs/rpc-oil.e2e.ts` drives all 16 Oil mappings through the embedded editor's real DOM with RPC connected, verifies 14 observable host effects, explicitly skips the two OS-shelling actions, checks handler/interception state on Oil and Markdown, and proves Oil keys do not change Neovim's buffer. Forced interception removed the first character from Neovim's sentinel, while no-op'ing `oilHelp` failed only its scenario.
+- **M4b Batch 5 folding and undo-tree coverage** — `test/specs/rpc-folds-undo.e2e.ts` covers nine scenarios for the fold mirror, native fold motions/operator, raw-byte undo/redo and chronological navigation, native `:earlier`/`:later`, Neovim-backed sidebar data, and duplicate-free bridge refresh. Four subject sabotages prove fold forwarding, row mapping, sidebar data ownership, and command lifecycle independently.
+
+### Documentation
+
+- `README.md`, `docs/configuration/settings.md`: desktop/arbitrary-code/FFI/external-file/no-sandbox/no-install disclosure and Milestone 1 scope.
+- `KNOWN_LIMITATIONS.md`: current lifecycle-only boundary and separation from fengari plugin auto-fetching.
+- `AGENTS.md`, `CONTRIBUTING.md`: RPC source ownership and lifecycle test locations.
+- `CHANGELOG.md`: Milestone 1 implementation and test coverage.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 2a text scope, active-editor/single-buffer boundary, and deferred key/frontmatter/decorations work.
+- `AGENTS.md`, `CONTRIBUTING.md`: document-sync source ownership and text-sync acceptance/negative-control locations.
+- `test/specs/rpc-text-sync-negative-controls.md`: observed line-event, offset, trailing-newline, decoded-oracle, and intro-buffer identity failures.
+- `CHANGELOG.md`: Milestone 2a implementation and test coverage.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: explicit Neovim configuration selection, isolated startup behavior, production default, and measured startup benefit.
+- `AGENTS.md`, `CONTRIBUTING.md`: fixture-backed RPC test contract and configuration-aware connection ownership.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 2b key ownership, Source-frontmatter requirement, cursor/mode synchronization, and deferred IME/decorations scope.
+- `AGENTS.md`, `CONTRIBUTING.md`: key-delegation source ownership and RPC key acceptance coverage.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: D7 decision and measured visible/source cursor behavior.
+- `CHANGELOG.md`: Milestone 2b implementation, tests, and negative controls.
+- `KNOWN_LIMITATIONS.md`, `.sisyphus/plans/neovim-rpc-backend-design.md`: corrected per-activation seeding semantics and explicit prohibition on writing a stale mirror into another note.
+- `AGENTS.md`, `CONTRIBUTING.md`: document-sync ownership and the independent two-file disk-integrity regression.
+- `test/specs/rpc-text-sync-negative-controls.md`: exact editor and on-disk values from restoring the cross-note overwrite defect.
+- `CHANGELOG.md`: cross-note data-loss fix and negative-control evidence.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 2c support for both properties modes and rendered-frontmatter behavior.
+- `AGENTS.md`, `CONTRIBUTING.md`: shared delimiter, RPC fold ownership, cursor guard, widget-focus exclusion, and acceptance coverage.
+- `test/specs/rpc-keys-negative-controls.md`: M2c fold, guard, and Source-mode negative-control evidence.
+- `CHANGELOG.md`: Milestone 2c implementation, tests, and documentation.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 3 decoration scope, persistent-extmark limits, redraw clock, and remaining float/IME boundaries.
+- `AGENTS.md`, `CONTRIBUTING.md`: bundled companion/decorations ownership and RPC decoration acceptance coverage.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: resolved D-E companion packaging decision.
+- `test/specs/rpc-decorations-negative-controls.md`: exact missing-label, shifted-offset, missing-redraw-clock, and assertion-reachability failures.
+- `CHANGELOG.md`: Milestone 3 implementation, tests, and negative controls.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: `acwrite` save ownership and Obsidian-backed reload semantics.
+- `AGENTS.md`, `CONTRIBUTING.md`: companion/document-sync ownership and write/read acceptance coverage.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: deferred M2a write/read item completion and verification evidence.
+- `test/specs/rpc-write-routing-negative-controls.md`: exact missing-autocmd, missing-`acwrite`, stale-disk, and dirty-flag failures.
+- `CHANGELOG.md`: write/read routing implementation, tests, and documentation.
+- `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: M4a representative surface, guarded lowercase commands, and remaining M4b boundary.
+- `AGENTS.md`, `CONTRIBUTING.md`: feature-bridge source ownership and acceptance/negative-control locations.
+- `test/specs/rpc-obsidian-bridge-negative-controls.md`: exact M4a mapping, dispatch, abbreviation, and teardown sabotage outcomes.
+- `CHANGELOG.md`: M4a implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/workspace-navigation.md`: M4b Batch 1 workspace/navigation scope, parameter forwarding, and remaining batches.
+- `AGENTS.md`, `CONTRIBUTING.md`: expanded bridge ownership and registry inventory/RPC acceptance coverage.
+- `test/specs/rpc-obsidian-bridge-negative-controls.md`: exact M4b count, pane-map, abbreviation-guard, and refresh-teardown failures.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: M4b Batch 1 implementation and verification result.
+- `CHANGELOG.md`: M4b Batch 1 implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/ex-commands.md`: M4b Batch 2 picker scope, argument forwarding, modal ownership, and remaining batches.
+- `AGENTS.md`, `CONTRIBUTING.md`: expanded RPC picker acceptance coverage.
+- `test/specs/rpc-obsidian-bridge-negative-controls.md`: exact Batch 2 query, mapping, abbreviation, and re-seed sabotage outcomes.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: M4b Batch 2 implementation and empirical result.
+- `CHANGELOG.md`: M4b Batch 2 implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/harpoon.md`, `docs/features/workspace-navigation.md`: M4b Batch 3 scope, host-owned cross-note jumplist, cursor restoration, and uppercase cross-file mark gap.
+- `AGENTS.md`, `CONTRIBUTING.md`: expanded feature-bridge ownership and RPC acceptance coverage.
+- `test/specs/rpc-obsidian-bridge-negative-controls.md`: exact Batch 3 slot, jumplist ownership/count, and gutter-refresh failures.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: M4b Batch 3 implementation and explicit marks/jumplist ownership decision.
+- `CHANGELOG.md`: M4b Batch 3 implementation, fix, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/oil-explorer.md`: M4b Batch 4 native Oil ownership, RPC exclusion, and path-register behavior.
+- `AGENTS.md`, `CONTRIBUTING.md`: RPC Oil acceptance and negative-control locations.
+- `test/specs/rpc-oil-negative-controls.md`: exact forced-interception corruption and isolated action failure.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: corrected Class-B total and empirical Oil result.
+- `CHANGELOG.md`: native Oil fixes, RPC isolation tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/workspace-navigation.md`, `docs/features/undo-tree.md`: Batch 5 fold/undo ownership, rendering, sidebar data, and fold-persistence boundary.
+- `AGENTS.md`, `CONTRIBUTING.md`: RPC fold/undo source ownership and acceptance/negative-control locations.
+- `test/specs/rpc-folds-undo-negative-controls.md`: exact forwarding, row-mapping, sidebar-source, and missing-command failures.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: corrected Class-B total from 121 to 80 and per-endpoint Batch 5 disposition.
+- `CHANGELOG.md`: Batch 5 implementation, tests, negative controls, and documentation.
+
 ## [0.150.0] - 2026-09-10
 
 ### Added
