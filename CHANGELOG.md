@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/rpc/obsidian-feature-bridge.ts`, `src/rpc/neovim-connection.ts`, `src/rpc/document-sync.ts`, `src/vim/harpoon-nav.ts`, `src/workspace/global-defaults.ts`, `src/main.ts`
 - **Neovim RPC folding and undo-tree integration (M4b Batch 5)** — keeps all fold and undo operations native to Neovim, forwards visible fold state beside extmarks on the existing redraw pass, mirrors matching CM6 folds, supplies a Markdown-aware window-local `foldexpr`, and bridges only the three Obsidian sidebar lifecycle commands. The sidebar renders Neovim's native `undotree()` result; 64-bit msgpack integers are decoded for its timestamps. Fold persistence is intentionally unavailable under RPC rather than restoring host offsets into Neovim-owned state.
     - Plugin: `src/rpc/companion.lua`, `src/rpc/decorations.ts`, `src/rpc/frontmatter-fold.ts`, `src/rpc/key-delegation.ts`, `src/rpc/msgpack-rpc.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/vim/undo-tree.ts`, `src/vim/undo-tree-view.ts`, `src/main.ts`
+- **Neovim RPC structural navigation and hard-wrap (M5a)** — moves heading, level-specific heading, same-indent list, and Markdown-link motions out of the host feature bridge and into buffer-local companion mappings backed by Neovim's bundled Markdown treesitter parsers. Counts and operator-pending ranges match the bundled fork. The mirror receives the configured `textwidth`, while native `gq`/`gw` and the stock Markdown ftplugin own wrapping.
+    - Plugin: `src/rpc/companion.lua`, `src/rpc/document-sync.ts`, `src/rpc/decorations.ts`, `src/rpc/neovim-connection.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/motions/register.ts`, `src/main.ts`
+- **Neovim RPC Markdown text objects (M5b)** — installs buffer-local operator-pending and visual mappings for emphasis, inline code, math, strikethrough, Markdown links and wikilinks, fenced code blocks, nested blockquotes, callouts, HTML tags, table cells, and table rows. Native Markdown treesitter supplies structural ranges; native `it`/`at` supplies tag matching with fork-compatible count handling. Explicit visual ranges keep every operator bounded, and teardown removes every mapping.
+    - Plugin: `src/rpc/companion.lua`
 
 ### Changed
 
@@ -39,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **RPC requests wait for active-note re-seeding** — programmatic Neovim requests issued immediately after returning from a host sidebar could race the asynchronous active-leaf activation and have their buffer update replaced by the later seed. Requests now await the document-sync activation promise before flushing keys or reaching Neovim.
+    - Plugin: `src/rpc/neovim-connection.ts`
 - **RPC notes now use a real Markdown buffer instead of the dashboard buffer** — M2a previously wrote into Neovim's intro buffer by forcing its `modifiable` option. With alpha-nvim loaded that buffer remained `buftype=nofile` and `filetype=alpha`, preventing Markdown plugins and filetype configuration from activating even though byte synchronisation passed. The backend creates one listed buffer, names it with the active note's absolute path, makes it current, explicitly runs filetype detection, and reuses it across active-leaf changes. The buffer is now finalized as the `acwrite` mirror described above.
     - Plugin: `src/rpc/document-sync.ts`, `src/rpc/msgpack-rpc.ts`
 - **RPC acceptance tests no longer load the developer's Neovim configuration** — both lifecycle and text-sync specs use the committed minimal fixture. A Lua marker assertion fails if the configured path is ignored or cleared.
@@ -68,6 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M4b Batch 3 Harpoon, marks, and jumplist coverage** — the RPC bridge spec asserts slot mappings and arguments, optional versus explicit removal, three-file cursor-preserving cycling, cross-note and counted older jumps with independent file/cursor/content checks, `:jumps`, mark-table plus sign-column deletion, substitution safety, and duplicate-free refresh. Four subject sabotages prove slot, host ownership, count, and gutter refresh independently.
 - **M4b Batch 4 Oil isolation coverage** — `test/specs/rpc-oil.e2e.ts` drives all 16 Oil mappings through the embedded editor's real DOM with RPC connected, verifies 14 observable host effects, explicitly skips the two OS-shelling actions, checks handler/interception state on Oil and Markdown, and proves Oil keys do not change Neovim's buffer. Forced interception removed the first character from Neovim's sentinel, while no-op'ing `oilHelp` failed only its scenario.
 - **M4b Batch 5 folding and undo-tree coverage** — `test/specs/rpc-folds-undo.e2e.ts` covers nine scenarios for the fold mirror, native fold motions/operator, raw-byte undo/redo and chronological navigation, native `:earlier`/`:later`, Neovim-backed sidebar data, and duplicate-free bridge refresh. Four subject sabotages prove fold forwarding, row mapping, sidebar data ownership, and command lifecycle independently.
+- **M5a structural navigation and hard-wrap coverage** — `test/specs/rpc-structural-nav.e2e.ts` runs 14 fork-oracle parity scenarios across headings, levels, counts, list items, links, `gq`/`gw`, and seven operator-pending forms. It compares yank contents, rejects unexpected empty documents, and independently reads one edited note through the vault adapter. Five subject sabotages are recorded in `rpc-structural-nav-negative-controls.md`.
+- **M5b Markdown text-object coverage** — `test/specs/rpc-text-objects.e2e.ts` runs 65 fork-oracle parity scenarios covering delete, change, yank/register, visual selection, and counted forms for 13 Markdown object shapes, including nested and adjacent delimiters. Every operator checks the document-wipe invariant, one edit is read through the vault adapter, and three subject sabotages are recorded in `rpc-text-objects-negative-controls.md`.
 
 ### Documentation
 
@@ -132,6 +140,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test/specs/rpc-folds-undo-negative-controls.md`: exact forwarding, row-mapping, sidebar-source, and missing-command failures.
 - `.sisyphus/plans/neovim-rpc-backend-design.md`: corrected Class-B total from 121 to 80 and per-endpoint Batch 5 disposition.
 - `CHANGELOG.md`: Batch 5 implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/reference/keybindings.md`, `docs/features/structural-navigation.md`, `docs/features/hardwrap.md`: M5a native/ported ownership, aliases, operator parity, and `textwidth` wiring.
+- `AGENTS.md`, `CONTRIBUTING.md`: M5a RPC acceptance and negative-control locations.
+- `test/specs/rpc-structural-nav-negative-controls.md`: exact missing-map, missing-width, level, motion-kind, and count failures.
+- `CHANGELOG.md`: M5a implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/reference/keybindings.md`, `docs/features/text-objects.md`: M5b native/ported ownership, supported object list, bounded ranges, and the unparsed highlight-delimiter gap.
+- `AGENTS.md`, `CONTRIBUTING.md`: M5b RPC acceptance and negative-control locations.
+- `test/specs/rpc-text-objects-negative-controls.md`: exact range-end, missing-map, and count-forwarding failures.
+- `CHANGELOG.md`: M5b implementation, tests, negative controls, and documentation.
 
 ## [0.150.0] - 2026-09-10
 
