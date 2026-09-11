@@ -4,12 +4,14 @@ import wdio from 'eslint-plugin-wdio';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
 import { globalIgnores, defineConfig } from 'eslint/config';
+import type { Linter } from 'eslint';
 
 export default defineConfig(
     globalIgnores([
         'node_modules',
         'dist',
         '.obsidian-cache',
+        '.sisyphus',
         'esbuild.config.mjs',
         'version-bump.mjs',
         'versions.json',
@@ -279,7 +281,7 @@ export default defineConfig(
         files: ['test/specs/**/*.e2e.ts'],
         ...wdio.configs['flat/recommended'],
         rules: {
-            ...wdio.configs['flat/recommended'].rules,
+            ...(wdio.configs['flat/recommended'].rules as Linter.RulesRecord),
             // Ships 'off' in the plugin's own recommended set. An async browser
             // assertion that is constructed but never awaited resolves to a
             // pending Promise, which is truthy and never throws — the test
