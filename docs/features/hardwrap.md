@@ -14,6 +14,8 @@ Reformat paragraphs with Markdown-aware line wrapping — something Obsidian's b
 
 `gq` moves the cursor to the start of the formatted range. `gw` keeps the cursor at its original position. Both use the same wrapping engine.
 
+With the Neovim RPC backend, the mirrored Markdown buffer receives the configured `textwidth` and native Neovim `gq`/`gw` performs the formatting. Neovim's stock Markdown ftplugin supplies list and comment formatting rules; the plugin does not replace its wrapping engine.
+
 ## Behavior
 
 The hard-wrap operators split and merge lines at the configured text width (default: 80 columns):

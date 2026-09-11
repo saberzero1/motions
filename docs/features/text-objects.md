@@ -8,6 +8,8 @@ tags:
 
 Markdown text objects allow you to operate on document structures using standard Vim operators like `d` (delete), `c` (change), `y` (yank), and `v` (visual select). These objects are aware of Markdown syntax, enabling precise editing of formatted text, links, and structural blocks.
 
+When the Neovim RPC backend is connected, emphasis, inline code, math, strikethrough, links and wikilinks, code fences, blockquotes, callouts, tags, table rows, and table cells execute inside Neovim through buffer-local mappings. The companion uses Neovim's bundled Markdown treesitter parsers for structural ranges and native `it`/`at` for tags, then applies operators to an explicit bounded character range. `i=` / `a=` highlight objects are unavailable in RPC mode because the bundled grammar does not expose `==...==` as a node; delimiter scanning is intentionally not substituted for a treesitter range.
+
 ![[keybindings#Markdown text objects]]
 
 ## Delimiter text objects
