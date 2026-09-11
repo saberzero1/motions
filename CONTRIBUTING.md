@@ -112,11 +112,13 @@ src/
   settings.ts              # Settings interface, defaults, and settings tab UI (7 pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, Advanced)
   settings-migration.ts    # Settings schema migration between versions
   rpc/
-      companion.lua          # Bundled write/read routing, structural motions, cursor notification and extmark/fold forwarding
-    decorations.ts         # UI redraw clock, byte/line mapping, CM6 decorations/folds, and highlight CSS
+    companion.lua          # Bundled write/read routing, structural motions, cursor notification, and extmark/fold/float forwarding
+    decorations.ts         # UI redraw clock, CM6 decoration/fold dispatch, and float notification consumer
     document-sync.ts       # Named acwrite mirror, Obsidian save/read routing, line events, and byte/UTF-16 mapping
+    floating-windows.ts    # CM6-metric float positioning, content/extmark overlays, stacking, and cleanup
     frontmatter-fold.ts    # Window-local Markdown foldexpr for headings, callouts, and frontmatter
-    key-delegation.ts      # Key forwarding, widget-focus exclusion, frontmatter cursor guard, RPC barrier, and cursor/mode sync
+    ime-input.ts           # Cursor-positioned native composition owner, nvim_input commit, and cancellation lifecycle
+    key-delegation.ts      # Key and IME forwarding, widget-focus exclusion, frontmatter cursor guard, RPC barrier, and cursor/mode sync
     msgpack-rpc.ts         # Stream msgpack-RPC client, including Neovim 64-bit integer decoding
     neovim-connection.ts   # Desktop process/config/key ownership, API floor, crash handling, and teardown
         obsidian-feature-bridge.ts # Registry-derived mappings/commands, count/argument payloads, cross-file cursor restoration, host dispatch, and refresh teardown
@@ -663,6 +665,10 @@ test/
     rpc-structural-nav-negative-controls.md # Mapping/width/level/operator/count sabotage evidence
     rpc-text-objects.e2e.ts # Fork-oracle Markdown text-object operator/visual/register/count parity
     rpc-text-objects-negative-controls.md # Range-end/mapping/count sabotage evidence
+    rpc-floats.e2e.ts      # Floating-window content, positioning, stacking, extmark, and teardown coverage
+    rpc-floats-negative-controls.md # Forwarding/position/z-index/close sabotage evidence
+    rpc-ime.e2e.ts         # CDP-driven native composition, commit, repeat, cancellation, and note-switch coverage
+    rpc-ime-negative-controls.md # CM6-only/buffer-API/forwarded-key sabotage evidence
   unit/vim-registration-inventory.test.ts # One-pass registration surface and bridge-selection guard
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests

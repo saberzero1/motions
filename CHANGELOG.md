@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/rpc/companion.lua`, `src/rpc/document-sync.ts`, `src/rpc/decorations.ts`, `src/rpc/neovim-connection.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/motions/register.ts`, `src/main.ts`
 - **Neovim RPC Markdown text objects (M5b)** — installs buffer-local operator-pending and visual mappings for emphasis, inline code, math, strikethrough, Markdown links and wikilinks, fenced code blocks, nested blockquotes, callouts, HTML tags, table cells, and table rows. Native Markdown treesitter supplies structural ranges; native `it`/`at` supplies tag matching with fork-compatible count handling. Explicit visual ranges keep every operator bounded, and teardown removes every mapping.
     - Plugin: `src/rpc/companion.lua`
+- **Neovim RPC floating-window bridge (M6a)** — enumerates floats during the existing redraw provider's `on_end`, forwards per-window config, buffer content, and extmarks without grid events or polling, and renders positioned Obsidian overlays with border presence and Neovim z-index. CM6 character/line metrics map terminal cells approximately onto proportional Markdown typography; cursor- and window-relative origins are resolved separately. Closed windows and disconnected sessions remove their overlays.
+    - Plugin: `src/rpc/companion.lua`, `src/rpc/decorations.ts`, `src/rpc/floating-windows.ts`
+    - Styles: `styles.css`
+- **Neovim RPC IME composition bridge (M6b)** — a cursor-positioned input target outside CM6's `contentDOM` owns native composition and keeps preedit out of Neovim. Commits enter through `nvim_input`, preserving insert undo and dot-repeat; ordinary keys are suppressed during composition, while Escape, blur, mode changes, active-note changes, and disconnect cancel preedit and resynchronize ownership.
+    - Plugin: `src/rpc/ime-input.ts`, `src/rpc/key-delegation.ts`
+    - Styles: `styles.css`
 
 ### Changed
 
@@ -76,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M4b Batch 5 folding and undo-tree coverage** — `test/specs/rpc-folds-undo.e2e.ts` covers nine scenarios for the fold mirror, native fold motions/operator, raw-byte undo/redo and chronological navigation, native `:earlier`/`:later`, Neovim-backed sidebar data, and duplicate-free bridge refresh. Four subject sabotages prove fold forwarding, row mapping, sidebar data ownership, and command lifecycle independently.
 - **M5a structural navigation and hard-wrap coverage** — `test/specs/rpc-structural-nav.e2e.ts` runs 14 fork-oracle parity scenarios across headings, levels, counts, list items, links, `gq`/`gw`, and seven operator-pending forms. It compares yank contents, rejects unexpected empty documents, and independently reads one edited note through the vault adapter. Five subject sabotages are recorded in `rpc-structural-nav-negative-controls.md`.
 - **M5b Markdown text-object coverage** — `test/specs/rpc-text-objects.e2e.ts` runs 65 fork-oracle parity scenarios covering delete, change, yank/register, visual selection, and counted forms for 13 Markdown object shapes, including nested and adjacent delimiters. Every operator checks the document-wipe invariant, one edit is read through the vault adapter, and three subject sabotages are recorded in `rpc-text-objects-negative-controls.md`.
+- **M6a floating-window coverage** — `test/specs/rpc-floats.e2e.ts` compares flash.nvim's prompt content and config-derived placement with Neovim, checks two-float z-index order, close and disconnect cleanup, and a custom float's extmark and border. `rpc-floats-negative-controls.md` records missing-forwarding, one-cell offset, ignored-z-index, and stale-close failures.
+- **M6b IME composition coverage** — `test/specs/rpc-ime.e2e.ts` drives Chromium's native composition path through CDP, verifies byte-exact CJK commit, dot-repeat, cancellation, key suppression, and active-note switching with an independent vault-adapter read. `rpc-ime-negative-controls.md` records CM6-only commit, buffer-API commit, and composing-key forwarding failures.
 
 ### Documentation
 
@@ -148,6 +156,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AGENTS.md`, `CONTRIBUTING.md`: M5b RPC acceptance and negative-control locations.
 - `test/specs/rpc-text-objects-negative-controls.md`: exact range-end, missing-map, and count-forwarding failures.
 - `CHANGELOG.md`: M5b implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/configuration/settings.md`: M6a float support, approximate CM6 cell mapping, relative origins, and remaining IME boundary.
+- `AGENTS.md`, `CONTRIBUTING.md`: floating-window source ownership and RPC acceptance/negative-control locations.
+- `test/specs/rpc-floats-negative-controls.md`: exact forwarding, position, z-index, and stale-close sabotage outcomes.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: M6a implementation and empirical result.
+- `CHANGELOG.md`: M6a implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/configuration/settings.md`: M6b composition ownership, commit path, cancellation lifecycle, and remaining RPC boundaries.
+- `AGENTS.md`, `CONTRIBUTING.md`: IME input source ownership and CDP acceptance/negative-control locations.
+- `test/specs/rpc-ime-negative-controls.md`: exact CM6-only, buffer-API, and composing-key forwarding sabotage outcomes.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: M6b implementation and empirical result.
+- `CHANGELOG.md`: M6b implementation, tests, negative controls, and documentation.
 
 ## [0.150.0] - 2026-09-10
 
