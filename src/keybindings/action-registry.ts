@@ -38,7 +38,14 @@ export function exCommandFromAction(
     exShort: string,
     actionFn: ActionFn,
 ): void {
-    reg.defineEx(exName, exShort, (cm: CmAdapter) => {
-        actionFn(cm, { repeat: 1 }, cm.state.vim ?? {});
+    reg.defineEx(exName, exShort, (cm: CmAdapter, params) => {
+        const target = Number.parseInt(params.args?.[0] ?? '', 10);
+        actionFn(
+            cm,
+            Number.isNaN(target)
+                ? { repeat: 1 }
+                : { repeat: target, repeatIsExplicit: true },
+            cm.state.vim ?? {},
+        );
     });
 }

@@ -21,6 +21,32 @@ interface Registration {
     keys?: string;
     leaderScoped?: boolean;
     originalFn?: ActionFn;
+    actionFn?: ActionFn;
+    motionFn?: MotionFn;
+    exFn?: ExCommandFn;
+    commandType?: 'motion' | 'action' | 'operator';
+    args?: Record<string, unknown>;
+}
+
+export interface RegisteredMapCommand {
+    name: string;
+    keys: string;
+    context?: MapContext;
+    actionFn?: ActionFn;
+    motionFn?: MotionFn;
+    args?: Record<string, unknown>;
+}
+
+export interface RegisteredExCommand {
+    name: string;
+    fn: ExCommandFn;
+}
+
+export interface RegistrationInventory {
+    motions: number;
+    actions: number;
+    mapCommands: number;
+    exCommands: number;
 }
 
 const noopMotion: MotionFn = (_cm, head) => head;
@@ -65,12 +91,12 @@ export class VimRegistration {
 
     defineMotion(name: string, fn: MotionFn): void {
         this.vim.defineMotion(name, fn);
-        this.pushReg({ type: 'motion', name });
+        this.pushReg({ type: 'motion', name, motionFn: fn });
     }
 
     defineAction(name: string, fn: ActionFn): void {
         this.vim.defineAction(name, fn);
-        this.pushReg({ type: 'action', name });
+        this.pushReg({ type: 'action', name, actionFn: fn });
     }
 
     defineActionOverride(
@@ -80,7 +106,12 @@ export class VimRegistration {
         const original = this.vim.getAction?.(name) ?? noopAction;
         const replacement = factory(original);
         this.vim.defineAction(name, replacement);
-        this.pushReg({ type: 'actionOverride', name, originalFn: original });
+        this.pushReg({
+            type: 'actionOverride',
+            name,
+            originalFn: original,
+            actionFn: replacement,
+        });
     }
 
     defineOperator(name: string, fn: OperatorFn): void {
@@ -99,7 +130,7 @@ export class VimRegistration {
         if (shortName && shortName !== name) {
             this.vim.defineEx(name, '', fn);
         }
-        this.pushReg({ type: 'ex', name });
+        this.pushReg({ type: 'ex', name, exFn: fn });
     }
 
     map(lhs: string, rhs: string, context?: MapContext): void {
@@ -120,7 +151,18 @@ export class VimRegistration {
         extra?: Record<string, unknown>,
     ): void {
         this.vim.mapCommand(keys, type, name, args, extra);
-        this.pushReg({ type: 'mapCommand', name, keys });
+        const context = extra?.context;
+        this.pushReg({
+            type: 'mapCommand',
+            name,
+            keys,
+            commandType: type,
+            args,
+            context:
+                typeof context === 'string'
+                    ? (context as MapContext)
+                    : undefined,
+        });
     }
 
     unmapDefaultBinding(key: string): void {
@@ -143,6 +185,68 @@ export class VimRegistration {
         return this.registrations
             .filter((r) => r.type === 'ex')
             .map((r) => r.name);
+    }
+
+    getMapCommands(names: ReadonlySet<string>): RegisteredMapCommand[] {
+        const definitions = new Map<string, Registration>();
+        for (const registration of this.registrations) {
+            if (
+                registration.type === 'action' ||
+                registration.type === 'actionOverride' ||
+                registration.type === 'motion'
+            ) {
+                definitions.set(registration.name, registration);
+            }
+        }
+        return this.registrations.flatMap((registration) => {
+            if (
+                registration.type !== 'mapCommand' ||
+                !registration.keys ||
+                !names.has(registration.name)
+            )
+                return [];
+            const definition = definitions.get(registration.name);
+            if (!definition) return [];
+            return [
+                {
+                    name: registration.name,
+                    keys: registration.keys,
+                    context: registration.context,
+                    actionFn: definition.actionFn,
+                    motionFn: definition.motionFn,
+                    args: registration.args,
+                },
+            ];
+        });
+    }
+
+    getExCommands(names: ReadonlySet<string>): RegisteredExCommand[] {
+        return this.registrations.flatMap((registration) =>
+            registration.type === 'ex' &&
+            registration.exFn &&
+            names.has(registration.name)
+                ? [{ name: registration.name, fn: registration.exFn }]
+                : [],
+        );
+    }
+
+    getInventory(): RegistrationInventory {
+        return {
+            motions: this.registrations.filter(
+                (registration) => registration.type === 'motion',
+            ).length,
+            actions: this.registrations.filter(
+                (registration) =>
+                    registration.type === 'action' ||
+                    registration.type === 'actionOverride',
+            ).length,
+            mapCommands: this.registrations.filter(
+                (registration) => registration.type === 'mapCommand',
+            ).length,
+            exCommands: this.registrations.filter(
+                (registration) => registration.type === 'ex',
+            ).length,
+        };
     }
 
     private removeRegistration(reg: Registration): void {
