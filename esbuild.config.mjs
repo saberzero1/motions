@@ -36,6 +36,7 @@ const context = await esbuild.context({
     ],
     loader: {
         '.wasm': 'binary',
+        '.lua': 'text',
     },
     format: 'cjs',
     target: 'es2021',
