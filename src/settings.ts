@@ -117,6 +117,11 @@ export const DEFAULT_CURSOR_SHAPES: CursorShapes = {
     operatorPending: 'underline',
 };
 
+const NEOVIM_RPC_DISCLOSURE =
+    'Desktop only. Runs the Neovim binary and configuration you supply. That configuration is arbitrary code, may load native libraries through LuaJIT FFI, and may read or write files outside the vault. No sandbox is provided. Vim Motions does not download or install Neovim or its plugins.';
+const NEOVIM_CONFIG_DESCRIPTION =
+    'Absolute path to a Neovim init.lua used only inside Obsidian. Leave empty to load your normal Neovim config. A minimal config avoids loading terminal-only LSP, dashboard, and statusline plugins and starts faster (20 ms versus 106 ms in the measured development setup).';
+
 export interface VimMotionsSettings {
     vimEnabled: boolean;
     enableOnMobile: boolean;
@@ -136,6 +141,9 @@ export interface VimMotionsSettings {
     ripgrepBinaryPath: string;
     ripgrepArgs: string;
     grepMode: 'ripgrep' | 'grep';
+    neovimRpcEnabled: boolean;
+    neovimBinaryPath: string;
+    neovimConfigPath: string;
     frecencyData?: Record<string, { count: number; timestamps: number[] }>;
     persistedMarks?: {
         name: string;
@@ -285,6 +293,9 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     ripgrepBinaryPath: '',
     ripgrepArgs: '--smart-case --glob "*.md"',
     grepMode: 'ripgrep' as const,
+    neovimRpcEnabled: false,
+    neovimBinaryPath: '',
+    neovimConfigPath: '',
     frecencyData: undefined,
     configMode: 'lua-vimrc',
     enableStatusBar: true,
@@ -545,6 +556,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'ripgrepBinaryPath',
         'ripgrepArgs',
         'grepMode',
+        'neovimRpcEnabled',
+        'neovimBinaryPath',
+        'neovimConfigPath',
         'enableSnippets',
         'snippetBundled',
         'snippetDirectory',
@@ -1008,6 +1022,55 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         type: 'group' as const,
                         heading: 'Vim engine',
                         items: [
+                            {
+                                name: 'Use Neovim backend',
+                                desc: NEOVIM_RPC_DISCLOSURE,
+                                visible: Platform.isDesktop,
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'neovimRpcEnabled',
+                                },
+                            },
+                            {
+                                name: 'Neovim binary path',
+                                desc: 'Absolute path to Neovim. Leave empty to use nvim from the system path.',
+                                visible: Platform.isDesktop,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'neovimBinaryPath',
+                                    placeholder: '/usr/bin/nvim',
+                                    validate: (value: string) => {
+                                        if (
+                                            value &&
+                                            !value.startsWith('/') &&
+                                            !value.startsWith('~') &&
+                                            !/^[A-Za-z]:/.test(value)
+                                        )
+                                            return 'Path must be absolute (e.g. /usr/bin/nvim or ~/bin/nvim)';
+                                        return undefined;
+                                    },
+                                },
+                            },
+                            {
+                                name: 'Neovim configuration path',
+                                desc: NEOVIM_CONFIG_DESCRIPTION,
+                                visible: Platform.isDesktop,
+                                control: {
+                                    type: 'text' as const,
+                                    key: 'neovimConfigPath',
+                                    placeholder: '/path/to/init.lua',
+                                    validate: (value: string) => {
+                                        if (
+                                            value &&
+                                            !value.startsWith('/') &&
+                                            !value.startsWith('~') &&
+                                            !/^[A-Za-z]:/.test(value)
+                                        )
+                                            return 'Path must be absolute (e.g. /home/user/.config/nvim-obsidian/init.lua)';
+                                        return undefined;
+                                    },
+                                },
+                            },
                             {
                                 name: 'Clipboard',
                                 desc: this.describeOverride(
@@ -3606,6 +3669,51 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         // ── Vim engine ──────────────────────────────────────────────
 
         new Setting(containerEl).setName('Vim engine').setHeading();
+
+        if (Platform.isDesktop) {
+            new Setting(containerEl)
+                .setName('Use Neovim backend')
+                .setDesc(NEOVIM_RPC_DISCLOSURE)
+                .addToggle((toggle) =>
+                    toggle
+                        .setValue(this.plugin.settings.neovimRpcEnabled)
+                        .onChange(async (value) => {
+                            this.plugin.settings.neovimRpcEnabled = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+
+            new Setting(containerEl)
+                .setName('Neovim binary path')
+                .setDesc(
+                    'Absolute path to Neovim. Leave empty to use nvim from the system path.',
+                )
+                .addText((text) =>
+                    text
+                        .setPlaceholder('/usr/bin/nvim')
+                        .setValue(this.plugin.settings.neovimBinaryPath)
+                        .onChange(async (value) => {
+                            this.plugin.settings.neovimBinaryPath = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+
+            new Setting(containerEl)
+                .setName('Neovim configuration path')
+                .setDesc(NEOVIM_CONFIG_DESCRIPTION)
+                .addText((text) =>
+                    text
+                        .setPlaceholder('/path/to/init.lua')
+                        .setValue(this.plugin.settings.neovimConfigPath)
+                        .onChange(async (value) => {
+                            this.plugin.settings.neovimConfigPath = value;
+                            await this.plugin.saveSettings();
+                            this.plugin.reloadFeatures();
+                        }),
+                );
+        }
 
         new Setting(containerEl)
             .setName('Clipboard')

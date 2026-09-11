@@ -73,9 +73,12 @@ function closeOtherTabs(app: App): void {
     closeAllTabs(app);
 }
 
-async function openJumpEntry(app: App, entry: JumpEntry): Promise<void> {
+async function openJumpEntry(
+    app: App,
+    entry: JumpEntry,
+): Promise<JumpEntry | null> {
     const file = app.vault.getAbstractFileByPath(entry.filePath);
-    if (!(file instanceof TFile)) return;
+    if (!(file instanceof TFile)) return null;
 
     let targetLeaf: ReturnType<typeof app.workspace.getLeaf> | null = null;
     app.workspace.iterateAllLeaves((leaf) => {
@@ -93,13 +96,13 @@ async function openJumpEntry(app: App, entry: JumpEntry): Promise<void> {
     } else {
         const leaf =
             app.workspace.getLeaf(false) ?? app.workspace.getMostRecentLeaf();
-        if (!leaf) return;
+        if (!leaf) return null;
         await leaf.openFile(file);
     }
 
     await new Promise((resolve) => window.setTimeout(resolve, 50));
     const view = app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view || view.file?.path !== entry.filePath) return;
+    if (!view || view.file?.path !== entry.filePath) return entry;
 
     const maxLine = view.editor.lineCount() - 1;
     const line = Math.min(entry.line, Math.max(0, maxLine));
@@ -107,6 +110,7 @@ async function openJumpEntry(app: App, entry: JumpEntry): Promise<void> {
     const col = Math.min(entry.ch, Math.max(0, maxCol));
     view.editor.setCursor(line, col);
     view.editor.focus();
+    return { filePath: entry.filePath, line, ch: col };
 }
 
 export function createJumpListWalkOverride(

@@ -8,11 +8,12 @@ import {
 export async function navigateToHarpoonPin(
     app: App,
     item: HarpoonItem,
-): Promise<void> {
-    const file = app.vault.getAbstractFileByPath(item.filePath);
+): Promise<HarpoonItem | null> {
+    const target = { ...item };
+    const file = app.vault.getAbstractFileByPath(target.filePath);
     if (!(file instanceof TFile)) {
-        new Notice(`File not found: ${item.filePath}`);
-        return;
+        new Notice(`File not found: ${target.filePath}`);
+        return null;
     }
 
     let targetLeaf: ReturnType<typeof app.workspace.getLeaf> | null = null;
@@ -20,7 +21,7 @@ export async function navigateToHarpoonPin(
         if (
             !targetLeaf &&
             leaf.view instanceof MarkdownView &&
-            leaf.view.file?.path === item.filePath
+            leaf.view.file?.path === target.filePath
         ) {
             targetLeaf = leaf;
         }
@@ -36,12 +37,14 @@ export async function navigateToHarpoonPin(
     await new Promise((resolve) => window.setTimeout(resolve, 50));
 
     const view = app.workspace.getActiveViewOfType(MarkdownView);
-    if (view && view.file?.path === item.filePath) {
+    if (view && view.file?.path === target.filePath) {
         const maxLine = view.editor.lineCount() - 1;
-        const line = Math.min(item.row, maxLine);
+        const line = Math.min(target.row, maxLine);
         const maxCol = view.editor.getLine(line).length;
-        const col = Math.min(item.col, maxCol);
+        const col = Math.min(target.col, maxCol);
         view.editor.setCursor(line, col);
         view.editor.focus();
+        return { filePath: target.filePath, row: line, col };
     }
+    return target;
 }

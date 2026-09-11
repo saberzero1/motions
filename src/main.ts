@@ -85,7 +85,11 @@ import {
     createOlderChangeMotion,
     createNewerChangeMotion,
 } from './vim/changelist';
-import { UndoTree, type SerializedUndoTree } from './vim/undo-tree';
+import {
+    UndoTree,
+    type NeovimUndoTree,
+    type SerializedUndoTree,
+} from './vim/undo-tree';
 import {
     UndoTreeView,
     UNDO_TREE_VIEW_TYPE,
@@ -101,6 +105,7 @@ import {
 } from './vim/yank-highlight';
 import { extmarkExtension } from './lua/extmarks';
 import { decorationProviderExtension } from './lua/decoration-provider';
+import { neovimDecorationExtension } from './rpc/decorations';
 import {
     foldSyncExtension,
     setFoldAwareNavigation,
@@ -278,6 +283,11 @@ import { snippetState } from './snippets/autocomplete-types';
 import { setJumpListInstance } from './workspace/navigate';
 
 import { runCleanups } from './util/cleanup';
+import {
+    NeovimConnection,
+    type NeovimConnectionState,
+    resolveNeovimBinaryPath,
+} from './rpc/neovim-connection';
 const MAX_PERSISTED_UNDO_TREES = 50;
 
 export default class VimMotionsPlugin extends Plugin {
@@ -357,6 +367,8 @@ export default class VimMotionsPlugin extends Plugin {
     private undoTreeSlot: Extension[] = [];
     private snippetCompletionSlot: Extension[] = [];
     private snippetTabSlot: Extension[] = [];
+    private neovimConnection!: NeovimConnection;
+    private neovimReconcileOperation = 0;
     private snippetRuntimeSlot: Extension[] = [];
     private slotExtensionCache = new Map<string, Extension>();
     private toggleInProgress = false;
@@ -735,6 +747,29 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async onload() {
+        this.neovimConnection = new NeovimConnection(
+            this.app,
+            () => this.registration,
+            (actionName) => {
+                if (actionName === 'jumpListWalk') {
+                    const entry =
+                        this.jumpList.getEntries()[this.jumpList.getIndex()];
+                    return entry ?? null;
+                }
+                if (!actionName.toLowerCase().startsWith('harpoon'))
+                    return null;
+                const filePath = this.app.workspace.getActiveFile()?.path;
+                if (!filePath) return null;
+                const item = this.harpoonStore.getByPath(filePath)?.item;
+                return item
+                    ? {
+                          filePath: item.filePath,
+                          line: item.row,
+                          ch: item.col,
+                      }
+                    : null;
+            },
+        );
         await this.loadSettings();
         this.activeUndoFilePath =
             this.app.workspace.getActiveFile()?.path ?? null;
@@ -834,10 +869,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.registerView(
             UndoTreeView.VIEW_TYPE,
             createUndoTreeViewFactory(
-                () => this.undoTree,
-                (seq) => {
-                    this.undoTree.navigateToSeq(seq);
-                },
+                () => this.getUndoTreeForView(),
+                (seq) => this.navigateUndoTreeView(seq),
             ),
         );
 
@@ -871,6 +904,7 @@ export default class VimMotionsPlugin extends Plugin {
             if (Platform.isMobile) observeKeyEvent(event);
             if (!isKeyInterceptActive()) return;
             if (document.querySelector('.vim-motions-table-nav-mode')) return;
+            if (this.neovimConnection.isKeyDelegating()) return;
             setKeyInterceptActive(false);
         };
         window.addEventListener('keydown', keyInterceptSafetyHandler, true);
@@ -1011,6 +1045,7 @@ export default class VimMotionsPlugin extends Plugin {
                 this.previousLeafId = newLeaf ? (newLeaf.id ?? null) : null;
 
                 if (!this.settings.enableHarpoon || !oldLeafId) return;
+                if (oldLeafId === this.previousLeafId) return;
                 this.app.workspace.iterateAllLeaves((leaf) => {
                     const leafId = getLeafId(leaf);
                     if (
@@ -1050,6 +1085,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.app.workspace.on('active-leaf-change', (newLeaf) => {
                 if (!this.settings.vimEnabled) return;
                 if (!this.settings.foldPersistence) return;
+                if (this.neovimConnection.isConnected()) return;
                 if (this.previousFoldFile) {
                     const mdView =
                         this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1838,6 +1874,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     private setupVimSubsystems(vim: import('./types/vim-api').VimApi): void {
+        this.reconcileNeovimConnection();
         this.initializing = true;
         this.vimExtensionSlot.length = 0;
 
@@ -2403,6 +2440,20 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.defineActionOverride('jumpListWalk', (original) =>
             createJumpListWalkOverride(original, this.app, this.jumpList),
         );
+        this.registration.mapCommand(
+            '<C-o>',
+            'action',
+            'jumpListWalk',
+            { forward: false },
+            { context: 'normal' },
+        );
+        this.registration.mapCommand(
+            '<C-i>',
+            'action',
+            'jumpListWalk',
+            { forward: true },
+            { context: 'normal' },
+        );
 
         // --- Feature registrations ---
         if (this.settings.enableTextObjects) {
@@ -2692,6 +2743,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
         this.vimExtensionSlot.push(decorationProviderExtension());
+        this.vimExtensionSlot.push(neovimDecorationExtension());
         this.vimExtensionSlot.push(createTableCellCursorGuard());
         this.vimExtensionSlot.push(
             createTableNavExtension(this.app, this.settings, getVimApi),
@@ -2903,6 +2955,9 @@ export default class VimMotionsPlugin extends Plugin {
         )) {
             leaf.detach();
         }
+
+        ++this.neovimReconcileOperation;
+        void this.neovimConnection.disconnect();
 
         if (this.luaState) {
             // An open picker holds a Lua callback ref. Close it before the
@@ -3364,6 +3419,7 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     reloadFeatures(): void {
+        this.reconcileNeovimConnection();
         if (!this.settings.vimEnabled) return;
         if (this.autocmdManager?.isFiring()) {
             this.autocmdManager.deferReload();
@@ -3411,6 +3467,20 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.jumpList) {
             this.registration.defineActionOverride('jumpListWalk', (original) =>
                 createJumpListWalkOverride(original, this.app, this.jumpList),
+            );
+            this.registration.mapCommand(
+                '<C-o>',
+                'action',
+                'jumpListWalk',
+                { forward: false },
+                { context: 'normal' },
+            );
+            this.registration.mapCommand(
+                '<C-i>',
+                'action',
+                'jumpListWalk',
+                { forward: true },
+                { context: 'normal' },
             );
         }
 
@@ -3669,6 +3739,69 @@ export default class VimMotionsPlugin extends Plugin {
         this.reconfigureFoldColumnGutter();
         this.reconfigureSignColumnGutter();
         this.reconfigureStatusColumnGutter();
+        void this.neovimConnection.refreshFeatureBridge();
+    }
+
+    getNeovimConnectionState(): NeovimConnectionState {
+        return this.neovimConnection.getState();
+    }
+
+    getNeovimKeyDelegationState(): {
+        active: boolean;
+        handlerAttached: boolean;
+        keyInterceptActive: boolean;
+    } {
+        return this.neovimConnection.getKeyDelegationState();
+    }
+
+    requestNeovim(method: string, args: unknown[]): Promise<unknown> {
+        return this.neovimConnection.request(method, args);
+    }
+
+    refreshNeovimFeatureBridge(): Promise<void> {
+        return this.neovimConnection.refreshFeatureBridge();
+    }
+
+    neovimByteToUtf16(text: string, column: number): number {
+        return this.neovimConnection.byteToUtf16(text, column);
+    }
+
+    utf16ToNeovimByte(text: string, column: number): number {
+        return this.neovimConnection.utf16ToByte(text, column);
+    }
+
+    private reconcileNeovimConnection(): void {
+        if (!Platform.isDesktop) return;
+        const operation = ++this.neovimReconcileOperation;
+        const shouldConnect =
+            this.settings.vimEnabled && this.settings.neovimRpcEnabled;
+        const binaryPath = this.settings.neovimBinaryPath;
+        const configPath = this.settings.neovimConfigPath;
+        void (async () => {
+            if (!shouldConnect) {
+                await this.neovimConnection.disconnect();
+                return;
+            }
+            const state = this.neovimConnection.getState();
+            const resolvedPath = resolveNeovimBinaryPath(binaryPath);
+            const resolvedConfigPath = configPath.trim()
+                ? expandTilde(configPath.trim())
+                : null;
+            if (
+                state.connected &&
+                state.binaryPath === resolvedPath &&
+                state.configPath === resolvedConfigPath
+            )
+                return;
+            await this.neovimConnection.disconnect();
+            if (
+                operation !== this.neovimReconcileOperation ||
+                !this.settings.vimEnabled ||
+                !this.settings.neovimRpcEnabled
+            )
+                return;
+            await this.neovimConnection.connect(binaryPath, configPath);
+        })();
     }
 
     private rebuildExSuggest(): void {
@@ -5751,6 +5884,33 @@ export default class VimMotionsPlugin extends Plugin {
                 await this.app.workspace.revealLeaf(leaf);
             }
         }
+    }
+
+    private async getUndoTreeForView(): Promise<UndoTree> {
+        if (!this.neovimConnection.isConnected()) return this.undoTree;
+        const value = await this.neovimConnection.request(
+            'nvim_call_function',
+            ['undotree', []],
+        );
+        if (
+            typeof value !== 'object' ||
+            value === null ||
+            !Array.isArray((value as { entries?: unknown }).entries)
+        )
+            throw new Error('Neovim returned an invalid undo tree');
+        return UndoTree.fromNeovimDict(value as NeovimUndoTree);
+    }
+
+    private async navigateUndoTreeView(seq: number): Promise<void> {
+        if (this.neovimConnection.isConnected()) {
+            await this.neovimConnection.request('nvim_command', [
+                `undo ${seq}`,
+            ]);
+            return;
+        }
+        const beforeSeq = this.undoTree.getCurrentSeq();
+        if (this.undoTree.navigateToSeq(seq))
+            this.navigateUndoTreeTo(beforeSeq, seq);
     }
 
     private refreshUndoTreeViews(): void {

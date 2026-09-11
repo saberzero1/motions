@@ -51,6 +51,16 @@ export interface NeovimUndoEntry {
     alt?: NeovimUndoEntry[];
 }
 
+export interface NeovimUndoTree {
+    seq_last: number;
+    seq_cur: number;
+    time_cur: number;
+    save_last: number;
+    save_cur: number;
+    synced: number;
+    entries: NeovimUndoEntry[];
+}
+
 export class UndoTree {
     private root: UndoNode;
     private current: UndoNode;
@@ -207,6 +217,64 @@ export class UndoTree {
         tree.head = tree.nodeMap.get(data.headSeq) ?? tree.root;
         tree.seqCounter = data.seqCounter;
 
+        return tree;
+    }
+
+    static fromNeovimDict(data: NeovimUndoTree): UndoTree {
+        const tree = new UndoTree(
+            Math.max(DEFAULT_MAX_NODES, data.seq_last + 1),
+        );
+        tree.nodeMap.clear();
+        tree.nodeMap.set(0, tree.root);
+        tree.root.children = [];
+        tree.nodeCount = 1;
+
+        const nodes = new Map<number, UndoNode>([[0, tree.root]]);
+        const nodeFor = (entry: NeovimUndoEntry): UndoNode => {
+            const existing = nodes.get(entry.seq);
+            if (existing) return existing;
+            const node: UndoNode = {
+                seq: entry.seq,
+                timestamp: entry.time * 1000,
+                parent: null,
+                children: [],
+                altNext: null,
+                altPrev: null,
+                saved: entry.save !== undefined,
+                changeSummary: null,
+                changeSet: null,
+                inverseChangeSet: null,
+            };
+            nodes.set(node.seq, node);
+            tree.nodeMap.set(node.seq, node);
+            tree.nodeCount += 1;
+            return node;
+        };
+        const attach = (parent: UndoNode, node: UndoNode): void => {
+            if (!node.parent) node.parent = parent;
+            if (!parent.children.includes(node)) parent.children.push(node);
+        };
+        const visit = (entries: NeovimUndoEntry[], parent: UndoNode): void => {
+            let previous = parent;
+            for (const entry of entries) {
+                const node = nodeFor(entry);
+                attach(previous, node);
+                if (entry.alt) visit(entry.alt, previous);
+                previous = node;
+            }
+        };
+        visit(data.entries, tree.root);
+
+        for (const node of nodes.values()) {
+            node.children.sort((left, right) => right.seq - left.seq);
+            for (let index = 0; index < node.children.length - 1; index++) {
+                node.children[index]!.altNext = node.children[index + 1]!;
+                node.children[index + 1]!.altPrev = node.children[index]!;
+            }
+        }
+        tree.current = nodes.get(data.seq_cur) ?? tree.root;
+        tree.head = nodes.get(data.seq_last) ?? tree.current;
+        tree.seqCounter = data.seq_last + 1;
         return tree;
     }
 

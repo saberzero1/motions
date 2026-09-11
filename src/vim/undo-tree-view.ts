@@ -25,17 +25,14 @@ export class UndoTreeView extends View {
     private selectedSeq: number | null = null;
     private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
     private collapsedSeqs = new Set<number>();
+    private undoTree: UndoTree | null = null;
 
     constructor(
         leaf: WorkspaceLeaf,
-        private readonly getUndoTree: () => UndoTree,
-        private readonly onNavigate?: (seq: number) => void,
+        private readonly getUndoTree: () => UndoTree | Promise<UndoTree>,
+        private readonly onNavigate?: (seq: number) => void | Promise<void>,
     ) {
         super(leaf);
-    }
-
-    private get undoTree(): UndoTree {
-        return this.getUndoTree();
     }
 
     getViewType(): string {
@@ -56,7 +53,7 @@ export class UndoTreeView extends View {
             cls: 'vim-motions-undo-tree-view',
         });
         this.containerDiv.setAttribute('tabindex', '0');
-        this.renderTree();
+        await this.loadTree();
 
         this.keydownHandler = (e: KeyboardEvent) => {
             this.handleKeydown(e);
@@ -76,6 +73,11 @@ export class UndoTreeView extends View {
     }
 
     refresh(): void {
+        void this.loadTree();
+    }
+
+    private async loadTree(): Promise<void> {
+        this.undoTree = await this.getUndoTree();
         this.renderTree();
     }
 
@@ -86,7 +88,9 @@ export class UndoTreeView extends View {
         this.previewLabelEl = null;
         this.previewSummaryEl = null;
 
-        const nodes = this.undoTree.getAllNodes();
+        const undoTree = this.undoTree;
+        if (!undoTree) return;
+        const nodes = undoTree.getAllNodes();
         if (nodes.length === 0) {
             this.containerDiv.createDiv({
                 cls: 'vim-motions-undo-empty',
@@ -95,7 +99,7 @@ export class UndoTreeView extends View {
             return;
         }
 
-        const currentSeq = this.undoTree.getCurrentSeq();
+        const currentSeq = undoTree.getCurrentSeq();
         if (this.selectedSeq === null) {
             this.selectedSeq = currentSeq;
         }
@@ -187,8 +191,9 @@ export class UndoTreeView extends View {
 
             row.addEventListener('click', () => {
                 this.selectedSeq = node.seq;
-                this.onNavigate?.(node.seq);
-                this.renderTree();
+                void Promise.resolve(this.onNavigate?.(node.seq)).then(() =>
+                    this.loadTree(),
+                );
             });
 
             row.addEventListener('mouseenter', () => {
@@ -232,7 +237,9 @@ export class UndoTreeView extends View {
 
     private updatePreviewForSeq(seq: number | null): void {
         if (seq === null) return;
-        const node = this.undoTree.getNode(seq) ?? this.undoTree.getCurrent();
+        const undoTree = this.undoTree;
+        if (!undoTree) return;
+        const node = undoTree.getNode(seq) ?? undoTree.getCurrent();
         this.updatePreview(node);
     }
 
@@ -256,7 +263,9 @@ export class UndoTreeView extends View {
     }
 
     private handleKeydown(e: KeyboardEvent): void {
-        const nodes = this.undoTree.getAllNodes();
+        const undoTree = this.undoTree;
+        if (!undoTree) return;
+        const nodes = undoTree.getAllNodes();
         const sorted = [...nodes]
             .sort((a, b) => b.seq - a.seq)
             .filter((node) => this.isNodeVisible(node));
@@ -288,8 +297,9 @@ export class UndoTreeView extends View {
             case 'Enter': {
                 e.preventDefault();
                 if (this.selectedSeq !== null) {
-                    this.onNavigate?.(this.selectedSeq);
-                    this.renderTree();
+                    void Promise.resolve(
+                        this.onNavigate?.(this.selectedSeq),
+                    ).then(() => this.loadTree());
                 }
                 break;
             }
@@ -303,8 +313,8 @@ export class UndoTreeView extends View {
 }
 
 export function createUndoTreeViewFactory(
-    getUndoTree: () => UndoTree,
-    onNavigate?: (seq: number) => void,
+    getUndoTree: () => UndoTree | Promise<UndoTree>,
+    onNavigate?: (seq: number) => void | Promise<void>,
 ): (leaf: WorkspaceLeaf) => UndoTreeView {
     return (leaf) => new UndoTreeView(leaf, getUndoTree, onNavigate);
 }

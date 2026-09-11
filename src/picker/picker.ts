@@ -106,6 +106,7 @@ export class PickerModal extends Modal {
 
     onOpen(): void {
         this.modalEl.addClass('vim-motions-picker');
+        this.modalEl.addClass('vim-motions-prompt-modal-container');
         const container = this.contentEl.createDiv({
             cls: 'vim-motions-picker-container',
         });
