@@ -1,8 +1,8 @@
 import { foldService } from '@codemirror/language';
 import type { Extension, EditorState } from '@codemirror/state';
 import { getFoldMetadata } from './metadata';
+import { FRONTMATTER_DELIMITER } from './frontmatter';
 
-const FRONTMATTER_DELIM = /^---\s*$/;
 const CALLOUT_START = /^(\s*>)\s*\[!.+\]/;
 const QUOTE_LINE = /^\s*>/;
 const HEADING_RE = /^(#{1,6})\s/;
@@ -14,11 +14,11 @@ function frontmatterFold(
 ): { from: number; to: number } | null {
     const line = state.doc.lineAt(lineStart);
     if (line.number !== 1) return null;
-    if (!FRONTMATTER_DELIM.test(line.text)) return null;
+    if (!FRONTMATTER_DELIMITER.test(line.text)) return null;
 
     for (let i = line.number + 1; i <= state.doc.lines; i++) {
         const candidate = state.doc.line(i);
-        if (FRONTMATTER_DELIM.test(candidate.text)) {
+        if (FRONTMATTER_DELIMITER.test(candidate.text)) {
             if (candidate.to <= lineEnd) return null;
             return { from: lineEnd, to: candidate.to };
         }
