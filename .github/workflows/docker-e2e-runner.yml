@@ -5,6 +5,9 @@ on:
         branches: ['main', 'master']
         paths:
             - '.github/docker/e2e-runner/**'
+            - '.dockerignore'
+            - 'scripts/install-neovim.sh'
+            - 'scripts/neovim-version.txt'
     workflow_dispatch:
 
 env:
@@ -40,7 +43,8 @@ jobs:
             - name: Build and push
               uses: docker/build-push-action@v6
               with:
-                  context: .github/docker/e2e-runner
+                  context: .
+                  file: .github/docker/e2e-runner/Dockerfile
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}

@@ -37,7 +37,13 @@ RUN apt-get update -q \
     && corepack enable \
     && rm -rf /var/lib/apt/lists/*
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/neovim-version.txt scripts/install-neovim.sh /opt/vim-motions-scripts/
+RUN chmod +x /opt/vim-motions-scripts/install-neovim.sh \
+    && /opt/vim-motions-scripts/install-neovim.sh /opt/neovim \
+    && ln -s /opt/neovim/bin/nvim /usr/local/bin/nvim \
+    && rm -rf /opt/vim-motions-scripts
+
+COPY .github/docker/e2e-runner/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["entrypoint.sh"]

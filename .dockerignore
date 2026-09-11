@@ -1,0 +1,8 @@
+*
+!.github/
+!.github/docker/
+!.github/docker/e2e-runner/
+!.github/docker/e2e-runner/**
+!scripts/
+!scripts/install-neovim.sh
+!scripts/neovim-version.txt
