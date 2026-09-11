@@ -40,14 +40,13 @@ The Neovim RPC backend supports the tree-backed objects below in operator-pendin
 
 Jump between document structures. Works with counts (e.g., `3]h` jumps 3 headings) and operators (e.g., `d]h` deletes to the next heading).
 
-| Keybinding                | Description                                               |
-| ------------------------- | --------------------------------------------------------- |
-| `]h` / `[h`               | Next/previous heading (any level)                         |
-| `]1`–`]6` / `[1`–`[6`     | Next/previous heading of specific level                   |
-| `]h1`–`]h6` / `[h1`–`[h6` | Descriptive aliases for level-specific heading navigation |
-| `]l` / `[l`               | Next/previous list item (same indent level)               |
-| `]n` / `[n`               | Next/previous link                                        |
-| `]b` / `[b`               | Next/previous open buffer (tab)                           |
+| Keybinding            | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `]h` / `[h`           | Next/previous heading (any level)           |
+| `]1`–`]6` / `[1`–`[6` | Next/previous heading of specific level     |
+| `]l` / `[l`           | Next/previous list item (same indent level) |
+| `]n` / `[n`           | Next/previous link                          |
+| `]b` / `[b`           | Next/previous open buffer (tab)             |
 
 ## Subword motions
 

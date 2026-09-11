@@ -284,7 +284,7 @@ describe('Neovim RPC structural navigation and hard-wrap', function () {
         await expectParity({
             content: '# A\n## B\n### C\n## D\n### E\n# F',
             cursor: { line: 0, ch: 0 },
-            steps: [']h2', ']h3', '[h3'],
+            steps: [']2', ']3', '[3'],
         });
     });
 

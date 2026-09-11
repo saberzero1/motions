@@ -14,7 +14,7 @@ Jump between document structures using bracket motions. All navigation motions w
 
 ## Headings
 
-`]h` and `[h` jump to the next and previous heading of any level. For level-specific navigation, use `]1`–`]6` and `[1`–`[6`, or the descriptive aliases `]h1`–`]h6` and `[h1`–`[h6`, to jump to headings of that exact level (e.g., `]h2` jumps to the next `##` heading).
+`]h` and `[h` jump to the next and previous heading of any level. For level-specific navigation, use `]1`–`]6` and `[1`–`[6` to jump to headings of that exact level (e.g., `]2` jumps to the next `##` heading).
 
 Heading detection uses Markdown syntax — lines starting with `#` characters. Works in both Source mode and Live Preview.
 
