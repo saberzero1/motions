@@ -893,6 +893,66 @@ vim.api.nvim_set_decoration_provider(provider_ns, {
                 })
             end
         end
+        local floats = {}
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+            local config_ok, config = pcall(vim.api.nvim_win_get_config, win)
+            if config_ok and config.relative and config.relative ~= "" then
+                local buf_ok, buf = pcall(vim.api.nvim_win_get_buf, win)
+                local lines_ok, lines = false, {}
+                local extmarks_ok, extmarks = false, {}
+                if buf_ok then
+                    lines_ok, lines = pcall(vim.api.nvim_buf_get_lines, buf, 0, -1, false)
+                    extmarks_ok, extmarks = pcall(
+                        vim.api.nvim_buf_get_extmarks,
+                        buf,
+                        -1,
+                        { 0, 0 },
+                        { -1, -1 },
+                        { details = true, overlap = true }
+                    )
+                end
+                if buf_ok and lines_ok and extmarks_ok then
+                    local forwarded = {}
+                    for _, mark in ipairs(extmarks) do
+                        local details = mark[4] or {}
+                        local ns_id = details.ns_id
+                        if ns_id and ns_id ~= provider_ns then
+                            forwarded[#forwarded + 1] = {
+                                ns_id = ns_id,
+                                id = mark[1],
+                                row = mark[2],
+                                col = mark[3],
+                                end_row = details.end_row,
+                                end_col = details.end_col,
+                                hl_group = details.hl_group,
+                                virt_text = details.virt_text,
+                                virt_text_pos = details.virt_text_pos,
+                                priority = details.priority,
+                            }
+                        end
+                    end
+                    local origin = { row = 0, col = 0 }
+                    if config.relative == "win" then
+                        local position_ok, position = pcall(
+                            vim.api.nvim_win_get_position,
+                            config.win or 0
+                        )
+                        if position_ok then
+                            origin = { row = position[1], col = position[2] }
+                        end
+                    end
+                    floats[#floats + 1] = {
+                        win = win,
+                        buf = buf,
+                        config = config,
+                        origin = origin,
+                        lines = lines,
+                        extmarks = forwarded,
+                    }
+                end
+            end
+        end
+        vim.rpcnotify(0, "vim_motions_floats", floats)
     end,
 })
 

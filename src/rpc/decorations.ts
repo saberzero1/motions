@@ -15,6 +15,7 @@ import {
 import companionSource from './companion.lua';
 import type { NeovimDocumentSync } from './document-sync';
 import type { MsgpackRpcClient } from './msgpack-rpc';
+import { NeovimFloatingWindows } from './floating-windows';
 
 type HighlightGroup = string | string[];
 
@@ -384,6 +385,7 @@ export class NeovimDecorationBridge {
     private notificationCleanup: (() => void) | null = null;
     private lastView: EditorView | null = null;
     private readonly highlights: NeovimHighlightStyles;
+    private readonly floatingWindows: NeovimFloatingWindows;
     private readonly folds = new Map<number, number>();
     private disposed = false;
 
@@ -392,6 +394,9 @@ export class NeovimDecorationBridge {
         private readonly documentSync: NeovimDocumentSync,
     ) {
         this.highlights = new NeovimHighlightStyles(rpc);
+        this.floatingWindows = new NeovimFloatingWindows((groups, document) =>
+            this.highlights.request(groups, document),
+        );
     }
 
     async start(): Promise<void> {
@@ -402,6 +407,15 @@ export class NeovimDecorationBridge {
             'vim_motions_extmarks',
             (args) => this.handleExtmarks(args),
         );
+        const floatCleanup = this.rpc.onNotification(
+            'vim_motions_floats',
+            (args) => this.handleFloats(args),
+        );
+        const extmarkCleanup = this.notificationCleanup;
+        this.notificationCleanup = () => {
+            extmarkCleanup();
+            floatCleanup();
+        };
         await this.rpc.request('nvim_exec_lua', [companionSource, [buffer]]);
         await this.rpc.request('nvim_ui_attach', [
             120,
@@ -420,6 +434,7 @@ export class NeovimDecorationBridge {
         if (current !== this.lastView) this.clearView(current);
         this.lastView = null;
         this.folds.clear();
+        this.floatingWindows.clear();
         this.highlights.destroy();
         const buffer = this.documentSync.getBuffer();
         if (buffer !== null)
@@ -428,6 +443,16 @@ export class NeovimDecorationBridge {
                 [buffer],
             ]);
         this.rpc.notify('nvim_ui_detach', []);
+    }
+
+    private handleFloats(args: unknown[]): void {
+        if (this.disposed || !Array.isArray(args[0])) return;
+        const view = this.documentSync.getEditorView();
+        if (!view) {
+            this.floatingWindows.clear();
+            return;
+        }
+        this.floatingWindows.render(args[0], view);
     }
 
     private handleExtmarks(args: unknown[]): void {

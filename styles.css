@@ -30,6 +30,44 @@
     display: none;
 }
 
+.cm-editor .vim-motions-rpc-ime-input {
+    position: absolute;
+    z-index: 1;
+    width: 1px;
+    min-width: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.cm-editor .vim-motions-rpc-float {
+    position: absolute;
+    box-sizing: content-box;
+    overflow: hidden;
+    pointer-events: none;
+    white-space: pre;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    font-family: inherit;
+}
+
+.cm-editor .vim-motions-rpc-float[data-border='true'] {
+    border: 1px solid var(--background-modifier-border-focus);
+}
+
+.cm-editor .vim-motions-rpc-float-line {
+    position: relative;
+    overflow: hidden;
+    white-space: pre;
+}
+
+.cm-editor .vim-motions-rpc-float-virt-text {
+    position: absolute;
+    white-space: pre;
+}
+
 /* --- Vim panel (align fork with Obsidian theme) --- */
 
 .cm-vim-panel {
