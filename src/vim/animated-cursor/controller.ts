@@ -91,7 +91,6 @@ class CursorController implements Tickable {
     private blockChar: BlockCharInfo | undefined;
     private cachedRect: CursorRect | null = null;
     private cachedShapeRect: CursorRect | null = null;
-    private cachedDocPos = -1;
     private cachedSelectionHead = -1;
     private cachedScrollTop = 0;
     private cachedScrollLeft = 0;
@@ -544,7 +543,6 @@ class CursorController implements Tickable {
             }
 
             this.cachedRect = rect;
-            this.cachedDocPos = pos;
             this.cachedScrollTop = this.view.scrollDOM.scrollTop;
             this.cachedScrollLeft = this.view.scrollDOM.scrollLeft;
             this.cachedTime = performance.now();
