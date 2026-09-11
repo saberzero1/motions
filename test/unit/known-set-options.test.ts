@@ -55,6 +55,9 @@ const EXCLUDED_SETTINGS_KEYS = new Set([
     'enableOnMobile',
     'vimEnabled',
     'pluginAutoFetch',
+    'neovimRpcEnabled',
+    'neovimBinaryPath',
+    'neovimConfigPath',
 
     // Nested objects — configured via dedicated commands or sub-options
     'modePrompts', // via `let g:mode_prompt_*`
