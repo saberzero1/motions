@@ -54,7 +54,6 @@ const MAPPING_NAMES = new Set([
     'gotoDefinitionNewTab',
     'gotoDefinitionSplitH',
     'gotoDefinitionSplitV',
-    'nextHeading',
 ]);
 const EX_COMMAND_NAMES = new Set([
     'Oil',

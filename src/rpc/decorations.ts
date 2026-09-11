@@ -421,6 +421,12 @@ export class NeovimDecorationBridge {
         this.lastView = null;
         this.folds.clear();
         this.highlights.destroy();
+        const buffer = this.documentSync.getBuffer();
+        if (buffer !== null)
+            this.rpc.notify('nvim_exec_lua', [
+                'if vim_motions_rpc_companion_teardown then vim_motions_rpc_companion_teardown(...) end',
+                [buffer],
+            ]);
         this.rpc.notify('nvim_ui_detach', []);
     }
 

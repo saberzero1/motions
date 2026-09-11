@@ -3791,8 +3791,12 @@ export default class VimMotionsPlugin extends Plugin {
                 state.connected &&
                 state.binaryPath === resolvedPath &&
                 state.configPath === resolvedConfigPath
-            )
+            ) {
+                await this.neovimConnection.setTextwidth(
+                    this.settings.textwidth,
+                );
                 return;
+            }
             await this.neovimConnection.disconnect();
             if (
                 operation !== this.neovimReconcileOperation ||
@@ -3800,7 +3804,11 @@ export default class VimMotionsPlugin extends Plugin {
                 !this.settings.neovimRpcEnabled
             )
                 return;
-            await this.neovimConnection.connect(binaryPath, configPath);
+            await this.neovimConnection.connect(
+                binaryPath,
+                configPath,
+                this.settings.textwidth,
+            );
         })();
     }
 
