@@ -112,7 +112,7 @@ src/
   settings.ts              # Settings interface, defaults, and settings tab UI (7 pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, Advanced)
   settings-migration.ts    # Settings schema migration between versions
   rpc/
-    companion.lua          # Bundled write/read routing and redraw-time visible extmark/fold forwarder
+      companion.lua          # Bundled write/read routing, structural motions, cursor notification and extmark/fold forwarding
     decorations.ts         # UI redraw clock, byte/line mapping, CM6 decorations/folds, and highlight CSS
     document-sync.ts       # Named acwrite mirror, Obsidian save/read routing, line events, and byte/UTF-16 mapping
     frontmatter-fold.ts    # Window-local Markdown foldexpr for headings, callouts, and frontmatter
@@ -659,6 +659,10 @@ test/
     rpc-oil-negative-controls.md # Forced interception and isolated action sabotage evidence
     rpc-folds-undo.e2e.ts   # Fold mirror, native undo, sidebar data, and refresh coverage
     rpc-folds-undo-negative-controls.md # Fold/sidebar ownership sabotage evidence
+    rpc-structural-nav.e2e.ts # Fork-oracle structural motion/operator and native hard-wrap parity
+    rpc-structural-nav-negative-controls.md # Mapping/width/level/operator/count sabotage evidence
+    rpc-text-objects.e2e.ts # Fork-oracle Markdown text-object operator/visual/register/count parity
+    rpc-text-objects-negative-controls.md # Range-end/mapping/count sabotage evidence
   unit/vim-registration-inventory.test.ts # One-pass registration surface and bridge-selection guard
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests
