@@ -104,6 +104,7 @@ npm run build
     ```
     src/
       fold/
+        frontmatter.ts           # Shared start-of-document YAML delimiter rule
         metadata.ts            # Immutable heading ranges/titles and fence languages keyed by exact EditorState
       lua/
         coordinates.ts        # Typed byte/character/display adapter, text/legacy-position/extmark boundaries and string codec
@@ -114,6 +115,15 @@ npm run build
         on-key.ts              # vim.on_key namespace registry, dispatch, teardown
         termcodes.ts           # Neovim key-byte encoder and fork-boundary decoder
         window-info.ts         # vim.fn.getwininfo CM6 viewport geometry
+      rpc/
+        companion.lua          # Bundled write/read routing and redraw-time visible extmark/fold forwarding
+        decorations.ts         # UI redraw clock, byte/line mapping, CM6 decorations/folds and Neovim highlight CSS
+        document-sync.ts      # Named acwrite Markdown mirror, Obsidian save/read routing, line events and byte/UTF-16 mapping
+        frontmatter-fold.ts   # Window-local Markdown foldexpr for headings, callouts and frontmatter
+        key-delegation.ts     # Markdown-only key forwarding, Oil exclusion, widget-focus exclusion, frontmatter cursor guard, RPC barrier and cursor/mode sync
+        msgpack-rpc.ts         # Stream msgpack-RPC client, including Neovim 64-bit integer decoding
+        neovim-connection.ts   # Desktop process/config/key ownership, API floor, crash handling and teardown
+        obsidian-feature-bridge.ts # Registry-derived Neovim mappings/commands, count/argument payloads, cross-file cursor restoration, host dispatch and refresh teardown
       treesitter/
         bundled-queries.ts     # Bundled markdown/markdown_inline/html textobjects queries
         query-files.ts         # Vault .scm snapshot, inheritance, extension modelines, limits
@@ -214,7 +224,10 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 ### Test file organization
 
 - `test/specs/vim-builtin/` — Tier 1 tests (built-in CM Vim behavior). Use `testWithNeovim()` as primary format. Includes `new-commands.e2e.ts` (fork actions: `@:`, `&`, `ZZ`, `ZQ`, insert `<C-a>`/`<C-e>`/`<C-y>`), `new-commands-golden.e2e.ts` (golden tests for new fork actions), `link-nav-window-cycle.e2e.ts` (`<C-^>`, `<C-]>`, `<C-t>`, `<C-w>w`/`W`/`p`), `ex-move-copy-normal.e2e.ts` (`:m`, `:t`, `:normal`), `minor-motions-scroll.e2e.ts` (`gm`, `go`, `g8`, `gF`, `<C-g>`, `zs`/`ze`/`zH`/`zL`), `noop-commands.e2e.ts` (no-op crash guards).
-- `test/specs/` — Tier 2 tests (plugin features: text objects, navigation, workspace, operators, vimrc, settings, jump list, table cell vim mode, vim toggle, gutter reconfiguration and cursor-line highlighting).
+- `test/specs/` — Tier 2 tests (plugin features: text objects, navigation, workspace, operators, vimrc, settings, jump list, table cell vim mode, vim toggle, gutter reconfiguration, cursor-line highlighting, and Neovim RPC lifecycle/text/key/write/read/decorations synchronisation). RPC specs set `neovimConfigPath` to the committed `test/fixtures/nvim/init.lua`. The fixture adds `test-vault` to `runtimepath` so fetched Lua plugins resolve without changing production configuration. The text-sync spec asserts its Lua marker before driving Neovim APIs directly and comparing CM6 with a raw-byte Lua oracle; its two-file activation regression independently checks known editor content and vault-adapter disk content so Neovim/CM6 agreement cannot mask cross-note overwrite. `rpc-write-routing.e2e.ts` spies on Obsidian's active-editor save command, independently reads through the vault adapter, checks `:e!` against a deliberately stale disk copy, and verifies the Neovim dirty flag is cleared. `rpc-keys.e2e.ts` drives 210 real-DOM sequences, compares a live headless Neovim, checks bridge non-perturbation, and covers D7 in both properties modes, including disk integrity. `rpc-decorations.e2e.ts` uses flash.nvim's own all-namespace extmarks as the label/position oracle and checks the no-polling/no-grid boundary. The corresponding negative-control Markdown files record the M2a, M2c, write/read routing, and M3 sabotages.
+- `test/unit/vim-registration-inventory.test.ts` guards the measured one-pass motion/action/map/ex surface and the six M4a bridge selections. `test/specs/rpc-obsidian-bridge.e2e.ts` covers registry-derived picker sources, query/source argument forwarding, modal key ownership, post-selection Neovim re-seeding, Oil, Harpoon slots/cycling/removal, cross-note counted jumplist navigation, marks and sign-column refresh, workspace splits/pane focus/tab targeting, go-to-definition, heading navigation, lowercase ex commands, guarded command-line abbreviations, and refresh teardown. `rpc-obsidian-bridge-negative-controls.md` records the M4a and M4b sabotages.
+- `test/specs/rpc-oil.e2e.ts` exercises all 16 Oil mappings through the embedded editor's real DOM while RPC is connected, explicitly skips the two OS-shelling actions, and asserts that Oil has no RPC keydown handler or fork interception while Markdown restores both. `rpc-oil-negative-controls.md` records forced interception corrupting Neovim and isolated Oil action sabotage.
+- `test/specs/rpc-folds-undo.e2e.ts` covers redraw-driven fold mirroring, native fold/undo operations, raw-byte undo/redo, the Neovim-backed undo-tree sidebar, and duplicate-free bridge refresh. `rpc-folds-undo-negative-controls.md` records forwarding, row-mapping, data-source, and command-bridge sabotages.
 - `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, invariants, mode-tracker, settings-resolution, dual-vim, animated-cursor, oil-parser, oil-diff, vimrc-parser, flash-labeler, fold-persistence, pair-util, etc.).
 - `test/unit/fengari/` — 23 test files (6 fork-specific + 17 upstream) for the Lua VM, converted to TypeScript ESM.
 - `test/unit/lua/` — API compatibility regression coverage includes `api-compat.test.ts` (option routes and current-handle calls), `iter.test.ts`, `on-key.test.ts`, `termcodes.test.ts`, `treesitter-queries.test.ts` (real bundled WASM grammars, query resolution, lifecycle, and limits), and `plugin-query-fetch.test.ts`. `key-broker.test.ts` and `vim-v-context.test.ts` cover the shared key listener and the callback context stack; both carry negative controls that reproduce the defect they replaced, so a regression flips them rather than passing silently. `fn.test.ts` covers four `getwininfo` geometry/fallback cases; `api.test.ts` asserts that termcode conversion returns `"\r"` for `<CR>`, not unchanged notation.

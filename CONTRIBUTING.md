@@ -111,7 +111,17 @@ src/
   main.ts                  # Plugin lifecycle (onload, onunload, reloadFeatures, setupVimSubsystems, teardownVimSubsystems, reloadAllConfigs, openConfigInDefaultEditor)
   settings.ts              # Settings interface, defaults, and settings tab UI (7 pages: General, Appearance, Navigation, Keybindings, Snippets & files, Input method, Advanced)
   settings-migration.ts    # Settings schema migration between versions
+  rpc/
+    companion.lua          # Bundled write/read routing and redraw-time visible extmark/fold forwarder
+    decorations.ts         # UI redraw clock, byte/line mapping, CM6 decorations/folds, and highlight CSS
+    document-sync.ts       # Named acwrite mirror, Obsidian save/read routing, line events, and byte/UTF-16 mapping
+    frontmatter-fold.ts    # Window-local Markdown foldexpr for headings, callouts, and frontmatter
+    key-delegation.ts      # Key forwarding, widget-focus exclusion, frontmatter cursor guard, RPC barrier, and cursor/mode sync
+    msgpack-rpc.ts         # Stream msgpack-RPC client, including Neovim 64-bit integer decoding
+    neovim-connection.ts   # Desktop process/config/key ownership, API floor, crash handling, and teardown
+        obsidian-feature-bridge.ts # Registry-derived mappings/commands, count/argument payloads, cross-file cursor restoration, host dispatch, and refresh teardown
   types/
+    lua-modules.d.ts       # Text-loader declaration for bundled Lua companion sources
     vim-api.d.ts           # Type declarations for the Vim API (CmAdapter, VimApi, etc.)
     codemirror-vim.d.ts    # CodeMirror Vim type declarations
     globals.ts             # __DEV__ build-time constant type declaration
@@ -230,6 +240,7 @@ src/
     search-mode.ts         # Post-commit search labels (/ and ? integration)
   fold/
     commands.ts            # Fold commands (zf, zd, zD, zE, zv, zF) + fold motions (zj, zk, [z, ]z) registration
+    frontmatter.ts         # Shared start-of-document YAML delimiter rule
     motions.ts             # Fold navigation motions + shared utilities (findNextFoldable, findEnclosingFoldable, foldedRangesWithin, foldableRegionsWithin)
     fold-enable.ts         # Fold enable/disable state (foldEnableField, isFoldingEnabled, zn/zN/zi)
     provider.ts            # Fold providers (frontmatter, callouts, headings — heading provider trims trailing blank lines)
@@ -636,8 +647,22 @@ test/
   coverage-report.ts         # Coverage report generator
   tsconfig.json              # Test-specific TypeScript config
   specs/                     # E2E tests (Tier 2 — plugin features)
+    rpc-lifecycle.e2e.ts     # Neovim spawn, attach, version floor, crash, and teardown lifecycle
+    rpc-lifecycle.negative-control.md # Observed teardown and version-check sabotage failures
+    rpc-text-sync.e2e.ts     # Active-editor line-event sync and raw-byte oracle coverage
+    rpc-text-sync-negative-controls.md # Observed line-event and comparator sabotage failures
+    rpc-write-routing.e2e.ts # Obsidian-owned save and stale-disk reload routing
+    rpc-write-routing-negative-controls.md # Observed acwrite/autocmd/dirty-flag failures
+    rpc-obsidian-bridge.e2e.ts # M4a/M4b picker/Oil/Harpoon/marks/jumplist/workspace/navigation/ex bridge
+    rpc-obsidian-bridge-negative-controls.md # Observed mapping/count/guard/teardown failures
+    rpc-oil.e2e.ts          # Native Oil action and RPC key-delegation exclusion coverage
+    rpc-oil-negative-controls.md # Forced interception and isolated action sabotage evidence
+    rpc-folds-undo.e2e.ts   # Fold mirror, native undo, sidebar data, and refresh coverage
+    rpc-folds-undo-negative-controls.md # Fold/sidebar ownership sabotage evidence
+  unit/vim-registration-inventory.test.ts # One-pass registration surface and bridge-selection guard
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests
+  fixtures/nvim/init.lua     # Minimal isolated Neovim config used by every RPC spec
   neovim/                    # Neovim golden comparison infrastructure
     test-definitions.ts      # Test case definitions (shared by golden recording + e2e)
     golden-data/             # Recorded Neovim output (committed, CI compares against these)
