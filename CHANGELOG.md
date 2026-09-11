@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **RPC fold expression no longer rescans the complete document for every queried line** — the window-local Markdown `foldexpr` previously fetched and rescanned all lines on each invocation, making an edit on a 2,004-line note effectively quadratic and pushing measured RPC operator latency to 145.9 ms p95. It now computes one linear fold-level table per Neovim `changedtick` and reuses it for the remaining fold queries.
+    - Plugin: `src/rpc/frontmatter-fold.ts`
 - **RPC requests wait for active-note re-seeding** — programmatic Neovim requests issued immediately after returning from a host sidebar could race the asynchronous active-leaf activation and have their buffer update replaced by the later seed. Requests now await the document-sync activation promise before flushing keys or reaching Neovim.
     - Plugin: `src/rpc/neovim-connection.ts`
 - **RPC notes now use a real Markdown buffer instead of the dashboard buffer** — M2a previously wrote into Neovim's intro buffer by forcing its `modifiable` option. With alpha-nvim loaded that buffer remained `buftype=nofile` and `filetype=alpha`, preventing Markdown plugins and filetype configuration from activating even though byte synchronisation passed. The backend creates one listed buffer, names it with the active note's absolute path, makes it current, explicitly runs filetype detection, and reuses it across active-leaf changes. The buffer is now finalized as the `acwrite` mirror described above.
@@ -68,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **M7 latency certification harness** — `test/specs/rpc-latency.e2e.ts` measures real keydown to first rAF after the same CM6 transaction criterion for fork and production RPC over a 2,004-line runtime fixture (N=500 plus 75 warmups). It proves production fork interception and bridge engagement, enforces stable document size, and blocks before delta publication when the required sanity relationship is reversed. The corrected run remained inconclusive at fork/RPC p95 41.0/35.8 ms; delay, forced-layout, engagement, and drift controls are recorded in `rpc-latency-negative-controls.md`.
 - **RPC lifecycle acceptance coverage** — 7 WDIO scenarios cover attach/API reporting, runtime disable, Vim disable, unexpected `SIGKILL` and reconnect, plugin unload, missing binaries, and the API-level floor. PID liveness is checked directly, teardown/version-floor sabotages are recorded in `test/specs/rpc-lifecycle.negative-control.md`, and the settings-option inventory records both controls as process-backend settings rather than Vim options. Disposable `.sisyphus/` spike files are excluded from the production lint project.
 - **RPC text synchronisation acceptance coverage** — `test/specs/rpc-text-sync.e2e.ts` checks isolated fixture loading, normal Markdown buffer identity, 210 boundary-valid API edits, cross-line collapse, end/start deletion, append, and the documented invalid UTF-8 boundary divergence against a raw-byte Lua oracle. Its active-leaf regression uses two known file contents, switches both ways, retains a Neovim key edit, and independently reads both files through the vault adapter. Restoring the one-shot seed reproduced `Target.md` as `A original\nA second line` on first activation and `rpc-A original\nA second line` after the later switch, including on disk.
 - **RPC key delegation acceptance coverage** — `test/specs/rpc-keys.e2e.ts` drives 210 insert/operator/visual/count/dot-repeat/undo-redo/macro sequences containing ASCII, astral, combining, and CJK text through the editor DOM, compares `ciwfoo<Esc>w.` with live headless Neovim, checks bridged/unbridged buffer/cursor/mode/register identity, proves single insertion, and records the visible/source D7 measurement. Negative controls produced `xxseed` without fork interception, `xxiseed` without `preventDefault`, CM column 0 instead of 6 without cursor sync, and buffer/register divergence after a bridged-only `x`.
@@ -166,6 +169,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test/specs/rpc-ime-negative-controls.md`: exact CM6-only, buffer-API, and composing-key forwarding sabotage outcomes.
 - `.sisyphus/plans/neovim-rpc-backend-design.md`: M6b implementation and empirical result.
 - `CHANGELOG.md`: M6b implementation, tests, negative controls, and documentation.
+- `README.md`, `KNOWN_LIMITATIONS.md`: M7's still-inconclusive latency certification and explicit no-delta claim.
+- `AGENTS.md`, `CONTRIBUTING.md`: production latency harness, blocking sanity gate, and negative-control locations.
+- `.sisyphus/plans/neovim-rpc-backend-design.md`: M7 implementation, fold-expression repair, measurements, controls, and inconclusive verdict.
+- `test/specs/rpc-latency-negative-controls.md`: exact delay, layout, engagement/isolation, size-drift, and sanity-gate output.
+- `CHANGELOG.md`: M7 harness, fold-expression performance repair, negative controls, and documentation.
 
 ## [0.150.0] - 2026-09-10
 

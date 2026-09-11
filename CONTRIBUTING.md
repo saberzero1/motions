@@ -667,8 +667,10 @@ test/
     rpc-text-objects-negative-controls.md # Range-end/mapping/count sabotage evidence
     rpc-floats.e2e.ts      # Floating-window content, positioning, stacking, extmark, and teardown coverage
     rpc-floats-negative-controls.md # Forwarding/position/z-index/close sabotage evidence
-    rpc-ime.e2e.ts         # CDP-driven native composition, commit, repeat, cancellation, and note-switch coverage
-    rpc-ime-negative-controls.md # CM6-only/buffer-API/forwarded-key sabotage evidence
+rpc-ime.e2e.ts         # CDP-driven native composition, commit, repeat, cancellation, and note-switch coverage
+rpc-ime-negative-controls.md # CM6-only/buffer-API/forwarded-key sabotage evidence
+rpc-latency.e2e.ts     # M7 real-keydown-to-rAF fork/RPC latency certification and blocking sanity gate
+rpc-latency-negative-controls.md # Delay/layout/engagement/size-stability evidence
   unit/vim-registration-inventory.test.ts # One-pass registration surface and bridge-selection guard
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests
