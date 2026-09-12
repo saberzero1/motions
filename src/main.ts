@@ -769,6 +769,7 @@ export default class VimMotionsPlugin extends Plugin {
                       }
                     : null;
             },
+            () => this.modeTracker,
         );
         await this.loadSettings();
         this.activeUndoFilePath =

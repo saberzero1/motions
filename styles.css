@@ -90,6 +90,54 @@
     margin-left: 1ch;
 }
 
+.cm-editor .vim-motions-rpc-popupmenu {
+    position: absolute;
+    z-index: 51;
+    min-width: 12ch;
+    max-width: calc(100% - 16px);
+    overflow: hidden;
+    color: var(--text-normal);
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    box-shadow: var(--shadow-s);
+    font-family: var(--font-monospace);
+    pointer-events: none;
+}
+
+.cm-editor .vim-motions-rpc-popupmenu-item {
+    display: grid;
+    grid-template-columns:
+        minmax(max-content, 1fr)
+        max-content max-content max-content;
+    gap: 1ch;
+    padding: 2px 6px;
+    white-space: pre;
+}
+
+.cm-editor .vim-motions-rpc-popupmenu-item.is-selected {
+    color: var(--text-on-accent);
+    background-color: var(--interactive-accent);
+}
+
+.cm-editor .vim-motions-rpc-popupmenu-kind,
+.cm-editor .vim-motions-rpc-popupmenu-menu,
+.cm-editor .vim-motions-rpc-popupmenu-info {
+    color: var(--text-muted);
+}
+
+.cm-editor
+    .vim-motions-rpc-popupmenu-item.is-selected
+    .vim-motions-rpc-popupmenu-kind,
+.cm-editor
+    .vim-motions-rpc-popupmenu-item.is-selected
+    .vim-motions-rpc-popupmenu-menu,
+.cm-editor
+    .vim-motions-rpc-popupmenu-item.is-selected
+    .vim-motions-rpc-popupmenu-info {
+    color: inherit;
+}
+
 .cm-editor .vim-motions-rpc-float {
     position: absolute;
     box-sizing: content-box;

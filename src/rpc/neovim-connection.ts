@@ -13,11 +13,14 @@ import { NeovimDecorationBridge } from './decorations';
 import { NeovimMessageRouter } from './messages';
 import { NeovimRedrawDispatcher } from './redraw';
 import { NeovimCmdlineOverlay } from './cmdline';
+import { NeovimPopupMenuOverlay } from './popupmenu';
 import {
     NeovimObsidianFeatureBridge,
     type HostNavigationTarget,
 } from './obsidian-feature-bridge';
 import type { VimRegistration } from '../vim/registration';
+import type { VimModeTracker } from '../vim/mode-tracker';
+import { NeovimModeStatus } from './mode-status';
 
 type ProcessError = Error & { code?: string | number; signal?: string | null };
 
@@ -142,6 +145,8 @@ export class NeovimConnection {
     private redrawDispatcher: NeovimRedrawDispatcher | null = null;
     private messageRouter: NeovimMessageRouter | null = null;
     private cmdlineOverlay: NeovimCmdlineOverlay | null = null;
+    private popupMenuOverlay: NeovimPopupMenuOverlay | null = null;
+    private modeStatus: NeovimModeStatus | null = null;
     private featureBridge: NeovimObsidianFeatureBridge | null = null;
 
     constructor(
@@ -150,6 +155,8 @@ export class NeovimConnection {
         private readonly getNavigationTarget: (
             actionName: string,
         ) => HostNavigationTarget | null = () => null,
+        private readonly getModeTracker: () => VimModeTracker | null = () =>
+            null,
     ) {}
 
     async connect(
@@ -255,6 +262,15 @@ export class NeovimConnection {
             this.cmdlineOverlay = new NeovimCmdlineOverlay(
                 this.app,
                 redrawDispatcher,
+            );
+            this.popupMenuOverlay = new NeovimPopupMenuOverlay(
+                this.app,
+                this.cmdlineOverlay,
+                redrawDispatcher,
+            );
+            this.modeStatus = new NeovimModeStatus(
+                redrawDispatcher,
+                this.getModeTracker,
             );
             redrawDispatcher.start();
             await decorationBridge.start();
@@ -436,6 +452,10 @@ export class NeovimConnection {
         this.messageRouter = null;
         this.cmdlineOverlay?.dispose();
         this.cmdlineOverlay = null;
+        this.popupMenuOverlay?.dispose();
+        this.popupMenuOverlay = null;
+        this.modeStatus?.dispose();
+        this.modeStatus = null;
         this.redrawDispatcher?.dispose();
         this.redrawDispatcher = null;
         this.documentSync?.dispose();
@@ -516,6 +536,10 @@ export class NeovimConnection {
         this.messageRouter = null;
         this.cmdlineOverlay?.dispose();
         this.cmdlineOverlay = null;
+        this.popupMenuOverlay?.dispose();
+        this.popupMenuOverlay = null;
+        this.modeStatus?.dispose();
+        this.modeStatus = null;
         this.redrawDispatcher?.dispose();
         this.redrawDispatcher = null;
         this.documentSync?.dispose();

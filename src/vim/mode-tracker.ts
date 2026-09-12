@@ -51,6 +51,7 @@ export class VimModeTracker {
     private searchCountEl: HTMLElement | null = null;
     private modeLabels: Record<string, string>;
     private currentMode = 'normal';
+    private externalMode: string | null = null;
     private recording: string | null = null;
     private modeHandler: ((mode: VimModeChange) => void) | null = null;
     private keyHandler: ((key: string) => void) | null = null;
@@ -355,18 +356,24 @@ export class VimModeTracker {
         this.chordBarEl.setText(text);
     }
 
+    setExternalMode(mode: string | null): void {
+        this.externalMode = mode;
+        if (mode && mode !== 'normal') this.hideSearchCount();
+        this.updateDisplay();
+    }
+
     private updateDisplay(): void {
+        const displayedMode = this.externalMode ?? this.currentMode;
         const modeLabel =
-            this.modeLabels[this.currentMode] ??
-            DEFAULT_MODE_LABELS[this.currentMode] ??
-            this.currentMode.toUpperCase();
+            this.modeLabels[displayedMode] ??
+            DEFAULT_MODE_LABELS[displayedMode] ??
+            displayedMode.toUpperCase();
         const recordLabel = this.recording
             ? ` RECORDING @${this.recording}`
             : '';
         this.statusBarEl.setText(modeLabel + recordLabel);
-        this.statusBarEl.dataset['vimMode'] = this.modeToDataAttr(
-            this.currentMode,
-        );
+        this.statusBarEl.dataset['vimMode'] =
+            this.modeToDataAttr(displayedMode);
     }
 
     private modeToDataAttr(mode: string): string {

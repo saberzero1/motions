@@ -127,9 +127,11 @@ npm run build
         ime-input.ts          # Cursor-positioned native composition owner, nvim_input commit and cancellation lifecycle
         key-delegation.ts     # Markdown-only key/IME forwarding, Oil exclusion, widget-focus exclusion, frontmatter cursor guard, RPC barrier and cursor/mode sync
         messages.ts           # D12 msg_show routing and deduplicated Obsidian Notices
+        mode-status.ts        # msg_showmode routing and RPC-over-fork status-bar arbitration
         msgpack-rpc.ts         # Stream msgpack-RPC client, including Neovim 64-bit integer decoding
         neovim-connection.ts   # Desktop process/config/key ownership, API floor, crash handling and teardown
         obsidian-feature-bridge.ts # Registry-derived Neovim mappings/commands, count/argument payloads, cross-file cursor restoration, host dispatch and refresh teardown
+        popupmenu.ts          # External popup-menu rows, selection, cmdline/grid anchoring and cleanup
         redraw.ts             # Ordered external-UI redraw event dispatch with cheap unhandled-event rejection
       treesitter/
         bundled-queries.ts     # Bundled markdown/markdown_inline/html textobjects queries
@@ -251,6 +253,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 - `test/specs/rpc-text-objects.e2e.ts` runs the fork and RPC backends over the same 65 Markdown text-object scenarios, comparing documents, cursors, yank registers, visual selections, and counted forms; every operator checks the non-empty-document safety invariant and one result is read through the vault adapter. `rpc-text-objects-negative-controls.md` records range-end, missing-map, and count-forwarding sabotages.
 - `test/specs/rpc-messages.e2e.ts` covers external-UI message routing, severity styling, key-driven Lua errors, ignored undo/search chatter, deduplication, and the grid-event latency boundary. `rpc-messages-negative-controls.md` records missing dispatch, noisy-kind routing, and removed-dedup failures.
 - `test/specs/rpc-cmdline.e2e.ts` covers the external command line, byte-correct caret placement, first characters, prompts, selection/cancellation, nested levels, teardown, and bundled-fork isolation. `rpc-cmdline-negative-controls.md` records stale-hide, raw-byte-caret, and single-level-state failures.
+- `test/specs/rpc-popupmenu.e2e.ts` covers insert completion plus command-line wildmenu rendering, selection, grid/cmdline anchoring, styling, and teardown. Four scenarios in `rpc-lifecycle.e2e.ts` cover Neovim status-bar modes and disconnect arbitration. `rpc-popupmenu-negative-controls.md` records ignored-selection, wrong-anchor, and suppressed-mode-handler failures.
 - `test/specs/rpc-latency.e2e.ts` drives both production backends with real `browser.keys()` over a runtime-created 2,004-line note and resolves both on the first rAF after the same `docChanged || selectionSet` CM6 update criterion. It enforces zero size drift and a blocking p50 sanity relationship before calculating deltas. The certified run measured fork/RPC p50 15.3/17.3 ms, p95 39.5/36.2 ms, and p99 53.1/48.7 ms. `rpc-latency-negative-controls.md` records synchronous-delay, forced-layout, bridge-engagement/fork-isolation, and size-drift evidence.
 - `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, invariants, mode-tracker, settings-resolution, dual-vim, animated-cursor, oil-parser, oil-diff, vimrc-parser, flash-labeler, fold-persistence, pair-util, etc.).
 - `test/unit/fengari/` — 23 test files (6 fork-specific + 17 upstream) for the Lua VM, converted to TypeScript ESM.

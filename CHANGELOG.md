@@ -46,6 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Neovim RPC external command line (M8b)** — renders `cmdline_show`, byte-correct `cmdline_pos`, `cmdline_special_char`, and level-scoped `cmdline_hide` events in a themed editor overlay. First characters, prompts, confirm choices, and nested levels make typed commands, searches, `vim.ui.input()`, and generic `vim.ui.select()` visible without changing bundled-fork behavior; popup-menu completion remains deferred.
     - Plugin: `src/rpc/cmdline.ts`, `src/rpc/neovim-connection.ts`
     - Styles: `styles.css`
+- **Neovim RPC popup-menu completion (M8c)** — renders `popupmenu_show`, selection updates, and hide events as a themed four-column completion list. Command-line wildmenu uses byte-correct command-line anchoring, while insert completion uses Neovim grid cells and measured CM6 editor metrics.
+    - Plugin: `src/rpc/popupmenu.ts`, `src/rpc/cmdline.ts`, `src/rpc/neovim-connection.ts`
+    - Styles: `styles.css`
+- **Neovim RPC status-bar mode ownership (M8d)** — routes `msg_showmode` into the existing status bar, gives the externally supplied Neovim mode precedence over fork events while RPC is connected, and restores fork-driven mode text on disconnect.
+    - Plugin: `src/rpc/mode-status.ts`, `src/rpc/neovim-connection.ts`, `src/vim/mode-tracker.ts`, `src/main.ts`
 
 ### Changed
 
@@ -98,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M6b IME composition coverage** — `test/specs/rpc-ime.e2e.ts` drives Chromium's native composition path through CDP, verifies byte-exact CJK commit, dot-repeat, cancellation, key suppression, and active-note switching with an independent vault-adapter read. `rpc-ime-negative-controls.md` records CM6-only commit, buffer-API commit, and composing-key forwarding failures.
 - **M8a external-UI message coverage** — `test/specs/rpc-messages.e2e.ts` covers eight scenarios for informational and error Notices, real-key Lua errors, silent undo/search kinds, one-per-message dispatch, duplicate limiting, and 200-key grid-event latency. `rpc-messages-negative-controls.md` records missing-dispatch, noisy-kind, and removed-dedup failures with observed counts and values.
 - **M8b external command-line coverage** — `test/specs/rpc-cmdline.e2e.ts` drives all 11 command-line, caret, prefix, prompt, selection, cancellation, nesting, and bundled-fork-isolation scenarios through real editor key events. `rpc-cmdline-negative-controls.md` records stale-hide, raw-byte-caret, and single-level-state failures with observed counts and values.
+- **M8c popup-menu and M8d status-mode coverage** — `test/specs/rpc-popupmenu.e2e.ts` drives insert completion and command-line wildmenu selection/hide through real editor key events, while four lifecycle scenarios cover insert, normal, visual-line, and disconnect arbitration. `rpc-popupmenu-negative-controls.md` records ignored-selection, wrong-anchor, and suppressed-mode-handler failures with observed counts and values.
 
 ### Documentation
 
@@ -108,6 +114,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AGENTS.md`, `CONTRIBUTING.md`: M8a redraw/message source ownership and acceptance/negative-control locations.
 - `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/neovim-backend.md`: M8b command-line, prompt, byte-caret, nested-level behavior, and deferred popup-menu boundary.
 - `AGENTS.md`, `CONTRIBUTING.md`: M8b command-line source ownership and acceptance/negative-control locations.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/neovim-backend.md`: M8c popup-menu completion and M8d Neovim-owned status-bar mode behavior.
+- `AGENTS.md`, `CONTRIBUTING.md`: popup-menu/mode-status source ownership and acceptance/negative-control locations.
+- `CHANGELOG.md`: M8c/M8d implementation, tests, and documentation coverage.
 - `CHANGELOG.md`: Milestone 1 implementation and test coverage.
 - `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 2a text scope, active-editor/single-buffer boundary, and deferred key/frontmatter/decorations work.
 - `AGENTS.md`, `CONTRIBUTING.md`: document-sync source ownership and text-sync acceptance/negative-control locations.

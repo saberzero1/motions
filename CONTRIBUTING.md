@@ -145,9 +145,11 @@ src/
     ime-input.ts           # Cursor-positioned native composition owner, nvim_input commit, and cancellation lifecycle
     key-delegation.ts      # Key and IME forwarding, widget-focus exclusion, frontmatter cursor guard, RPC barrier, and cursor/mode sync
     messages.ts            # D12 msg_show routing and deduplicated Obsidian Notices
+    mode-status.ts         # msg_showmode routing and RPC-over-fork status-bar arbitration
     msgpack-rpc.ts         # Stream msgpack-RPC client, including Neovim 64-bit integer decoding
     neovim-connection.ts   # Desktop process/config/key ownership, API floor, crash handling, and teardown
     obsidian-feature-bridge.ts # Registry-derived mappings/commands, count/argument payloads, cross-file cursor restoration, host dispatch, and refresh teardown
+    popupmenu.ts           # External popup-menu rows, selection, cmdline/grid anchoring, and cleanup
     redraw.ts              # Ordered external-UI redraw event dispatch and cheap grid-event rejection
   types/
     lua-modules.d.ts       # Text-loader declaration for bundled Lua companion sources
@@ -716,6 +718,8 @@ rpc-messages.e2e.ts    # M8a external-UI messages, filtering, deduplication, and
 rpc-messages-negative-controls.md # Dispatch/filter/deduplication sabotage evidence
 rpc-cmdline.e2e.ts     # M8b command-line, prompt, byte-caret, nesting, and fork-isolation coverage
 rpc-cmdline-negative-controls.md # Hide/byte-position/single-level sabotage evidence
+rpc-popupmenu.e2e.ts   # M8c insert completion and wildmenu rendering/selection/anchor coverage
+rpc-popupmenu-negative-controls.md # M8c popup-selection/anchor and M8d mode-handler sabotage evidence
   unit/vim-registration-inventory.test.ts # One-pass registration surface and bridge-selection guard
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests

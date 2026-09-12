@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import {
     dismissNotices,
     getNotices,
+    getStatusBarMode,
     getVimMode,
     loadSingleFileWorkspace,
     setupEditor,
@@ -59,6 +60,7 @@ async function setRpcSettings(
                                     neovimRpcEnabled: boolean;
                                     neovimBinaryPath: string;
                                     neovimConfigPath: string;
+                                    enableStatusBar: boolean;
                                 };
                                 saveSettings(): Promise<void>;
                                 reloadFeatures(): void;
@@ -71,6 +73,7 @@ async function setRpcSettings(
             plugin.settings.neovimBinaryPath = nextPath;
             plugin.settings.neovimConfigPath = nextConfigPath;
             plugin.settings.neovimRpcEnabled = nextEnabled;
+            plugin.settings.enableStatusBar = true;
             await plugin.saveSettings();
             plugin.reloadFeatures();
         },
@@ -116,6 +119,49 @@ async function executeVimCommand(command: string): Promise<void> {
         if (!commands.commands.executeCommandById(`vim-motions:${id}`))
             throw new Error(`Command not found: ${id}`);
     }, command);
+}
+
+async function dispatchKeys(...sequences: string[]): Promise<void> {
+    await browser.executeObsidian(({ app, obsidian }, tokens: string[]) => {
+        const markdown = app.workspace.getActiveViewOfType(
+            obsidian.MarkdownView,
+        );
+        const contentDOM = (
+            markdown?.editor as unknown as { cm?: { contentDOM?: HTMLElement } }
+        )?.cm?.contentDOM;
+        if (!contentDOM) throw new Error('No active editor contentDOM');
+        const KeyboardEventConstructor =
+            contentDOM.ownerDocument.defaultView?.KeyboardEvent;
+        if (!KeyboardEventConstructor)
+            throw new Error('No KeyboardEvent constructor');
+        contentDOM.focus();
+        for (const token of tokens) {
+            const parts = token.startsWith('<') ? [token] : Array.from(token);
+            for (const part of parts) {
+                contentDOM.dispatchEvent(
+                    new KeyboardEventConstructor('keydown', {
+                        key: part === '<Esc>' ? 'Escape' : part,
+                        bubbles: true,
+                        cancelable: true,
+                    }),
+                );
+            }
+        }
+    }, sequences);
+}
+
+async function waitForStatusMode(
+    text: string,
+    dataAttr: string,
+    timeoutMsg: string,
+): Promise<void> {
+    await browser.waitUntil(
+        async () => {
+            const mode = await getStatusBarMode();
+            return mode.text === text && mode.dataAttr === dataAttr;
+        },
+        { timeout: 5000, interval: 25, timeoutMsg },
+    );
 }
 
 describe('Neovim RPC connection lifecycle', function () {
@@ -224,6 +270,89 @@ describe('Neovim RPC connection lifecycle', function () {
         await waitForPidExit(pid);
         expect(pidIsAlive(pid)).toBe(false);
         expect(await getVimMode()).toBe('normal');
+    });
+
+    it('shows Neovim insert mode in the status bar', async () => {
+        await setRpcSettings(true);
+        await waitForConnected();
+        await dispatchKeys('i');
+        await waitForStatusMode(
+            'INSERT',
+            'insert',
+            'Neovim msg_showmode to show INSERT in the status bar',
+        );
+        await expect(await getStatusBarMode()).toEqual({
+            text: 'INSERT',
+            dataAttr: 'insert',
+        });
+    });
+
+    it('returns the status bar to normal after leaving Neovim insert mode', async () => {
+        await setRpcSettings(true);
+        await waitForConnected();
+        await dispatchKeys('i');
+        await waitForStatusMode(
+            'INSERT',
+            'insert',
+            'Neovim msg_showmode to show INSERT before Escape',
+        );
+        await dispatchKeys('<Esc>');
+        await waitForStatusMode(
+            'NORMAL',
+            'normal',
+            'Neovim msg_showmode to restore NORMAL after Escape',
+        );
+        await expect(await getStatusBarMode()).toEqual({
+            text: 'NORMAL',
+            dataAttr: 'normal',
+        });
+    });
+
+    it('shows Neovim visual-line mode in the status bar', async () => {
+        await setRpcSettings(true);
+        await waitForConnected();
+        await dispatchKeys('V');
+        await waitForStatusMode(
+            'V-LINE',
+            'v-line',
+            'Neovim msg_showmode to show V-LINE in the status bar',
+        );
+        await expect(await getStatusBarMode()).toEqual({
+            text: 'V-LINE',
+            dataAttr: 'v-line',
+        });
+    });
+
+    it('clears Neovim mode ownership when RPC disconnects', async () => {
+        await setRpcSettings(true);
+        await waitForConnected();
+        await dispatchKeys('i');
+        await waitForStatusMode(
+            'INSERT',
+            'insert',
+            'Neovim msg_showmode to own the status bar before disconnect',
+        );
+        await setRpcSettings(false);
+        await browser.waitUntil(
+            async () => {
+                const mode = await getStatusBarMode();
+                return (
+                    !(await getRpcState()).connected &&
+                    mode.text === 'NORMAL' &&
+                    mode.dataAttr === 'normal'
+                );
+            },
+            {
+                timeout: 5000,
+                interval: 25,
+                timeoutMsg:
+                    'RPC disconnect to restore the fork-driven NORMAL status',
+            },
+        );
+        await expect(await getStatusBarMode()).toEqual({
+            text: 'NORMAL',
+            dataAttr: 'normal',
+        });
     });
 
     it('disconnects and removes the Vim bridge when Vim mode is disabled', async () => {

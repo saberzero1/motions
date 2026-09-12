@@ -29,7 +29,9 @@ While connected, Neovim owns editor input, text, mode, cursor, registers, undo a
 
 Neovim errors, warnings, notifications, echoes, Lua prints, and shell output appear as Obsidian Notices. Identical messages are limited to one Notice every five seconds. Routine undo, search-count, progress, completion, and command-list messages remain silent.
 
-The external command line renders `:`, `/`, and `?` input with byte-correct caret placement. Prompt text and nested command-line levels are preserved, so `vim.ui.input()` and the generic `vim.ui.select()` flow remain visible and cancellable.
+The external command line renders `:`, `/`, and `?` input with byte-correct caret placement. Prompt text and nested command-line levels are preserved, so `vim.ui.input()` and the generic `vim.ui.select()` flow remain visible and cancellable. With `wildoptions=pum`, command-line completion appears above the command line; insert completion appears at its reported editor-grid position. Selection changes and cancellation update the same popup.
+
+When the status bar is enabled, Neovim's `msg_showmode` output takes precedence over the bundled fork's mode events while RPC is connected. Disconnecting clears that ownership and restores the fork-driven status text.
 
 Obsidian continues to own the vault, Markdown rendering, properties widgets, workspace panes and tabs, pickers, file navigation, Oil, Harpoon storage, cross-note jumps, and the undo-tree sidebar. `:w` routes through Obsidian's active-editor save command, while `:e` and `:e!` re-seed from the current Obsidian document rather than reading behind Obsidian's back.
 
@@ -55,6 +57,5 @@ The backend uses the same documented bindings rather than a separate keymap.
 - Fold persistence and the `i=` / `a=` highlight text object are unavailable in RPC mode.
 - Uppercase cross-file mark motions are deferred. Lowercase within-buffer marks remain native to Neovim.
 - Oil's embedded editor intentionally continues to use the bundled Vim engine.
-- Neovim's popup-menu completion is not rendered yet. The command line and generic input/select prompts are rendered.
 
 See [[known-limitations#Neovim RPC backend]] for the detailed compatibility boundary and current latency measurements.

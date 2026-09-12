@@ -58,6 +58,10 @@ export class NeovimCmdlineOverlay {
         this.element = null;
     }
 
+    getElement(): HTMLElement | null {
+        return this.element;
+    }
+
     private handleShow(value: unknown): void {
         if (!Array.isArray(value)) return;
         const text = chunkText(value[0]);
