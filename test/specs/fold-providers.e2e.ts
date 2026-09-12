@@ -106,11 +106,19 @@ async function isFoldableAt(line: number): Promise<boolean> {
     )) as boolean;
 }
 
-// Folding is applied through a CM6 transaction, so reading the fold state
-// in the statement after the keystroke is a race. It passes on Linux and
-// failed on macOS, where zc had not landed yet and the setup assertion
-// reported false. Waiting is not circular: a fold that never happens still
-// times out and the observed value is asserted.
+// zc can only fold a range the provider has already computed. Waiting for
+// the fold afterwards cannot help: if zc ran before the provider was ready
+// it folded nothing and no amount of waiting produces the effect. Wait for
+// the precondition instead, which the adjacent foldability scenario shows is
+// observable, then assert the result.
+async function waitUntilFoldable(line: number): Promise<void> {
+    await browser.waitUntil(async () => await isFoldableAt(line), {
+        timeout: 5000,
+        interval: 25,
+        timeoutMsg: `line ${line} never became foldable`,
+    });
+}
+
 async function expectFoldedAt(line: number, folded: boolean): Promise<void> {
     try {
         await browser.waitUntil(
@@ -286,6 +294,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
 
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
+            await waitUntilFoldable(2);
             await sendVimKeys('z', 'c');
 
             await expectFoldedAt(2, true);
@@ -298,6 +307,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
 
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
+            await waitUntilFoldable(0);
             await sendVimKeys('z', 'c');
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -312,6 +322,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
 
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
+            await waitUntilFoldable(2);
             await sendVimKeys('z', 'c');
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
@@ -345,6 +356,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
 
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
+            await waitUntilFoldable(2);
             await sendVimKeys('z', 'c');
             await expectFoldedAt(2, true);
 
