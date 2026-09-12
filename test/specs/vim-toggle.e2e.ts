@@ -170,12 +170,31 @@ describe('Vim toggle command', function () {
             const enabled = await keydownObserverCount();
             expect(enabled).toBeGreaterThan(0);
 
+            // The toggle reconfigures CM6 asynchronously, so reading the count
+            // after a fixed sleep is a bet on machine speed: with the settle
+            // set to zero nothing has happened yet and every reading is 0. The
+            // second disable is the heaviest teardown, which is the one that
+            // overran the budget on Windows. Wait for the count instead. A
+            // leak keeps it above the target and a duplicate pushes it past,
+            // so both still fail -- with the observed value in the message.
+            const settleTo = async (target: number): Promise<number> => {
+                try {
+                    await browser.waitUntil(
+                        async () => (await keydownObserverCount()) === target,
+                        { timeout: 10000, interval: 50 },
+                    );
+                } catch {
+                    // fall through and report the observed value
+                }
+                return keydownObserverCount();
+            };
+
             const seen: string[] = [];
             for (let cycle = 1; cycle <= 2; cycle++) {
                 await executeToggleCommand('disable-vim-mode');
-                seen.push(`off:${await keydownObserverCount()}`);
+                seen.push(`off:${await settleTo(0)}`);
                 await executeToggleCommand('enable-vim-mode');
-                seen.push(`on:${await keydownObserverCount()}`);
+                seen.push(`on:${await settleTo(enabled)}`);
             }
 
             // Compared as one string so a failure reports the whole sequence:
