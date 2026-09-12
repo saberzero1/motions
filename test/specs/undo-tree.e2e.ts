@@ -145,6 +145,49 @@ describe('Undo tree', function () {
                 // distinguish a stale undo-tree restore from a stray keystroke,
                 // so the next CI run identifies the cause instead of a guess.
                 const treeAfter = await getUndoTreeState();
+                // Discriminator: was g- actually mapped when the key arrived?
+                // Absent means a plugin registration race; present means the
+                // fork matched nothing for "g-" and its no-match branch let
+                // the trailing key through to CodeMirror.
+                const mapping = await browser.executeObsidian(({ app }) => {
+                    const plugin = (
+                        app as unknown as {
+                            plugins: {
+                                plugins: Record<
+                                    string,
+                                    {
+                                        settings?: Record<string, unknown>;
+                                        registration?: {
+                                            getInventory(): unknown;
+                                        } | null;
+                                    }
+                                >;
+                            };
+                        }
+                    ).plugins.plugins['vim-motions'];
+                    const registration = plugin?.registration ?? null;
+                    const raw = registration as unknown as {
+                        registrations?: {
+                            type: string;
+                            keys?: string;
+                            name: string;
+                        }[];
+                    } | null;
+                    const all = raw?.registrations ?? [];
+                    return {
+                        hasRegistration: registration !== null,
+                        undoTreeSetting: plugin?.settings?.['enableUndoTree'],
+                        gMinusMapped: all.some(
+                            (r) => r.type === 'mapCommand' && r.keys === 'g-',
+                        ),
+                        gPlusMapped: all.some(
+                            (r) => r.type === 'mapCommand' && r.keys === 'g+',
+                        ),
+                        mapCommandCount: all.filter(
+                            (r) => r.type === 'mapCommand',
+                        ).length,
+                    };
+                });
                 throw new Error(
                     `g- at root changed the document: ${JSON.stringify({
                         seeded,
@@ -152,6 +195,7 @@ describe('Undo tree', function () {
                         mode,
                         treeBefore,
                         treeAfter,
+                        mapping,
                     })}`,
                 );
             }
