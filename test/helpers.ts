@@ -21,11 +21,20 @@ export function wasmBinaryPlugin(): Plugin {
     };
 }
 
+// These fixed waits are the settle budget for roughly 600 assertions across 47
+// spec files, so they decide cross-platform flakiness on their own. Measured,
+// the macOS runner is about three times slower than this Linux baseline (RPC
+// key-to-paint p95 114 ms against 36 ms), and a budget tuned on Linux is what
+// let ]3 read the cursor before the motion landed on Windows. Scale the waits
+// rather than the call sites; Linux keeps the original values, so local runs
+// and the blocking Linux suite are unaffected.
+const PAUSE_SCALE = process.platform === 'linux' ? 1 : 3;
+
 export const PAUSE = {
-    KEY_GAP: 30,
-    MODE_SWITCH: 50,
-    EDITOR_SETTLE: 300,
-    OBSIDIAN_LOAD: 500,
+    KEY_GAP: 30 * PAUSE_SCALE,
+    MODE_SWITCH: 50 * PAUSE_SCALE,
+    EDITOR_SETTLE: 300 * PAUSE_SCALE,
+    OBSIDIAN_LOAD: 500 * PAUSE_SCALE,
 } as const;
 
 type EditorResult<T> = { ok: true; value: T } | { ok: false; error: string };
