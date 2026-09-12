@@ -471,7 +471,15 @@ describe('Neovim RPC messages', function () {
         const attachedP95 = await runLatencyCondition('redraw-listener');
         await removeRedrawListener();
         const detachedP95 = await runLatencyCondition('listener-removed');
-        await expect(attachedP95).toBeLessThanOrEqual(61.2);
+
+        // Only the delta is asserted. Both conditions are measured on the same
+        // machine in the same run, so the difference isolates what D15 is
+        // about: the dispatcher must reject unhandled grid events before doing
+        // work. An absolute ceiling here would instead assert that the machine
+        // is fast -- a Linux-derived 61.2 ms bound failed on macOS at 108 ms,
+        // where the runner is roughly three times slower and the listener was
+        // not at fault. Absolute budgets belong in rpc-latency.e2e.ts, which
+        // is Linux-only and deliberately non-blocking.
         await expect(attachedP95 - detachedP95).toBeLessThanOrEqual(5);
     });
 });
