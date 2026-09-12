@@ -472,14 +472,21 @@ describe('Neovim RPC messages', function () {
         await removeRedrawListener();
         const detachedP95 = await runLatencyCondition('listener-removed');
 
-        // Only the delta is asserted. Both conditions are measured on the same
-        // machine in the same run, so the difference isolates what D15 is
-        // about: the dispatcher must reject unhandled grid events before doing
-        // work. An absolute ceiling here would instead assert that the machine
-        // is fast -- a Linux-derived 61.2 ms bound failed on macOS at 108 ms,
-        // where the runner is roughly three times slower and the listener was
-        // not at fault. Absolute budgets belong in rpc-latency.e2e.ts, which
-        // is Linux-only and deliberately non-blocking.
-        await expect(attachedP95 - detachedP95).toBeLessThanOrEqual(5);
+        // A catastrophe guard, not a precision one, expressed as a ratio so
+        // it ports across machines.
+        //
+        // Two absolute thresholds have already failed here for the same
+        // reason. A Linux-derived 61.2 ms ceiling failed on macOS at 108 ms,
+        // and replacing it with a 5 ms delta then failed at 5.1 ms. The
+        // effect is smaller than the noise: total dispatch cost measured
+        // 2.6 ms across 334 events, while p95 varies by 5 ms or more between
+        // runs on a shared runner. No absolute number separates those.
+        //
+        // A doubling still indicates something pathological, such as doing
+        // per-event work instead of returning early for unhandled grid
+        // events. Smaller regressions are not detectable here and are not
+        // claimed to be; rpc-latency.e2e.ts owns real measurement, Linux-only
+        // and non-blocking.
+        await expect(attachedP95).toBeLessThanOrEqual(detachedP95 * 2);
     });
 });
