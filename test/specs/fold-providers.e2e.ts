@@ -129,9 +129,28 @@ async function expectFoldedAt(line: number, folded: boolean): Promise<void> {
             },
         );
     } catch {
-        // fall through and assert the observed value
+        // fall through and report the state that distinguishes the causes
     }
-    expect(await isFoldedAt(line)).toBe(folded);
+    const actual = await isFoldedAt(line);
+    if (actual !== folded) {
+        // Fails on macOS only. Two inferred mechanisms are already ruled out:
+        // waiting for the fold afterwards did not help, and the provider is
+        // not slow to become ready -- measured 0 of 30 samples not-yet-
+        // foldable right after setup. Report whether the line is still
+        // foldable and what the mode is, so the next run says whether zc was
+        // rejected or simply had no effect.
+        const foldable = await isFoldableAt(line);
+        const mode = await getVimMode();
+        throw new Error(
+            `fold state wrong at line ${line}: ${JSON.stringify({
+                expected: folded,
+                actual,
+                stillFoldable: foldable,
+                mode,
+            })}`,
+        );
+    }
+    expect(actual).toBe(folded);
 }
 
 async function isFoldedAt(line: number): Promise<boolean> {
