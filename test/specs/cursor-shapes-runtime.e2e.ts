@@ -94,13 +94,35 @@ async function paintedHeight(): Promise<number> {
     })) as number;
 }
 
+// The budget is a wall-clock bet on how soon the cursor canvas paints, and
+// macOS lost it: CI reported -1, the give-up sentinel, on the first
+// measurement rather than a wrong height. That run reaches here after four
+// setting reloads, and 20 * 90ms is under two seconds on a runner roughly
+// three times slower than this one. The mocha budget for the scenario is 60s,
+// so the poll was the binding constraint, not the test.
+//
+// A bare -1 also reports nothing: "expected > 8, received -1" does not say
+// whether the canvas was missing, empty, or simply late. On give-up the
+// canvas state is now described instead.
 async function pollPaintedHeight(): Promise<number> {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 60; i++) {
         const v = await paintedHeight();
         if (v > 0) return v;
         await browser.pause(90);
     }
-    return -1;
+    const diagnosis = await browser.executeObsidian(() => {
+        const canvases = Array.from(
+            document.querySelectorAll('canvas'),
+        ) as HTMLCanvasElement[];
+        return {
+            canvasCount: canvases.length,
+            sizes: canvases.map((c) => `${c.width}x${c.height}`),
+            styleWidths: canvases.map((c) => c.style.width),
+        };
+    });
+    throw new Error(
+        `cursor canvas never painted within 5.4s: ${JSON.stringify(diagnosis)}`,
+    );
 }
 
 describe('Cursor shapes applied at runtime (#181)', function () {
