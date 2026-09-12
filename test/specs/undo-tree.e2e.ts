@@ -120,6 +120,25 @@ describe('Undo tree', function () {
     });
 
     describe('g+/g-', function () {
+        // These scenarios claim to act at the root of the undo tree, but
+        // setupEditor only replaces the text and nothing resets the tree, so
+        // earlier scenarios in this file leave history reachable. A capture
+        // of the failure showed nodeCount 12 and currentSeq 11 -- not root --
+        // so g- had somewhere to navigate and the unchanged-document
+        // assertion did not hold.
+        //
+        // Reloading collapses that to nodeCount 2, currentSeq 1: the root
+        // plus the setup edit itself, measured. That is not literally root,
+        // so the scenario name still overstates slightly, but it removes the
+        // cross-scenario history that made the assertion false. The
+        // assertion is kept rather than weakened, because dropping it would
+        // hide the unexplained "-" that this scenario is the only place
+        // still reporting.
+        beforeEach(async function () {
+            await browser.reloadObsidian({ vault: 'test-vault' });
+            await obsidianPage.openFile('Welcome.md');
+        });
+
         it('g- does not crash at root', async function () {
             await setupEditor('test', { line: 0, ch: 0 });
             await browser.pause(PAUSE.EDITOR_SETTLE);
