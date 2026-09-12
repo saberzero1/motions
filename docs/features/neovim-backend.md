@@ -29,6 +29,8 @@ While connected, Neovim owns editor input, text, mode, cursor, registers, undo a
 
 Neovim errors, warnings, notifications, echoes, Lua prints, and shell output appear as Obsidian Notices. Identical messages are limited to one Notice every five seconds. Routine undo, search-count, progress, completion, and command-list messages remain silent.
 
+The external command line renders `:`, `/`, and `?` input with byte-correct caret placement. Prompt text and nested command-line levels are preserved, so `vim.ui.input()` and the generic `vim.ui.select()` flow remain visible and cancellable.
+
 Obsidian continues to own the vault, Markdown rendering, properties widgets, workspace panes and tabs, pickers, file navigation, Oil, Harpoon storage, cross-note jumps, and the undo-tree sidebar. `:w` routes through Obsidian's active-editor save command, while `:e` and `:e!` re-seed from the current Obsidian document rather than reading behind Obsidian's back.
 
 Both **Settings → Editor → Properties in document** modes are supported. Source frontmatter remains navigable. Rendered frontmatter is protected by a Neovim fold while the properties widget remains owned by Obsidian.
@@ -53,6 +55,6 @@ The backend uses the same documented bindings rather than a separate keymap.
 - Fold persistence and the `i=` / `a=` highlight text object are unavailable in RPC mode.
 - Uppercase cross-file mark motions are deferred. Lowercase within-buffer marks remain native to Neovim.
 - Oil's embedded editor intentionally continues to use the bundled Vim engine.
-- Neovim's command line, prompts, and popup menu are not rendered yet. Commands still execute when typed, and routed output appears as Notices.
+- Neovim's popup-menu completion is not rendered yet. The command line and generic input/select prompts are rendered.
 
 See [[known-limitations#Neovim RPC backend]] for the detailed compatibility boundary and current latency measurements.

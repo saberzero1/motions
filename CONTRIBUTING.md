@@ -137,6 +137,7 @@ src/
   settings-migration.ts    # Settings schema migration between versions
   rpc/
     companion.lua          # Bundled write/read routing, structural motions, cursor notification, and extmark/fold/float forwarding
+    cmdline.ts             # Level-keyed external command-line, prompt, caret, and special-character overlay
     decorations.ts         # UI redraw clock, CM6 decoration/fold dispatch, and float notification consumer
     document-sync.ts       # Named acwrite mirror, Obsidian save/read routing, line events, and byte/UTF-16 mapping
     floating-windows.ts    # CM6-metric float positioning, content/extmark overlays, stacking, and cleanup
@@ -713,6 +714,8 @@ rpc-latency.e2e.ts     # M7 real-keydown-to-rAF fork/RPC latency certification a
 rpc-latency-negative-controls.md # Delay/layout/engagement/size-stability evidence
 rpc-messages.e2e.ts    # M8a external-UI messages, filtering, deduplication, and latency coverage
 rpc-messages-negative-controls.md # Dispatch/filter/deduplication sabotage evidence
+rpc-cmdline.e2e.ts     # M8b command-line, prompt, byte-caret, nesting, and fork-isolation coverage
+rpc-cmdline-negative-controls.md # Hide/byte-position/single-level sabotage evidence
   unit/vim-registration-inventory.test.ts # One-pass registration surface and bridge-selection guard
     vim-builtin/             # E2E tests (Tier 1 — core Vim behavior, Neovim-compared). Includes new-commands.e2e.ts, new-commands-golden.e2e.ts, link-nav-window-cycle.e2e.ts, ex-move-copy-normal.e2e.ts, minor-motions-scroll.e2e.ts, noop-commands.e2e.ts.
     snippets/                # Snippet expansion/tabstop/variable tests

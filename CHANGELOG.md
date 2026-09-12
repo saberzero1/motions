@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Styles: `styles.css`
 - **Neovim RPC external-UI messages (M8a)** — attaches the messages, command-line, and popup-menu UI extensions once, dispatches ordered redraw batches while rejecting unhandled grid events before further work, and routes D12 error, warning, and informational message kinds to severity-styled Obsidian Notices with a five-second duplicate cooldown. Routine undo, search, progress, completion, and command-list kinds remain silent; command-line and popup-menu rendering remain deferred.
     - Plugin: `src/rpc/redraw.ts`, `src/rpc/messages.ts`, `src/rpc/decorations.ts`, `src/rpc/neovim-connection.ts`
+- **Neovim RPC external command line (M8b)** — renders `cmdline_show`, byte-correct `cmdline_pos`, `cmdline_special_char`, and level-scoped `cmdline_hide` events in a themed editor overlay. First characters, prompts, confirm choices, and nested levels make typed commands, searches, `vim.ui.input()`, and generic `vim.ui.select()` visible without changing bundled-fork behavior; popup-menu completion remains deferred.
+    - Plugin: `src/rpc/cmdline.ts`, `src/rpc/neovim-connection.ts`
+    - Styles: `styles.css`
 
 ### Changed
 
@@ -94,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M6a floating-window coverage** — `test/specs/rpc-floats.e2e.ts` compares flash.nvim's prompt content and config-derived placement with Neovim, checks two-float z-index order, close and disconnect cleanup, and a custom float's extmark and border. `rpc-floats-negative-controls.md` records missing-forwarding, one-cell offset, ignored-z-index, and stale-close failures.
 - **M6b IME composition coverage** — `test/specs/rpc-ime.e2e.ts` drives Chromium's native composition path through CDP, verifies byte-exact CJK commit, dot-repeat, cancellation, key suppression, and active-note switching with an independent vault-adapter read. `rpc-ime-negative-controls.md` records CM6-only commit, buffer-API commit, and composing-key forwarding failures.
 - **M8a external-UI message coverage** — `test/specs/rpc-messages.e2e.ts` covers eight scenarios for informational and error Notices, real-key Lua errors, silent undo/search kinds, one-per-message dispatch, duplicate limiting, and 200-key grid-event latency. `rpc-messages-negative-controls.md` records missing-dispatch, noisy-kind, and removed-dedup failures with observed counts and values.
+- **M8b external command-line coverage** — `test/specs/rpc-cmdline.e2e.ts` drives all 11 command-line, caret, prefix, prompt, selection, cancellation, nesting, and bundled-fork-isolation scenarios through real editor key events. `rpc-cmdline-negative-controls.md` records stale-hide, raw-byte-caret, and single-level-state failures with observed counts and values.
 
 ### Documentation
 
@@ -102,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `AGENTS.md`, `CONTRIBUTING.md`: RPC source ownership and lifecycle test locations.
 - `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/neovim-backend.md`: M8a message routing, duplicate limiting, and deferred command-line/popup rendering.
 - `AGENTS.md`, `CONTRIBUTING.md`: M8a redraw/message source ownership and acceptance/negative-control locations.
+- `README.md`, `KNOWN_LIMITATIONS.md`, `docs/features/neovim-backend.md`: M8b command-line, prompt, byte-caret, nested-level behavior, and deferred popup-menu boundary.
+- `AGENTS.md`, `CONTRIBUTING.md`: M8b command-line source ownership and acceptance/negative-control locations.
 - `CHANGELOG.md`: Milestone 1 implementation and test coverage.
 - `README.md`, `docs/configuration/settings.md`, `KNOWN_LIMITATIONS.md`: Milestone 2a text scope, active-editor/single-buffer boundary, and deferred key/frontmatter/decorations work.
 - `AGENTS.md`, `CONTRIBUTING.md`: document-sync source ownership and text-sync acceptance/negative-control locations.

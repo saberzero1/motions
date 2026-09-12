@@ -12,6 +12,7 @@ import { NeovimKeyDelegation } from './key-delegation';
 import { NeovimDecorationBridge } from './decorations';
 import { NeovimMessageRouter } from './messages';
 import { NeovimRedrawDispatcher } from './redraw';
+import { NeovimCmdlineOverlay } from './cmdline';
 import {
     NeovimObsidianFeatureBridge,
     type HostNavigationTarget,
@@ -140,6 +141,7 @@ export class NeovimConnection {
     private decorationBridge: NeovimDecorationBridge | null = null;
     private redrawDispatcher: NeovimRedrawDispatcher | null = null;
     private messageRouter: NeovimMessageRouter | null = null;
+    private cmdlineOverlay: NeovimCmdlineOverlay | null = null;
     private featureBridge: NeovimObsidianFeatureBridge | null = null;
 
     constructor(
@@ -250,6 +252,10 @@ export class NeovimConnection {
             const redrawDispatcher = new NeovimRedrawDispatcher(rpc);
             this.redrawDispatcher = redrawDispatcher;
             this.messageRouter = new NeovimMessageRouter(redrawDispatcher);
+            this.cmdlineOverlay = new NeovimCmdlineOverlay(
+                this.app,
+                redrawDispatcher,
+            );
             redrawDispatcher.start();
             await decorationBridge.start();
             const featureBridge = new NeovimObsidianFeatureBridge(
@@ -428,6 +434,8 @@ export class NeovimConnection {
         this.decorationBridge = null;
         this.messageRouter?.dispose();
         this.messageRouter = null;
+        this.cmdlineOverlay?.dispose();
+        this.cmdlineOverlay = null;
         this.redrawDispatcher?.dispose();
         this.redrawDispatcher = null;
         this.documentSync?.dispose();
@@ -506,6 +514,8 @@ export class NeovimConnection {
         this.decorationBridge = null;
         this.messageRouter?.dispose();
         this.messageRouter = null;
+        this.cmdlineOverlay?.dispose();
+        this.cmdlineOverlay = null;
         this.redrawDispatcher?.dispose();
         this.redrawDispatcher = null;
         this.documentSync?.dispose();

@@ -119,6 +119,7 @@ npm run build
         window-info.ts         # vim.fn.getwininfo CM6 viewport geometry
       rpc/
         companion.lua          # Bundled write/read routing, structural motions, cursor notification and redraw-time extmark/fold/float forwarding
+        cmdline.ts             # Level-keyed external Neovim command-line, prompt, caret and special-character overlay
         decorations.ts         # UI redraw clock, CM6 decoration/fold dispatch and floating-window notification consumer
         document-sync.ts      # Named acwrite Markdown mirror, Obsidian save/read routing, line events and byte/UTF-16 mapping
         floating-windows.ts   # CM6-metric float positioning, content/extmark overlays, stacking and cleanup
@@ -249,6 +250,7 @@ Tier 1 Vim commands are tested against a headless Neovim instance. The system re
 - `test/specs/rpc-structural-nav.e2e.ts` uses the bundled fork as the runtime oracle for RPC heading/list/link motions, counts, operator-pending ranges/register contents, and native `gq`/`gw` at the configured `textwidth`; it includes a vault-adapter data-safety read. `rpc-structural-nav-negative-controls.md` records mapping, width, level, motion-kind, and count sabotages.
 - `test/specs/rpc-text-objects.e2e.ts` runs the fork and RPC backends over the same 65 Markdown text-object scenarios, comparing documents, cursors, yank registers, visual selections, and counted forms; every operator checks the non-empty-document safety invariant and one result is read through the vault adapter. `rpc-text-objects-negative-controls.md` records range-end, missing-map, and count-forwarding sabotages.
 - `test/specs/rpc-messages.e2e.ts` covers external-UI message routing, severity styling, key-driven Lua errors, ignored undo/search chatter, deduplication, and the grid-event latency boundary. `rpc-messages-negative-controls.md` records missing dispatch, noisy-kind routing, and removed-dedup failures.
+- `test/specs/rpc-cmdline.e2e.ts` covers the external command line, byte-correct caret placement, first characters, prompts, selection/cancellation, nested levels, teardown, and bundled-fork isolation. `rpc-cmdline-negative-controls.md` records stale-hide, raw-byte-caret, and single-level-state failures.
 - `test/specs/rpc-latency.e2e.ts` drives both production backends with real `browser.keys()` over a runtime-created 2,004-line note and resolves both on the first rAF after the same `docChanged || selectionSet` CM6 update criterion. It enforces zero size drift and a blocking p50 sanity relationship before calculating deltas. The certified run measured fork/RPC p50 15.3/17.3 ms, p95 39.5/36.2 ms, and p99 53.1/48.7 ms. `rpc-latency-negative-controls.md` records synchronous-delay, forced-layout, bridge-engagement/fork-isolation, and size-drift evidence.
 - `test/unit/` — Vitest unit tests (jumplist, mark-store, lua engine, picker, invariants, mode-tracker, settings-resolution, dual-vim, animated-cursor, oil-parser, oil-diff, vimrc-parser, flash-labeler, fold-persistence, pair-util, etc.).
 - `test/unit/fengari/` — 23 test files (6 fork-specific + 17 upstream) for the Lua VM, converted to TypeScript ESM.

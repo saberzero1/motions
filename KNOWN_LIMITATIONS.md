@@ -16,12 +16,12 @@ The feature bridge generates Neovim mappings and user commands from the plugin's
 
 M5 structural motions and Markdown text objects are Class A′ buffer-text behavior and do not cross the Obsidian feature bridge. The bundled companion installs buffer-local mappings backed by Neovim's bundled `markdown` and `markdown_inline` treesitter parsers and removes them during companion teardown. M5b covers emphasis, inline code, math, strikethrough, links and wikilinks, fenced code blocks, nested blockquotes, callouts, HTML tags, table cells, and table rows in operator-pending and visual modes. Operators execute over an explicit bounded visual range rather than a cursor-moving callback. Neovim's native `it`/`at` supplies tag matching, with the count consumed once to match the fork's custom object. Highlight (`i=`/`a=`) remains unavailable under RPC because Neovim's bundled Markdown grammar does not expose `==...==` as a syntax node; the companion does not fake a treesitter range with delimiter scanning. The mirrored buffer receives the plugin's `textwidth`; native `gq` and `gw` use Neovim's stock Markdown ftplugin rather than a ported wrapping implementation.
 
-### Neovim prompts and the command line are not displayed in RPC mode
+### Neovim popup-menu completion is not displayed in RPC mode
 
-The attached UI requests `ext_messages`, `ext_cmdline`, and `ext_popupmenu`, but M8a implements only message routing. Grid events remain intentionally discarded, while command-line and popup-menu rendering are deferred. Two consequences remain user-visible:
+The attached UI requests `ext_messages`, `ext_cmdline`, and `ext_popupmenu`. M8a routes messages, and M8b renders the external command line with its first character, prompt, byte-correct caret, special characters, and nested levels. Grid events remain intentionally discarded, while popup-menu rendering is deferred.
 
-- `vim.ui.select()` and `vim.ui.input()` leave Neovim in command-line mode waiting on a prompt that is never drawn. The callback does not run, typed keys go into the invisible prompt, and the editor appears frozen. `<Esc>` cancels the prompt and restores normal mode; the RPC channel itself stays responsive throughout.
-- Typing `:` opens Neovim's command line with no prompt, no echoed input, and no completion. Commands still execute, and routed output appears as Notices. Bundled-fork mode renders its own command line for this, so the command line is a capability RPC mode currently lacks rather than a shared limitation.
+- `vim.ui.select()` and `vim.ui.input()` now display their generic Neovim prompts, accept typed responses, invoke their callbacks, and support `<Esc>` cancellation.
+- Typing `:`, `/`, or `?` displays Neovim's command line and echoed input. Completion candidates remain invisible because `popupmenu_*` is not implemented yet.
 
 Commands that the plugin issues over RPC are unaffected, because they never touch the command line.
 
