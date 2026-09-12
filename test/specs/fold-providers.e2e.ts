@@ -4,6 +4,7 @@ import {
     PAUSE,
     loadSingleFileWorkspace,
     sendVimEscape,
+    getVimMode,
 } from '../helpers.js';
 
 const FRONTMATTER_DOC = [
