@@ -493,6 +493,39 @@ describe('Neovim RPC key delegation', function () {
         await ensureLivePreview();
         await reconnectInPropertiesMode('source');
         const positions = await measureFrontmatterWalk(6);
+        const rows = positions.map(({ nvim }) => nvim[0]);
+        if (rows.join(',') !== '7,6,5,4,3,2') {
+            // Fails on macOS only, where it cannot be reproduced locally. The
+            // walk stalls at the first body line, so the cursor never enters
+            // frontmatter -- the fork only skips its frontmatter interception
+            // while the host reports properties-as-source. Report what that
+            // decision is actually based on, so the next CI run separates a
+            // mis-read properties mode from a fold or live-preview problem.
+            const state = await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                const vault = app.vault as unknown as {
+                    getConfig(key: string): unknown;
+                };
+                return {
+                    propertiesInDocument: vault.getConfig(
+                        'propertiesInDocument',
+                    ),
+                    mode: view?.getMode?.() ?? null,
+                    metadataContainers: document.querySelectorAll(
+                        '.metadata-container',
+                    ).length,
+                };
+            });
+            throw new Error(
+                `frontmatter walk stalled: ${JSON.stringify({
+                    rows,
+                    cmRows: positions.map(({ cm }) => cm.line),
+                    state,
+                })}`,
+            );
+        }
         expect(positions.map(({ nvim }) => nvim[0])).toEqual([
             7, 6, 5, 4, 3, 2,
         ]);
