@@ -106,6 +106,26 @@ async function isFoldableAt(line: number): Promise<boolean> {
     )) as boolean;
 }
 
+// Folding is applied through a CM6 transaction, so reading the fold state
+// in the statement after the keystroke is a race. It passes on Linux and
+// failed on macOS, where zc had not landed yet and the setup assertion
+// reported false. Waiting is not circular: a fold that never happens still
+// times out and the observed value is asserted.
+async function expectFoldedAt(line: number, folded: boolean): Promise<void> {
+    try {
+        await browser.waitUntil(
+            async () => (await isFoldedAt(line)) === folded,
+            {
+                timeout: 5000,
+                interval: 25,
+            },
+        );
+    } catch {
+        // fall through and assert the observed value
+    }
+    expect(await isFoldedAt(line)).toBe(folded);
+}
+
 async function isFoldedAt(line: number): Promise<boolean> {
     return (await browser.executeObsidian(
         ({ app, obsidian, require: req }, targetLine: number) => {
@@ -268,7 +288,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
             await browser.pause(PAUSE.MODE_SWITCH);
             await sendVimKeys('z', 'c');
 
-            expect(await isFoldedAt(2)).toBe(true);
+            await expectFoldedAt(2, true);
         });
     });
 
@@ -317,7 +337,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            expect(await isFoldedAt(0)).toBe(true);
+            await expectFoldedAt(0, true);
         });
 
         it('editor:unfold-all clears all folds including custom', async function () {
@@ -326,7 +346,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
             await sendVimKeys('z', 'c');
-            expect(await isFoldedAt(2)).toBe(true);
+            await expectFoldedAt(2, true);
 
             await browser.executeObsidian(({ app }) => {
                 (
@@ -339,7 +359,7 @@ describe('Fold providers and placeholders (Phase 3)', function () {
             });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
-            expect(await isFoldedAt(2)).toBe(false);
+            await expectFoldedAt(2, false);
         });
     });
 });
