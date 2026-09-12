@@ -124,6 +124,9 @@ describe('Undo tree', function () {
             await setupEditor('test', { line: 0, ch: 0 });
             await browser.pause(PAUSE.EDITOR_SETTLE);
 
+            const seeded = await getEditorValue();
+            const treeBefore = await getUndoTreeState();
+
             // g- at root should be a no-op, not a crash
             await vimKeys('g', '-');
             await browser.pause(PAUSE.EDITOR_SETTLE);
@@ -133,6 +136,25 @@ describe('Undo tree', function () {
             expect(mode).toBe('normal');
 
             const content = await getEditorValue();
+            if (content !== 'test') {
+                // This fails only on macOS and Windows, where it cannot be
+                // reproduced locally, and two inferred mechanisms have already
+                // been disproved: the mode assertion above passes, so the keys
+                // did not land in insert mode, and forcing PAUSE.MODE_SWITCH to
+                // zero does not reproduce it. Report the state that would
+                // distinguish a stale undo-tree restore from a stray keystroke,
+                // so the next CI run identifies the cause instead of a guess.
+                const treeAfter = await getUndoTreeState();
+                throw new Error(
+                    `g- at root changed the document: ${JSON.stringify({
+                        seeded,
+                        content,
+                        mode,
+                        treeBefore,
+                        treeAfter,
+                    })}`,
+                );
+            }
             expect(content).toBe('test');
         });
 
