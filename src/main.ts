@@ -2646,18 +2646,23 @@ export default class VimMotionsPlugin extends Plugin {
 
         // --- Undo tree (g+ / g-) ---
         if (this.settings.enableUndoTree) {
-            const undoTreeRef = this.undoTree;
+            // activateUndoTreeForFile() swaps this.undoTree per file, so a
+            // reference captured here is orphaned on the first file activation
+            // while edits keep recording into the live tree. Resolve at call
+            // time, matching buildUndoTreeExtension().
             this.registration.defineAction('undoTreeOlder', () => {
-                const beforeSeq = undoTreeRef.getCurrentSeq();
-                const node = undoTreeRef.navigateOlder();
+                const undoTree = this.undoTree;
+                const beforeSeq = undoTree.getCurrentSeq();
+                const node = undoTree.navigateOlder();
                 if (!node) return;
                 this.navigateUndoTreeTo(beforeSeq, node.seq);
             });
             this.registration.mapCommand('g-', 'action', 'undoTreeOlder', {});
 
             this.registration.defineAction('undoTreeNewer', () => {
-                const beforeSeq = undoTreeRef.getCurrentSeq();
-                const node = undoTreeRef.navigateNewer();
+                const undoTree = this.undoTree;
+                const beforeSeq = undoTree.getCurrentSeq();
+                const node = undoTree.navigateNewer();
                 if (!node) return;
                 this.navigateUndoTreeTo(beforeSeq, node.seq);
             });
@@ -3641,18 +3646,23 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.mapCommand('g,', 'motion', 'changeListNewer', {});
 
         if (this.settings.enableUndoTree) {
-            const undoTreeRef = this.undoTree;
+            // activateUndoTreeForFile() swaps this.undoTree per file, so a
+            // reference captured here is orphaned on the first file activation
+            // while edits keep recording into the live tree. Resolve at call
+            // time, matching buildUndoTreeExtension().
             this.registration.defineAction('undoTreeOlder', () => {
-                const beforeSeq = undoTreeRef.getCurrentSeq();
-                const node = undoTreeRef.navigateOlder();
+                const undoTree = this.undoTree;
+                const beforeSeq = undoTree.getCurrentSeq();
+                const node = undoTree.navigateOlder();
                 if (!node) return;
                 this.navigateUndoTreeTo(beforeSeq, node.seq);
             });
             this.registration.mapCommand('g-', 'action', 'undoTreeOlder', {});
 
             this.registration.defineAction('undoTreeNewer', () => {
-                const beforeSeq = undoTreeRef.getCurrentSeq();
-                const node = undoTreeRef.navigateNewer();
+                const undoTree = this.undoTree;
+                const beforeSeq = undoTree.getCurrentSeq();
+                const node = undoTree.navigateNewer();
                 if (!node) return;
                 this.navigateUndoTreeTo(beforeSeq, node.seq);
             });

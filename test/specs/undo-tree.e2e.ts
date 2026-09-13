@@ -159,6 +159,32 @@ describe('Undo tree', function () {
             const content = await getEditorValue();
             expect(content).toBe('xtest');
         });
+
+        // Regression: the g-/g+ actions captured this.undoTree at registration,
+        // but activateUndoTreeForFile() swaps that field per file. Navigation
+        // therefore walked an orphaned tree while edits recorded into the live
+        // one, so g- silently did nothing. Asserting mode/non-crash cannot see
+        // this; only the live tree's current sequence can.
+        it('g- moves the live tree current sequence backward', async function () {
+            await setupEditor('alpha', { line: 0, ch: 4 });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            await vimKeys('a');
+            await browser.keys([' ', 'b', 'r', 'a', 'v', 'o']);
+            await sendVimEscape();
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const before = await getUndoTreeState();
+            expect(before).not.toBeNull();
+            expect(before!.currentSeq).toBeGreaterThan(0);
+
+            await vimKeys('g', '-');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            const after = await getUndoTreeState();
+            expect(after).not.toBeNull();
+            expect(after!.currentSeq).toBe(before!.currentSeq - 1);
+        });
     });
 
     describe(':earlier/:later', function () {
