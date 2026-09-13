@@ -80,6 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/oil/manager.ts`
 - **Oil path yanks update the unnamed register** — `y.` now writes the selected path to the bundled Vim engine's unnamed register as well as the system clipboard.
     - Plugin: `src/oil/manager.ts`, `src/oil/keybindings.ts`
+- **`g-` and `g+` navigate the undo tree again** — both actions captured `this.undoTree` in a local at registration time, but `activateUndoTreeForFile()` swaps that field per note, so the capture was orphaned on the first file activation while edits kept recording into the live tree through `buildUndoTreeExtension()`. `g-` walked the empty orphan and returned at its `if (!node)` guard, doing nothing; where the orphan held history it applied those change sets and restored unrelated content. Both registration paths now resolve the field at call time.
+    - Plugin: `src/main.ts`
 
 ### Tests
 
@@ -104,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **M8a external-UI message coverage** — `test/specs/rpc-messages.e2e.ts` covers eight scenarios for informational and error Notices, real-key Lua errors, silent undo/search kinds, one-per-message dispatch, duplicate limiting, and 200-key grid-event latency. `rpc-messages-negative-controls.md` records missing-dispatch, noisy-kind, and removed-dedup failures with observed counts and values.
 - **M8b external command-line coverage** — `test/specs/rpc-cmdline.e2e.ts` drives all 11 command-line, caret, prefix, prompt, selection, cancellation, nesting, and bundled-fork-isolation scenarios through real editor key events. `rpc-cmdline-negative-controls.md` records stale-hide, raw-byte-caret, and single-level-state failures with observed counts and values.
 - **M8c popup-menu and M8d status-mode coverage** — `test/specs/rpc-popupmenu.e2e.ts` drives insert completion and command-line wildmenu selection/hide through real editor key events, while four lifecycle scenarios cover insert, normal, visual-line, and disconnect arbitration. `rpc-popupmenu-negative-controls.md` records ignored-selection, wrong-anchor, and suppressed-mode-handler failures with observed counts and values.
+- **Undo-tree navigation is asserted behaviourally** — the existing `g-`/`g+` scenarios asserted only that the keys did not crash and left the mode alone, both of which held for the entire time `g-` was broken. `test/specs/undo-tree.e2e.ts` now asserts that the live tree's current sequence moves, which fails against the previous code with the sequence unchanged at 20 instead of 19 while the two non-crash scenarios still pass.
 
 ### Documentation
 
