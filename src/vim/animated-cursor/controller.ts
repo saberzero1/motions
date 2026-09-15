@@ -91,7 +91,6 @@ class CursorController implements Tickable {
     private blockChar: BlockCharInfo | undefined;
     private cachedRect: CursorRect | null = null;
     private cachedShapeRect: CursorRect | null = null;
-    private cachedDocPos = -1;
     private cachedSelectionHead = -1;
     private cachedScrollTop = 0;
     private cachedScrollLeft = 0;
@@ -238,23 +237,20 @@ class CursorController implements Tickable {
             scrollTop !== this.cachedScrollTop ||
             scrollLeft !== this.cachedScrollLeft;
 
-        if (vu.selectionSet) {
+        const selectionHead = vu.state.selection.main.head;
+        const cursorPositionChanged =
+            selectionHead !== this.cachedSelectionHead;
+
+        if (vu.selectionSet || cursorPositionChanged) {
             this.needsPositionUpdate = true;
             this.active = true;
             this.lastMoveTime = performance.now();
             getAnimatedCursorManager().wake();
         } else if (scrollChanged) {
-            const selectionHead = vu.state.selection.main.head;
-            if (selectionHead === this.cachedDocPos) {
-                this.needsPositionUpdate = true;
-                this.active = true;
-                this.snapOnNextTick = true;
-                getAnimatedCursorManager().wake();
-            } else {
-                this.needsPositionUpdate = true;
-                this.active = true;
-                getAnimatedCursorManager().wake();
-            }
+            this.needsPositionUpdate = true;
+            this.active = true;
+            this.snapOnNextTick = true;
+            getAnimatedCursorManager().wake();
         }
 
         this.cachedScrollTop = scrollTop;
@@ -548,7 +544,6 @@ class CursorController implements Tickable {
             }
 
             this.cachedRect = rect;
-            this.cachedDocPos = pos;
             this.cachedScrollTop = this.view.scrollDOM.scrollTop;
             this.cachedScrollLeft = this.view.scrollDOM.scrollLeft;
             this.cachedTime = performance.now();
