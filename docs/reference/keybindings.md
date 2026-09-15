@@ -338,48 +338,49 @@ Add, change, or delete surrounding delimiters like brackets, quotes, and tags.
 
 Navigate Obsidian panes, tabs, and history following Neovim conventions.
 
-| Keybinding          | Description                                                   | Global |
-| ------------------- | ------------------------------------------------------------- | ------ |
-| `<C-w>h/j/k/l`      | Focus pane left/down/up/right                                 | Yes    |
-| `<C-w>v`            | Split vertical                                                | Yes    |
-| `<C-w>s`            | Split horizontal                                              | Yes    |
-| `<C-w>n`            | New horizontal split (alias for `<C-w>s`)                     | Yes    |
-| `<C-w>c` / `<C-w>q` | Close current tab                                             | Yes    |
-| `<C-w>o`            | Close all other tabs                                          | Yes    |
-| `gt` / `gT`         | Next/previous tab                                             | Yes    |
-| `Ngt`               | Go to Nth tab (e.g., `3gt` goes to tab 3)                     | Yes    |
-| `g<C-t>`            | Go to tab by number (e.g., `3g<C-t>` goes to tab 3)           | —      |
-| `H` / `L`           | Previous/next tab (non-editor views only)                     | Yes    |
-| `<C-w>w`            | Cycle to next pane                                            | Yes    |
-| `<C-w>W`            | Cycle to previous pane                                        | Yes    |
-| `<C-w>p`            | Focus previously accessed pane                                | Yes    |
-| `<C-w>T`            | Move current pane to a new tab                                | —      |
-| `<C-w>^`            | Split + open alternate file                                   | —      |
-| `g<Tab>`            | Go to last accessed tab (alias for `<C-w>p`)                  | —      |
-| `Ctrl-o` / `Ctrl-i` | Jump backward / forward through jump history (supports count) | Yes    |
-| `<C-^>` / `<C-6>`   | Switch to alternate (previously edited) file                  | Yes    |
-| `<C-]>`             | Follow link under cursor (alias for `gd`)                     | —      |
-| `<C-t>`             | Pop from link follow (jump list backward)                     | —      |
-| `gd`                | Go to definition — open the link under the cursor             | —      |
-| `gD`                | Open link under cursor in a new tab                           | —      |
-| `<C-w>gd`           | Open link under cursor in a horizontal split                  | —      |
-| `<C-w>gD`           | Open link under cursor in a vertical split                    | —      |
-| `gx`                | Open URL under cursor in browser                              | —      |
-| `K`                 | Keyword lookup — hover preview on links, char info on text    | —      |
-| `gf`                | Open file switcher (quick open)                               | —      |
-| `]f` / `[f`         | Alias for `gf` (go to file)                                   | —      |
-| `gO`                | Open document outline (searchable heading list)               | —      |
-| `g<C-g>`            | Show document statistics (words, lines, characters)           | —      |
-| `gp` / `gP`         | Paste and move cursor past pasted text                        | —      |
-| `ga`                | Show character info under cursor (codepoint, hex)             | —      |
-| `gm`                | Go to middle of screen line                                   | —      |
-| `go`                | Go to character offset (byte N in buffer, with count)         | —      |
-| `g8`                | Show UTF-8 byte sequence for character under cursor           | —      |
-| `gF`                | Go to file with optional line number (`file.md:42`)           | —      |
-| `<C-g>`             | Show file info (name, lines, position, percentage)            | —      |
-| `<leader>rn`        | Rename current note                                           | —      |
-| `<leader>rb`        | Show backlinks to current note                                | —      |
-| `<leader>ra`        | Show context actions for current note                         | —      |
+| Keybinding            | Description                                                   | Global |
+| --------------------- | ------------------------------------------------------------- | ------ |
+| `h` / `j` / `k` / `l` | Native File Explorer: parent/next/previous/child navigation   | Yes    |
+| `<C-w>h/j/k/l`        | Focus pane left/down/up/right                                 | Yes    |
+| `<C-w>v`              | Split vertical                                                | Yes    |
+| `<C-w>s`              | Split horizontal                                              | Yes    |
+| `<C-w>n`              | New horizontal split (alias for `<C-w>s`)                     | Yes    |
+| `<C-w>c` / `<C-w>q`   | Close current tab                                             | Yes    |
+| `<C-w>o`              | Close all other tabs                                          | Yes    |
+| `gt` / `gT`           | Next/previous tab                                             | Yes    |
+| `Ngt`                 | Go to Nth tab (e.g., `3gt` goes to tab 3)                     | Yes    |
+| `g<C-t>`              | Go to tab by number (e.g., `3g<C-t>` goes to tab 3)           | —      |
+| `H` / `L`             | Previous/next tab (non-editor views only)                     | Yes    |
+| `<C-w>w`              | Cycle to next pane                                            | Yes    |
+| `<C-w>W`              | Cycle to previous pane                                        | Yes    |
+| `<C-w>p`              | Focus previously accessed pane                                | Yes    |
+| `<C-w>T`              | Move current pane to a new tab                                | —      |
+| `<C-w>^`              | Split + open alternate file                                   | —      |
+| `g<Tab>`              | Go to last accessed tab (alias for `<C-w>p`)                  | —      |
+| `Ctrl-o` / `Ctrl-i`   | Jump backward / forward through jump history (supports count) | Yes    |
+| `<C-^>` / `<C-6>`     | Switch to alternate (previously edited) file                  | Yes    |
+| `<C-]>`               | Follow link under cursor (alias for `gd`)                     | —      |
+| `<C-t>`               | Pop from link follow (jump list backward)                     | —      |
+| `gd`                  | Go to definition — open the link under the cursor             | —      |
+| `gD`                  | Open link under cursor in a new tab                           | —      |
+| `<C-w>gd`             | Open link under cursor in a horizontal split                  | —      |
+| `<C-w>gD`             | Open link under cursor in a vertical split                    | —      |
+| `gx`                  | Open URL under cursor in browser                              | —      |
+| `K`                   | Keyword lookup — hover preview on links, char info on text    | —      |
+| `gf`                  | Open file switcher (quick open)                               | —      |
+| `]f` / `[f`           | Alias for `gf` (go to file)                                   | —      |
+| `gO`                  | Open document outline (searchable heading list)               | —      |
+| `g<C-g>`              | Show document statistics (words, lines, characters)           | —      |
+| `gp` / `gP`           | Paste and move cursor past pasted text                        | —      |
+| `ga`                  | Show character info under cursor (codepoint, hex)             | —      |
+| `gm`                  | Go to middle of screen line                                   | —      |
+| `go`                  | Go to character offset (byte N in buffer, with count)         | —      |
+| `g8`                  | Show UTF-8 byte sequence for character under cursor           | —      |
+| `gF`                  | Go to file with optional line number (`file.md:42`)           | —      |
+| `<C-g>`               | Show file info (name, lines, position, percentage)            | —      |
+| `<leader>rn`          | Rename current note                                           | —      |
+| `<leader>rb`          | Show backlinks to current note                                | —      |
+| `<leader>ra`          | Show context actions for current note                         | —      |
 
 ## Fold commands
 

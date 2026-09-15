@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Native File Explorer Vim navigation** — when workspace navigation is enabled and the native File Explorer is active, unmodified `h`/`j`/`k`/`l` reuse its existing arrow-key behavior: move to or collapse the parent, select the next or previous visible item, and expand or enter a folder. Rename inputs, contenteditable controls, composition, modified keys, modals, editors, and other view types continue to receive their original keystrokes.
+    - Plugin: `src/workspace/global-key-handler.ts` (context gate, same-document arrow translation, and synthetic-event observation guard)
 - **Neovim RPC connection lifecycle** — adds an opt-in desktop-only backend foundation that spawns a user-configured Neovim, attaches with an in-repo msgpack-RPC client, requires API level 12 (Neovim 0.12+), reports actionable startup/crash errors, and terminates the child on setting disable, Vim disable, plugin unload, or failed attach. Milestone 1 intentionally does not forward keys, synchronize text, or bridge decorations.
     - Plugin: `src/rpc/msgpack-rpc.ts`, `src/rpc/neovim-connection.ts`, `src/main.ts`, `src/settings.ts`
 - **Neovim RPC active-editor text synchronisation** — mirrors the active Markdown editor into the single Neovim buffer on connection and leaf activation, then applies content-carrying `nvim_buf_lines_event` notifications to CM6 with byte-to-UTF-16 coordinate conversion. Neovim is authoritative for RPC-originated text; key delegation, multi-leaf buffers, decorations, IME, and frontmatter policy remain deferred.
@@ -85,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **File Explorer navigation coverage** — 8 focused unit cases cover the four arrow translations and their workspace-setting/modifier/input/view gates; 4 Obsidian E2E scenarios exercise `h`/`j`/`k`/`l` against the native File Explorer. Negative controls observed no dispatch for each missing translation, unchanged `Alpha.md`/`Beta.md` focus for `j`/`k`, and unchanged expanded/collapsed folder state for `h`/`l`; bypassing the gates changed every protected unit case from `0/0/0` to `1/1/1` prevent/stop/dispatch calls.
 - **M7 latency certification harness** — `test/specs/rpc-latency.e2e.ts` measures real keydown to first rAF after the same CM6 transaction criterion for fork and production RPC over a 2,004-line runtime fixture (N=500 plus 75 warmups). It proves production fork interception and bridge engagement, enforces stable document size, and gates on the expected fork-faster p50 relationship. The certified run measured fork/RPC p50 15.3/17.3 ms, p95 39.5/36.2 ms, and p99 53.1/48.7 ms, for p95/p99 deltas of −3.3/−4.4 ms; delay, forced-layout, engagement, and drift controls are recorded in `rpc-latency-negative-controls.md`.
 - **RPC prerequisite coverage** — all 13 RPC specs use `test/specs/rpc-prerequisites.ts` to warn and skip when Neovim is absent, below API level 12, or a required fetched fixture is missing. Oil now checks its fetched flash fixture, and only the POSIX old-API stub scenario skips on Windows.
 - **RPC lifecycle acceptance coverage** — 7 WDIO scenarios cover attach/API reporting, runtime disable, Vim disable, unexpected `SIGKILL` and reconnect, plugin unload, missing binaries, and the API-level floor. PID liveness is checked directly, teardown/version-floor sabotages are recorded in `test/specs/rpc-lifecycle.negative-control.md`, and the settings-option inventory records both controls as process-backend settings rather than Vim options. Disposable `.sisyphus/` spike files are excluded from the production lint project.
@@ -110,6 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- `README.md`, `docs/features/workspace-navigation.md`, `docs/reference/keybindings.md`: native File Explorer `h`/`j`/`k`/`l` behavior, activation gate, and editable-control exclusions.
+- `AGENTS.md`, `CONTRIBUTING.md`: `GlobalKeyHandler` ownership of contextual File Explorer arrow translation.
+- `CHANGELOG.md`: implementation, tests, negative controls, and documentation coverage for File Explorer Vim navigation.
 - `README.md`, `docs/configuration/settings.md`: desktop/arbitrary-code/FFI/external-file/no-sandbox/no-install disclosure and Milestone 1 scope.
 - `KNOWN_LIMITATIONS.md`: current lifecycle-only boundary and separation from fengari plugin auto-fetching.
 - `AGENTS.md`, `CONTRIBUTING.md`: RPC source ownership and lifecycle test locations.

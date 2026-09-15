@@ -13,6 +13,12 @@ import { observeKeyEvent } from './key-observer';
 
 import { runCleanups } from '../util/cleanup';
 const SEQUENCE_TIMEOUT = 1000;
+const FILE_EXPLORER_ARROW_KEYS = new Map([
+    ['h', 'ArrowLeft'],
+    ['j', 'ArrowDown'],
+    ['k', 'ArrowUp'],
+    ['l', 'ArrowRight'],
+]);
 
 const GLOBAL_NAV_VIEW_TYPES = new Set([
     'markdown',
@@ -56,6 +62,7 @@ export class GlobalKeyHandler {
     private countActive = false;
     private timer: number | null = null;
     private lastActiveDoc: Document | null = null;
+    private translatedFileExplorerEvents = new WeakSet<KeyboardEvent>();
 
     onGlobalChord?: (
         chord: string,
@@ -202,6 +209,44 @@ export class GlobalKeyHandler {
         return GLOBAL_NAV_VIEW_TYPES;
     }
 
+    private translateFileExplorerNavigation(
+        e: KeyboardEvent,
+        doc: Document,
+    ): boolean {
+        if (!this.settings.enableWorkspaceNav) return false;
+        if (
+            e.defaultPrevented ||
+            e.ctrlKey ||
+            e.altKey ||
+            e.metaKey ||
+            e.shiftKey
+        )
+            return false;
+        if (isEditorOrInputFocused(doc) || isModalOpen(doc)) return false;
+        if (
+            this.app.workspace.activeLeaf?.view.getViewType() !==
+            'file-explorer'
+        )
+            return false;
+
+        const arrowKey = FILE_EXPLORER_ARROW_KEYS.get(e.key);
+        const KeyboardEventCtor = doc.defaultView?.KeyboardEvent;
+        if (!arrowKey || !KeyboardEventCtor || !e.target) return false;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const arrowEvent = new KeyboardEventCtor('keydown', {
+            key: arrowKey,
+            code: arrowKey,
+            bubbles: true,
+            cancelable: true,
+        });
+        this.translatedFileExplorerEvents.add(arrowEvent);
+        e.target.dispatchEvent(arrowEvent);
+        return true;
+    }
+
     private dispatch(entry: GlobalMapEntry): void {
         const action = entry.action;
         if (action.type === 'obcommand') {
@@ -222,6 +267,8 @@ export class GlobalKeyHandler {
     }
 
     private onKeydown(e: KeyboardEvent, doc: Document): void {
+        if (this.translatedFileExplorerEvents.delete(e)) return;
+
         // Observe before workspace/editor/hint gates, including insert-mode
         // text that does not emit the adapter's vim-keypress event.
         observeKeyEvent(e);
@@ -237,6 +284,12 @@ export class GlobalKeyHandler {
         }
 
         if (e.isComposing) return;
+        if (
+            this.keyBuffer.length === 0 &&
+            !this.countActive &&
+            this.translateFileExplorerNavigation(e, doc)
+        )
+            return;
 
         const key = normalizeKeyEvent(e);
         const prospectiveSeq = [...this.keyBuffer, key].join('');
