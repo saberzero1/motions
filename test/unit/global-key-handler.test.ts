@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { App } from 'obsidian';
+import type { VimMotionsSettings } from '../../src/settings';
 
 vi.mock('../../src/workspace/navigation', () => ({
     executeCommand: vi.fn(),
@@ -13,11 +14,29 @@ vi.mock('../../src/ui/hint-mode', () => ({
 
 import { GlobalKeyHandler } from '../../src/workspace/global-key-handler';
 import { GlobalMappingRegistry } from '../../src/workspace/global-mapping-registry';
+import { observeKeys } from '../../src/workspace/key-observer';
 import { executeCommand } from '../../src/workspace/navigation';
 
 type KeydownListener = (e: Partial<KeyboardEvent>) => void;
 
 let capturedListener: KeydownListener | null = null;
+let activeViewType = 'graph';
+let focusedElement: Element | null = null;
+let settings: VimMotionsSettings;
+
+class MockKeyboardEvent {
+    key: string;
+    code: string;
+    bubbles: boolean;
+    cancelable: boolean;
+
+    constructor(_type: string, init: KeyboardEventInit) {
+        this.key = init.key ?? '';
+        this.code = init.code ?? '';
+        this.bubbles = init.bubbles ?? false;
+        this.cancelable = init.cancelable ?? false;
+    }
+}
 
 function makeMockDoc(): Document {
     return {
@@ -25,8 +44,13 @@ function makeMockDoc(): Document {
             capturedListener = listener;
         },
         removeEventListener: () => {},
-        activeElement: null,
+        get activeElement() {
+            return focusedElement;
+        },
         querySelector: () => null,
+        defaultView: {
+            KeyboardEvent: MockKeyboardEvent,
+        },
     } as unknown as Document;
 }
 
@@ -34,8 +58,11 @@ function makeApp(mockDoc: Document): App {
     return {
         workspace: {
             containerEl: { ownerDocument: mockDoc },
+            activeLeaf: {
+                view: { getViewType: () => activeViewType },
+            },
             getMostRecentLeaf: () => ({
-                view: { getViewType: () => 'graph' },
+                view: { getViewType: () => activeViewType },
             }),
             on: () => ({ id: 'ref' }),
             offref: () => {},
@@ -44,11 +71,11 @@ function makeApp(mockDoc: Document): App {
     } as unknown as App;
 }
 
-function makeSettings() {
+function makeSettings(): VimMotionsSettings {
     return {
         enableWorkspaceNav: true,
         workspaceNavViewTypes: '',
-    } as never;
+    } as VimMotionsSettings;
 }
 
 function fakeKeyEvent(
@@ -62,14 +89,20 @@ function fakeKeyEvent(
         altKey: false,
         metaKey: false,
         shiftKey: false,
-        preventDefault: () => {},
-        stopPropagation: () => {},
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        stopImmediatePropagation: vi.fn(),
         ...opts,
     };
 }
 
-function pressKey(key: string, opts?: Record<string, unknown>) {
-    capturedListener!(fakeKeyEvent(key, opts));
+function pressKey(
+    key: string,
+    opts?: Record<string, unknown>,
+): Partial<KeyboardEvent> {
+    const event = fakeKeyEvent(key, opts);
+    capturedListener!(event);
+    return event;
 }
 
 describe('GlobalKeyHandler', () => {
@@ -79,10 +112,13 @@ describe('GlobalKeyHandler', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         capturedListener = null;
+        activeViewType = 'graph';
+        focusedElement = null;
         const mockDoc = makeMockDoc();
         const app = makeApp(mockDoc);
+        settings = makeSettings();
         registry = new GlobalMappingRegistry();
-        handler = new GlobalKeyHandler(app, makeSettings(), null, registry);
+        handler = new GlobalKeyHandler(app, settings, null, registry);
         handler.install();
     });
 
@@ -90,6 +126,107 @@ describe('GlobalKeyHandler', () => {
         handler.destroy();
         vi.useRealTimers();
         vi.clearAllMocks();
+    });
+
+    describe('file explorer navigation', () => {
+        it.each([
+            ['h', 'ArrowLeft'],
+            ['j', 'ArrowDown'],
+            ['k', 'ArrowUp'],
+            ['l', 'ArrowRight'],
+        ])('translates %s to %s for the active file explorer', (key, arrow) => {
+            activeViewType = 'file-explorer';
+            const dispatchEvent = vi.fn(() => true);
+
+            const event = pressKey(key, {
+                target: { dispatchEvent },
+            });
+            const arrowEvent = dispatchEvent.mock.calls[0]?.[0];
+
+            expect({
+                prevented: vi.mocked(event.preventDefault!).mock.calls.length,
+                stopped: vi.mocked(event.stopImmediatePropagation!).mock.calls
+                    .length,
+                dispatched: dispatchEvent.mock.calls.length,
+                arrowEvent,
+            }).toEqual({
+                prevented: 1,
+                stopped: 1,
+                dispatched: 1,
+                arrowEvent: {
+                    key: arrow,
+                    code: arrow,
+                    bubbles: true,
+                    cancelable: true,
+                },
+            });
+        });
+
+        it('does not report the translated arrow as a physical key', () => {
+            activeViewType = 'file-explorer';
+            const observedKeys: string[] = [];
+            const stopObserving = observeKeys((key) => observedKeys.push(key));
+            const dispatchEvent = vi.fn((event: Partial<KeyboardEvent>) => {
+                capturedListener!(event);
+                return true;
+            });
+
+            pressKey('j', { target: { dispatchEvent } });
+            stopObserving();
+
+            expect(observedKeys).toEqual(['j']);
+        });
+
+        const blockedContexts: Array<
+            [
+                string,
+                {
+                    settingsEnabled?: boolean;
+                    event?: Record<string, unknown>;
+                    focused?: Element;
+                    viewType?: string;
+                },
+            ]
+        > = [
+            ['workspace navigation is disabled', { settingsEnabled: false }],
+            ['a modifier is pressed', { event: { ctrlKey: true } }],
+            [
+                'a text input is focused',
+                {
+                    focused: {
+                        tagName: 'INPUT',
+                        closest: () => null,
+                        isContentEditable: false,
+                    },
+                },
+            ],
+            ['another view is active', { viewType: 'markdown' }],
+        ];
+
+        it.each(blockedContexts)(
+            'leaves h/j/k/l alone when %s',
+            (_name, context) => {
+                activeViewType = context.viewType ?? 'file-explorer';
+                focusedElement = (context.focused ?? null) as Element | null;
+                if (context.settingsEnabled === false) {
+                    settings.enableWorkspaceNav = false;
+                }
+                const dispatchEvent = vi.fn(() => true);
+
+                const event = pressKey('j', {
+                    target: { dispatchEvent },
+                    ...context.event,
+                });
+
+                expect({
+                    prevented: vi.mocked(event.preventDefault!).mock.calls
+                        .length,
+                    stopped: vi.mocked(event.stopImmediatePropagation!).mock
+                        .calls.length,
+                    dispatched: dispatchEvent.mock.calls.length,
+                }).toEqual({ prevented: 0, stopped: 0, dispatched: 0 });
+            },
+        );
     });
 
     describe('dispatch count for builtin actions', () => {

@@ -140,6 +140,17 @@ The global key handler extends Vim control to non-editor views like PDFs, the gr
 > [!info] Global Key Handler
 > When no editor is focused, the global key handler intercepts workspace-relevant keystrokes. If an editor is focused, events propagate to the Vim engine normally.
 
+### File Explorer navigation
+
+When Obsidian's native File Explorer is active, unmodified `h`/`j`/`k`/`l` reuse its arrow-key navigation:
+
+- `h`: Select the parent folder, or collapse the selected folder.
+- `j`: Select the next visible file or folder.
+- `k`: Select the previous visible file or folder.
+- `l`: Expand the selected folder, or enter its first child.
+
+These contextual aliases are enabled by **Settings → Vim Motions → Workspace navigation**. They do not run while renaming a file or folder, while another input or contenteditable control is focused, during composition, with a modifier key, or outside the File Explorer. The translated arrow event stays in the File Explorer's document, so the same native behavior works in Obsidian windows without reimplementing its tree logic.
+
 ### Scrolling
 
 You can scroll through any scrollable view using standard Vim keys:
@@ -160,7 +171,7 @@ Pressing `:` in a non-editor view opens a standalone command modal. This modal s
 
 ## Customizing global bindings
 
-All non-editor key bindings can be customized via `.obsidian.init.lua` or `.obsidian.vimrc`. These commands define, override, or remove key bindings that work outside the editor.
+Global mappings can be customized via `.obsidian.init.lua` or `.obsidian.vimrc`. These commands define, override, or remove key bindings that work outside the editor. The File Explorer `h`/`j`/`k`/`l` aliases above are fixed contextual translations controlled by the workspace navigation setting; they are not entries in the global mapping registry.
 
 ```lua
 -- Add a new binding in Lua
@@ -197,7 +208,7 @@ When a plugin view (such as Spaced Repetition flashcard review, Excalidraw, or a
 | `<C-o>`, `<C-i>`   | History back/forward          |
 | `:`                | Open command line             |
 
-Keys like `j`, `k`, `1`–`9`, `H`, `L`, and scroll commands pass through to the plugin view, allowing the plugin to handle them natively.
+Keys like `j`, `k`, `1`–`9`, `H`, `L`, and scroll commands pass through to plugin views, allowing each plugin to handle them natively. The native File Explorer is the deliberate exception: when workspace navigation is enabled, its `h`/`j`/`k`/`l` aliases translate to the view's own arrow-key behavior.
 
 ### Customizing the view type whitelist
 
