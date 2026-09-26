@@ -298,7 +298,13 @@ async function readActiveFile(): Promise<string> {
 
 async function measureFrontmatterWalk(
     steps: number,
+    mode: 'visible' | 'source',
 ): Promise<FrontmatterPosition[]> {
+    // The precondition must hold at WALK time, not merely at setup time. A
+    // pending app.json persist can land during the reconnect and revert
+    // propertiesInDocument, which turned the source-mode walk into the
+    // visible-mode walk — same rows 7,6,6,6,6,6, no other symptom.
+    await setPropertiesMode(mode);
     await resetBuffer(FRONTMATTER_FIXTURE);
     await request('nvim_win_set_cursor', [0, [8, 0]]);
     const positions: FrontmatterPosition[] = [];
@@ -465,7 +471,7 @@ describe('Neovim RPC key delegation', function () {
     it('keeps repeated upward motion out of rendered frontmatter', async () => {
         await ensureLivePreview();
         await reconnectInPropertiesMode('visible');
-        const positions = await measureFrontmatterWalk(6);
+        const positions = await measureFrontmatterWalk(6, 'visible');
         expect(positions.map(({ nvim }) => nvim[0])).toEqual([
             7, 6, 6, 6, 6, 6,
         ]);
@@ -515,7 +521,7 @@ describe('Neovim RPC key delegation', function () {
     it('keeps source-rendered frontmatter fully navigable', async () => {
         await ensureLivePreview();
         await reconnectInPropertiesMode('source');
-        const positions = await measureFrontmatterWalk(6);
+        const positions = await measureFrontmatterWalk(6, 'source');
         const rows = positions.map(({ nvim }) => nvim[0]);
         if (rows.join(',') !== '7,6,5,4,3,2') {
             // Fails on macOS only, where it cannot be reproduced locally. The

@@ -241,7 +241,7 @@ If you encounter ChromeDriver/Chromium mismatch errors, do **not** attempt to in
 
 **Important: e2e test runtime**
 
-The full e2e suite (`npm run test:e2e`) runs 225 spec files and takes approximately **85 minutes** (measured 2026-09-07 at 1:24:13). This figure has grown with the suite — re-measure rather than trusting it if the spec count has moved materially. Each spec launches a fresh Obsidian instance. When running from an agent or script:
+The full e2e suite (`npm run test:e2e`) runs 213 spec files (212 sharded; `rpc-latency` is excluded). The **85 minute** runtime figure was measured on 2026-09-07 at 1:24:13 against 225 spec files and has **not** been re-measured since the count fell to 213, so treat it as an upper bound rather than a current reading. Re-measure before relying on it. Each spec launches a fresh Obsidian instance. When running from an agent or script:
 
 - Use a timeout of at least **7200000 ms** (2 hours) to avoid premature termination.
 - **A subagent may run wdio, but bound the invocation, not the task.** A run killed midway strands Obsidian, ChromeDriver and their GPU/renderer children, which then have to be killed by hand, so no single `wdio` call may risk outliving its shell timeout. Bounding by spec _selection_ ("only the specs you changed") does not bound wall-clock time: 31 changed specs is an 18-minute run. Measured rates are ~23 s/spec (16 specs → 6:02; 226 → 1:26:49) but ~36 s/spec across heavy suites (`hint-mode`, `table-*`), so spec count predicts runtime only loosely.
