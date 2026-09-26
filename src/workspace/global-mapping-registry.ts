@@ -1,12 +1,23 @@
 import type { App } from 'obsidian';
 import type { WhichKeyLabelInfo } from '../ui/which-key';
 
-export type GlobalMapGate = 'standard' | 'hint' | 'structural';
+export type GlobalMapGate = 'standard' | 'hint' | 'structural' | 'explorer';
+
+/** Per-keystroke context handed to `builtin` actions at dispatch time. */
+export interface GlobalDispatchContext {
+    /** True when the keystroke originated in Obsidian's native File Explorer. */
+    inFileExplorer: boolean;
+    /** Sends a synthetic key to the originating target, hidden from key observers. */
+    sendKey: (key: string) => void;
+}
 
 export type GlobalMapAction =
     | { type: 'obcommand'; commandId: string }
     | { type: 'ex'; command: string }
-    | { type: 'builtin'; fn: (app: App, count: number) => void };
+    | {
+          type: 'builtin';
+          fn: (app: App, count: number, ctx: GlobalDispatchContext) => void;
+      };
 
 export interface GlobalMapEntry {
     keys: string;

@@ -2,6 +2,7 @@ import { MarkdownView, TFile } from 'obsidian';
 import type { App } from 'obsidian';
 import type {
     GlobalMappingRegistry,
+    GlobalDispatchContext,
     GlobalMapGate,
 } from './global-mapping-registry';
 import { executeCommand } from './navigation';
@@ -218,6 +219,17 @@ function scrollFullPage(app: App, direction: 1 | -1): void {
     container.scrollBy({ top: direction * distance, behavior: 'auto' });
 }
 
+const MAX_FILE_EXPLORER_MOVEMENTS = 100;
+
+function explorerMove(
+    ctx: GlobalDispatchContext,
+    arrow: string,
+    count: number,
+): void {
+    const repeat = Math.min(Math.max(count, 1), MAX_FILE_EXPLORER_MOVEMENTS);
+    for (let i = 0; i < repeat; i++) ctx.sendKey(arrow);
+}
+
 export function registerDefaultGlobalMappings(
     registry: GlobalMappingRegistry,
     app: App,
@@ -266,10 +278,36 @@ export function registerDefaultGlobalMappings(
 
     if (wsNav) {
         add(
+            'h',
+            {
+                type: 'builtin',
+                fn: (_app2, count, ctx) =>
+                    explorerMove(ctx, 'ArrowLeft', count),
+            },
+            'explorer',
+            'explorerParent',
+        );
+        add(
+            'l',
+            {
+                type: 'builtin',
+                fn: (_app2, count, ctx) =>
+                    explorerMove(ctx, 'ArrowRight', count),
+            },
+            'explorer',
+            'explorerChild',
+        );
+        add(
             'j',
             {
                 type: 'builtin',
-                fn: (app2, count) => scrollBy(app2, LINE_HEIGHT * (count || 1)),
+                fn: (app2, count, ctx) => {
+                    if (ctx.inFileExplorer) {
+                        explorerMove(ctx, 'ArrowDown', count);
+                        return;
+                    }
+                    scrollBy(app2, LINE_HEIGHT * (count || 1));
+                },
             },
             'standard',
             'scrollDown',
@@ -278,8 +316,13 @@ export function registerDefaultGlobalMappings(
             'k',
             {
                 type: 'builtin',
-                fn: (app2, count) =>
-                    scrollBy(app2, -LINE_HEIGHT * (count || 1)),
+                fn: (app2, count, ctx) => {
+                    if (ctx.inFileExplorer) {
+                        explorerMove(ctx, 'ArrowUp', count);
+                        return;
+                    }
+                    scrollBy(app2, -LINE_HEIGHT * (count || 1));
+                },
             },
             'standard',
             'scrollUp',

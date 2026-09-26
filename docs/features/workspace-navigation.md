@@ -140,6 +140,19 @@ The global key handler extends Vim control to non-editor views like PDFs, the gr
 > [!info] Global Key Handler
 > When no editor is focused, the global key handler intercepts workspace-relevant keystrokes. If an editor is focused, events propagate to the Vim engine normally.
 
+### File Explorer navigation
+
+When Obsidian's native File Explorer is active, unmodified `h`/`j`/`k`/`l` reuse its arrow-key navigation:
+
+- `h`: Select the parent folder, or collapse the selected folder.
+- `j`: Select the next visible file or folder.
+- `k`: Select the previous visible file or folder.
+- `l`: Expand the selected folder, or enter its first child.
+
+Prefix a movement with a count to repeat it, for example `3j` moves three visible rows. Counts above 100 are capped at 100 movements so a large prefix cannot freeze the interface.
+
+These keys are enabled by **Settings → Vim Motions → Workspace navigation**, which registers them alongside the other global bindings. They operate after the File Explorer receives focus or a pointer interaction, even when Obsidian sends the keyboard event to the document body. Clicking outside the explorer clears that context. They do not run while renaming a file or folder, while another input or contenteditable control is focused, during composition, with a modifier key, or during a pending chord such as `<C-w>h`. The translated arrow event stays in the File Explorer's document, so the same native behavior works in Obsidian windows without reimplementing its tree logic.
+
 ### Scrolling
 
 You can scroll through any scrollable view using standard Vim keys:
@@ -160,7 +173,7 @@ Pressing `:` in a non-editor view opens a standalone command modal. This modal s
 
 ## Customizing global bindings
 
-All non-editor key bindings can be customized via `.obsidian.init.lua` or `.obsidian.vimrc`. These commands define, override, or remove key bindings that work outside the editor.
+Global mappings can be customized via `.obsidian.init.lua` or `.obsidian.vimrc`. These commands define, override, or remove key bindings that work outside the editor. The File Explorer `h`/`j`/`k`/`l` keys are ordinary entries in the same registry, so they can be remapped or removed like any other global binding — `gmap h :obcommand app:go-back` replaces the explorer `h`. Because `j` and `k` are the same entries that scroll elsewhere, remapping one replaces both meanings.
 
 ```lua
 -- Add a new binding in Lua
@@ -197,7 +210,7 @@ When a plugin view (such as Spaced Repetition flashcard review, Excalidraw, or a
 | `<C-o>`, `<C-i>`   | History back/forward          |
 | `:`                | Open command line             |
 
-Keys like `j`, `k`, `1`–`9`, `H`, `L`, and scroll commands pass through to the plugin view, allowing the plugin to handle them natively.
+Keys like `j`, `k`, `1`–`9`, `H`, `L`, and scroll commands pass through to plugin views, allowing each plugin to handle them natively. The native File Explorer is the deliberate exception: when workspace navigation is enabled, `h`/`j`/`k`/`l` translate to the view's own arrow-key behavior.
 
 ### Customizing the view type whitelist
 

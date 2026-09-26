@@ -251,7 +251,8 @@ src/
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)
     vault-search.ts        # :grep vault-wide search implementation
-    global-key-handler.ts  # Global key event handling (outside editor) — always installed on desktop, interception gates check focus/modal/leaf-type only (not enableWorkspaceNav); dispatch passes raw count to builtin handlers, sequence timeout restarts on partial match (which-key parity)
+    global-key-handler.ts  # Global key event handling (outside editor) — always installed on desktop; every global key is a GlobalMappingRegistry entry, no exceptions; gates check focus/modal/leaf-type plus an explorer gate; dispatch hands builtin actions a GlobalDispatchContext and preserves raw counts and partial-match timeouts
+    file-explorer-context.ts    # Tracks whether input belongs to the native File Explorer (pointer, focus, active-leaf)
     global-mapping-registry.ts  # Registry for global key mappings
     external-mode.ts       # Backend-reported vim mode for per-mode host rendering and IM switching
     key-observer.ts        # Physical key observation feeding vim.on_key

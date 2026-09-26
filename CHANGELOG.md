@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Native File Explorer Vim navigation** — when workspace navigation is enabled and the native File Explorer has focus, unmodified `h`/`j`/`k`/`l` reuse its arrow-key behavior, including counted movement capped at 100. They are ordinary `GlobalMappingRegistry` entries, so they remap and unmap like every other global binding: `h`/`l` under a new `explorer` gate that keeps them from being swallowed outside the tree, and `j`/`k` as the existing scroll entries with an explorer branch, since the registry stores one entry per key. Interaction tracking preserves navigation when Obsidian targets `BODY` and clears it on focus or pointer movement outside the explorer; pending chords such as `<C-w>h` are untouched. Rename controls, composition, modified keys, modals, editors, and other views retain their original keystrokes. ([#191](https://github.com/saberzero1/motions/pull/191))
+    - Plugin: `src/workspace/global-key-handler.ts`, `src/workspace/global-defaults.ts`, `src/workspace/global-mapping-registry.ts`, `src/workspace/file-explorer-context.ts` (new)
+
 ### Fixed
 
 - **Multi-digit counts now reach global key bindings** — every count typed outside the editor was truncated to its first digit, so `12gt` went to tab 1 and `30j` scrolled three lines instead of thirty. The first digit is captured in the `gateApplies === null` branch of the gate block, and that branch returns unconditionally for any key it does not consume. The continuation accumulator sat _below_ the gate block, so it was unreachable for a second digit — an unmapped digit always resolves to `gateApplies === null` and returns there. Single-digit counts were unaffected, which is why this went unnoticed; `3gt` and its test have always passed. The accumulator now runs before the gate block, and carries a note that the ordering is load-bearing.
@@ -15,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - 4 unit cases in `test/unit/global-key-handler.test.ts` cover two-digit, four-digit, and trailing-zero counts dispatched to a `builtin` action, plus `12gt` across a multi-key chord — a separate path, since the count has to survive a partial match and a timeout restart. Each was negative-controlled by restoring the pre-fix file verbatim: `12x` delivered `1`, `9999x` delivered `9`, `30x` delivered `3`, and `12gt` delivered `1`. All four returned green once the fix was restored.
+
+- 25 File Explorer unit cases and 7 Obsidian E2E scenarios cover arrow translation, counts and the 100-movement cap, focus/pointer/contenteditable gates, physical-key observation, `<C-w>h`, and the new registry behaviour: `h`/`l` are not swallowed outside the tree, `j`/`k` still scroll there, `<C-w>j`/`k`/`l` still reach their pane commands, `h` disappears when workspace navigation is off, and a user `gmap h` overrides the default. Every case was negative-controlled: registering `h`/`l` at the `standard` gate gave `prevented 1, dispatched 1` instead of `0, 0`; an unconditional explorer branch gave `scrolls 0` instead of `1`; removing the `<C-w>j` entry gave `[]` instead of `['editor:focus-bottom']`; forcing `wsNav` true left `h` registered; blocking registry overwrite gave `commands []` instead of `['app:go-back']`; ordering `explorer` ahead of `structural` gave `prevented 0` instead of `1`; removing the `focusin` listener dispatched one unwanted `ArrowDown`; removing the synthetic-event guard reported `<ArrowDown>` as a physical key; removing the cap dispatched 9,999 instead of 100; and removing the `contentEditable` gate gave `prevented 1, stopped 1` instead of `0, 0`. ([#191](https://github.com/saberzero1/motions/pull/191))
+
+### Documentation
+
+- `AGENTS.md`, `CONTRIBUTING.md`: File Explorer key handling.
+- `README.md`, `docs/features/workspace-navigation.md`, `docs/reference/keybindings.md`: native File Explorer navigation, counts, focus gates, and editable-control exclusions.
 
 ## [1.1.1] - 2026-09-25
 

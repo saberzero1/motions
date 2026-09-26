@@ -119,10 +119,10 @@ describe('vim.on_key', () => {
         let listener: ((event: KeyboardEvent) => void) | undefined;
         const doc = {
             addEventListener: (
-                _name: string,
+                name: string,
                 handler: (event: KeyboardEvent) => void,
             ) => {
-                listener = handler;
+                if (name === 'keydown') listener = handler;
             },
             removeEventListener: vi.fn(),
             activeElement: { closest: () => ({}) },

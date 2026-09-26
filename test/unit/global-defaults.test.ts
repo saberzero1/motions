@@ -13,6 +13,7 @@ vi.mock('../../src/vim/options', () => ({
 
 import {
     GlobalMappingRegistry,
+    type GlobalDispatchContext,
     type GlobalMapAction,
 } from '../../src/workspace/global-mapping-registry';
 import { registerDefaultGlobalMappings } from '../../src/workspace/global-defaults';
@@ -53,6 +54,11 @@ function makeLeaf(id: string, root: unknown): MockLeaf {
     };
 }
 
+/** `gt` ignores the dispatch context; these cases only exercise the count. */
+function noDispatchContext(): GlobalDispatchContext {
+    return { inFileExplorer: false, sendKey: () => {} };
+}
+
 function getGtAction(registry: GlobalMappingRegistry): GlobalMapAction {
     const entries = registry.getAllEntries();
     const gt = entries.find((e) => e.keys === 'gt');
@@ -91,7 +97,7 @@ describe('gotoNthTab (via gt mapping)', () => {
         const action = getGtAction(registry);
 
         if (action.type !== 'builtin') throw new Error('expected builtin');
-        action.fn(appWithLeaves, 2);
+        action.fn(appWithLeaves, 2, noDispatchContext());
 
         expect(activated).toEqual(['tab-2']);
     });
@@ -124,7 +130,7 @@ describe('gotoNthTab (via gt mapping)', () => {
         const action = getGtAction(registry);
 
         if (action.type !== 'builtin') throw new Error('expected builtin');
-        action.fn(app, 1);
+        action.fn(app, 1, noDispatchContext());
 
         expect(activated).toEqual(['tab-1']);
     });
@@ -155,7 +161,7 @@ describe('gotoNthTab (via gt mapping)', () => {
         const action = getGtAction(registry);
 
         if (action.type !== 'builtin') throw new Error('expected builtin');
-        action.fn(app, 5);
+        action.fn(app, 5, noDispatchContext());
 
         expect(activated).toEqual([]);
     });
@@ -175,7 +181,7 @@ describe('gotoNthTab (via gt mapping)', () => {
         const action = getGtAction(registry);
 
         if (action.type !== 'builtin') throw new Error('expected builtin');
-        action.fn(app, 0);
+        action.fn(app, 0, noDispatchContext());
 
         expect(executeCommand).toHaveBeenCalledWith(app, 'workspace:next-tab');
     });
