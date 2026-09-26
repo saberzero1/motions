@@ -23,13 +23,24 @@ import type { View } from 'obsidian';
  * | `tag`            | `view.tree`                   | yes   | yes         |
  * | `all-properties` | `view.tree`                   | yes   | no          |
  * | `bookmarks`      | `view.tree`                   | yes   | no          |
- * | `backlink`       | `view.backlink.backlinkDom`   | NO    | no          |
- * | `search`         | `view.dom`                    | NO    | no          |
+ * | `backlink`       | `view.backlink.backlinkDom`   | n/a   | n/a         |
+ * | `search`         | `view.dom`                    | n/a   | n/a         |
  *
- * The last two rows are the reason this file exists as an allowlist rather
- * than a structural check: both expose an object carrying
- * `changeFocusedItem`, so duck-typing finds them and then silently does
- * nothing. Never resolve a tree by shape alone.
+ * The last two rows carry a **`ResultDom`**, not a `Tree`. It is a distinct
+ * interface that happens to share the method name, and duck-typing finds it:
+ * resolve a tree by allowlist, never by shape.
+ *
+ * `ResultDom.changeFocusedItem` is **not** inert. obsidian-typings declares it
+ * `(arg1: unknown)`, but the shipped function branches on `"forwards" === e`
+ * exactly as `Tree`'s does, and on `search` it moved focus from `null` to the
+ * first result. An earlier probe reported "never moves" because it read
+ * `focusedItem.selfEl` — `TreeItem` exposes `selfEl`, `ResultDom` items expose
+ * `el`, so the label was `null` both times. The exclusion here is about the
+ * two interfaces being different, not about one of them being dead.
+ *
+ * `backlink` is unverified: its view rendered no rows in two attempts, so its
+ * `ResultDom` was never exercised. It is the same interface as `search`'s with
+ * an identical function body, which is inference, not measurement.
  */
 
 /** A core-plugin view that owns a navigable `Tree` at runtime. */
@@ -51,7 +62,7 @@ export type NavigableTreeViewType =
 export type CollapsibleTreeViewType = 'file-explorer' | 'outline' | 'tag';
 
 /**
- * View types carrying a `changeFocusedItem`-shaped object that does **not**
- * respond. Declared so the exclusion is reviewable rather than folklore.
+ * View types whose results live in a `ResultDom` rather than a `Tree`.
+ * Declared so the exclusion is reviewable rather than folklore.
  */
-export type InertTreeShapedViewType = 'backlink' | 'search';
+export type ResultDomViewType = 'backlink' | 'search';

@@ -4,7 +4,7 @@ import type { Tree, TreeItem } from '@obsidian-typings/obsidian-public-latest';
 
 import {
     COLLAPSIBLE_TREE_VIEW_TYPES,
-    INERT_TREE_SHAPED_VIEW_TYPES,
+    RESULT_DOM_VIEW_TYPES,
     NAVIGABLE_TREE_VIEW_TYPES,
     getNavigableTree,
     isNavigableTreeViewType,
@@ -40,7 +40,7 @@ describe('core-view-tree', () => {
             expect({
                 navigable: [...NAVIGABLE_TREE_VIEW_TYPES],
                 collapsible: [...COLLAPSIBLE_TREE_VIEW_TYPES],
-                inert: [...INERT_TREE_SHAPED_VIEW_TYPES],
+                resultDom: [...RESULT_DOM_VIEW_TYPES],
             }).toEqual({
                 navigable: [
                     'file-explorer',
@@ -50,7 +50,7 @@ describe('core-view-tree', () => {
                     'bookmarks',
                 ],
                 collapsible: ['file-explorer', 'outline', 'tag'],
-                inert: ['backlink', 'search'],
+                resultDom: ['backlink', 'search'],
             });
         });
 
@@ -63,7 +63,7 @@ describe('core-view-tree', () => {
         });
 
         it.each(['backlink', 'search'])(
-            'rejects %s, whose tree-shaped object does not respond',
+            'rejects %s, whose results live in a ResultDom rather than a Tree',
             (viewType) => {
                 expect(isNavigableTreeViewType(viewType)).toBe(false);
             },

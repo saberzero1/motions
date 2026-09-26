@@ -13,7 +13,9 @@ import { PAUSE } from '../helpers';
 const ROOT = 'Core View Trees';
 const NOTE = `${ROOT}/Target.md`;
 
-// Imported, not restated: editing the declarations must break this spec.
+// Restated rather than imported: test/specs cannot value-import a
+// src/**/*.ts module. test/unit/workspace/core-view-tree.test.ts pins these
+// literals against the source lists.
 const NAVIGABLE = [
     'file-explorer',
     'outline',
@@ -21,7 +23,7 @@ const NAVIGABLE = [
     'all-properties',
     'bookmarks',
 ] as const;
-const INERT = ['backlink', 'search'] as const;
+const RESULT_DOM = ['backlink', 'search'] as const;
 const COLLAPSIBLE = ['file-explorer', 'outline', 'tag'] as const;
 
 type Measured = {
@@ -144,12 +146,14 @@ describe('Core-plugin view trees match their declarations', function () {
         });
     }
 
-    for (const view of INERT) {
-        it(`${view} is correctly excluded — no navigable view.tree`, async function () {
+    for (const view of RESULT_DOM) {
+        it(`${view} has no view.tree — its results are a ResultDom`, async function () {
             await openAndFocus(view);
             const m = await measure(view);
-            // Either no `view.tree` at all, or one that does not move focus.
-            expect(m.treeAtViewTree && m.moves).toBe(false);
+            // The positive claim: there is no `tree` on these views at all.
+            // Their `ResultDom` is a separate interface and is NOT inert —
+            // its changeFocusedItem also takes 'forwards'.
+            expect(m.treeAtViewTree).toBe(false);
         });
     }
 });

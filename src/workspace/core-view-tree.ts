@@ -7,14 +7,14 @@ import type {
 
 import type {
     CollapsibleTreeViewType,
-    InertTreeShapedViewType,
+    ResultDomViewType,
     NavigableTreeViewType,
     TreeBackedView,
 } from '../types/core-view-trees';
 
 /**
- * Resolution is by allowlist, not by shape: `backlink` and `search` both
- * expose a `changeFocusedItem`-carrying object that never moves focus.
+ * Resolution is by allowlist, not by shape: `backlink` and `search` expose a
+ * `ResultDom`, a different interface that also carries `changeFocusedItem`.
  */
 export const NAVIGABLE_TREE_VIEW_TYPES: readonly NavigableTreeViewType[] = [
     'file-explorer',
@@ -31,11 +31,13 @@ export const COLLAPSIBLE_TREE_VIEW_TYPES: readonly CollapsibleTreeViewType[] = [
 ];
 
 /**
- * Carry a `changeFocusedItem`-shaped object that never moves focus. Listed so
- * the exclusion is reviewable, and so a regression test can assert it.
+ * Back their results with a `ResultDom` instead of a `Tree`. Listed so the
+ * exclusion is reviewable, and so a regression test can assert it.
  */
-export const INERT_TREE_SHAPED_VIEW_TYPES: readonly InertTreeShapedViewType[] =
-    ['backlink', 'search'];
+export const RESULT_DOM_VIEW_TYPES: readonly ResultDomViewType[] = [
+    'backlink',
+    'search',
+];
 
 export function isNavigableTreeViewType(
     viewType: string,
