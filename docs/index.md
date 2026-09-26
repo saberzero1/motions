@@ -33,12 +33,10 @@ A polished, Neovim-native experience inside [Obsidian](https://obsidian.md). Vim
 - **[[settings|Settings reference]]** — all 100 configurable items with defaults and vimrc equivalents
 - **[[known-limitations|Known limitations]]** — architectural constraints and workarounds
 
-## What's new in 1.0.1
+## What's new in 1.2.0
 
-- **Yank highlight covers rendered blocks whole** — `yG` over a callout flashed every line around it and left the callout itself untouched, and the same held for embedded notes, images and tables. Live Preview renders those as block widgets that no CodeMirror decoration can reach, so they are now painted directly, in both `solid` and `fade` modes ([[quality-of-life|quality of life]])
-- **Callouts no longer stay highlighted after a linewise yank** — a callout that a visual-line selection passed through kept a selection-coloured background forever, surviving the yank, further motions, and editing the block
-- **`K` on a wikilink opens a page preview that stays open** — the preview either did nothing or flashed up for under a second. The synthesised hover event now carries the Mod flag, so it works regardless of the Page preview plugin's per-source Ctrl/Cmd requirement, and the cursor's own coordinates, which anchors the popover to the link instead of the window corner ([[quality-of-life|quality of life]])
-- **`:obcommand` keeps a charwise selection** — a visual-mode mapping such as `:obcommand templater-obsidian:create-new-note-from-template<CR>` ran the Obsidian command with no selection, so Templater and every other selection-dependent command saw nothing. Charwise, linewise and blockwise selections now each restore as themselves, while a typed numeric or `%` range still expands to whole lines ([[ex-commands|ex commands]])
-- **Which-key no longer opens on a literal-argument leader key** — `r<leader>`, and any other command awaiting a literal `<character>` argument (`f`, `t`, `m`, `q`, `"`), opened the leader overlay instead of taking the key as its argument ([[which-key|which-key]])
+- **Native File Explorer navigation** — with workspace navigation enabled and the File Explorer focused, unmodified `h`/`j`/`k`/`l` move through the tree using its own arrow-key behaviour, including counted movement such as `5j`. They are ordinary global bindings, so they remap and unmap like every other key, and rename fields, modals, editors, and other views keep their original keystrokes ([[workspace-navigation|workspace navigation]], [[remapping|remapping]])
+- **A focused sidebar pane no longer scrolls the main editor** — with the tag or outline pane focused, `j`/`k`/`G`/`gg`/`H`/`L`/`<C-d>`/`<C-u>`/`<C-f>`/`<C-b>` were applied to the note behind them; five presses of `j` scrolled the editor 196 px. Keystrokes now go to the leaf that actually gained focus ([[workspace-navigation|workspace navigation]])
+- **Multi-digit counts now reach global key bindings** — every count typed outside the editor was truncated to its first digit, so `12gt` went to tab 1 and `30j` scrolled three lines instead of thirty ([[workspace-navigation|workspace navigation]])
 
 See the [[changelog|full changelog]] for details.

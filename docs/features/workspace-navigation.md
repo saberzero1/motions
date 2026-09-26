@@ -155,12 +155,14 @@ These keys are enabled by **Settings → Vim Motions → Workspace navigation**,
 
 ### Scrolling
 
-You can scroll through any scrollable view using standard Vim keys:
+You can scroll a whitelisted view using standard Vim keys:
 
 - `j` and `k`: Scroll down or up by a few lines.
 - `gg` and `G`: Jump to the top or bottom of the view.
 - `Ctrl-u` and `Ctrl-d`: Scroll up or down by half a page.
 - `Ctrl-b` and `Ctrl-f`: Scroll up or down by a full page.
+
+These keys act on the view that currently has focus, and only when its type is whitelisted — see [[workspace-navigation#Customizing the view type whitelist|the view type whitelist]]. Focusing a sidebar pane that is not whitelisted, such as search, tag, outline or backlinks, leaves these keys to Obsidian rather than applying them to the note behind the pane. The File Explorer is the exception described above: it is not whitelisted, but `h`/`j`/`k`/`l` navigate its tree.
 
 > [!warning] Scrolling Hotkey Conflicts
 > Obsidian's default hotkeys for `Ctrl-d` (delete paragraph), `Ctrl-f` (search), and `Ctrl-b` (toggle bold/sidebar) intercept these keys before the plugin can see them. To use these for scrolling, you must unbind the conflicting hotkeys in **Settings → Hotkeys**.
