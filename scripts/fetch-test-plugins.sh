@@ -37,13 +37,27 @@ for ((i = 0; i < count; i++)); do
     trap 'rm -rf "$tmpdir"' EXIT
 
     echo "  Fetching $repo@$ref..."
-    if ! curl -sfL "$url" | tar xz -C "$tmpdir" --strip-components=1; then
+    # Download to a file before extracting. Piping curl into tar cannot survive
+    # a truncated response: codeload cut a flash.nvim tarball mid-stream and tar
+    # died with "gzip: stdin: unexpected end of file", taking a whole Windows
+    # shard with it. A file lets curl detect the short read and retry.
+    tarball="$tmpdir/archive.tar.gz"
+    if ! curl -sfL --retry 3 --retry-delay 2 --retry-all-errors \
+        -o "$tarball" "$url"; then
         echo "    ERROR: could not fetch $repo@$ref from $url"
         failed=1
         rm -rf "$tmpdir"
         trap - EXIT
         continue
     fi
+    if ! tar xzf "$tarball" -C "$tmpdir" --strip-components=1; then
+        echo "    ERROR: could not extract $repo@$ref (corrupt archive)"
+        failed=1
+        rm -rf "$tmpdir"
+        trap - EXIT
+        continue
+    fi
+    rm -f "$tarball"
 
     file_count=$(jq -r ".[$i].files // [] | length" "$MANIFEST")
     dir_count=$(jq -r ".[$i].dirs // [] | length" "$MANIFEST")
