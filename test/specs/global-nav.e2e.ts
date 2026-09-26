@@ -625,6 +625,35 @@ describe('Global workspace navigation', function () {
             expect(after).toBeGreaterThanOrEqual(before);
         });
 
+        for (const viewType of ['tag', 'outline', 'search']) {
+            it(`j does not scroll the editor while the ${viewType} pane is focused`, async function () {
+                const readScroll = async () =>
+                    (await browser.executeObsidian(() => {
+                        const el = document.querySelector(
+                            '.markdown-preview-view',
+                        ) as HTMLElement | null;
+                        return el ? Math.round(el.scrollTop) : -1;
+                    })) as number;
+
+                await browser.executeObsidian(async ({ app }, type: string) => {
+                    await app.workspace.ensureSideLeaf(type, 'left', {
+                        active: true,
+                        reveal: true,
+                    });
+                    const leaf = app.workspace.getLeavesOfType(type)[0];
+                    if (leaf)
+                        app.workspace.setActiveLeaf(leaf, { focus: true });
+                }, viewType);
+                await browser.pause(PAUSE.EDITOR_SETTLE);
+
+                const before = await readScroll();
+                await browser.keys(['j', 'j', 'j', 'j', 'j']);
+                await browser.pause(PAUSE.EDITOR_SETTLE);
+
+                expect(await readScroll()).toBe(before);
+            });
+        }
+
         it('gg should scroll to top', async function () {
             await browser.keys(['j', 'j', 'j', 'j', 'j']);
             await browser.pause(PAUSE.EDITOR_SETTLE);

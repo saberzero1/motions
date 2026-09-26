@@ -28,6 +28,9 @@ let rootSplitViewType = 'markdown';
 let focusedElement: Element | null = null;
 let targetInsideExplorer = true;
 let scrollTarget: { scrollBy: ReturnType<typeof vi.fn> } | null = null;
+// Obsidian invokes every subscriber; capturing only the last one grabs
+// whichever component registered latest, not the one under test.
+let activeLeafListeners: ((leaf: unknown) => void)[] = [];
 let settings: VimMotionsSettings;
 
 class MockKeyboardEvent {
@@ -114,7 +117,11 @@ function makeApp(mockDoc: Document): App {
                           containerEl: { querySelector: () => scrollTarget },
                       }
                     : null,
-            on: () => ({ id: 'ref' }),
+            on: (event: string, cb: (leaf: unknown) => void) => {
+                if (event === 'active-leaf-change')
+                    activeLeafListeners.push(cb);
+                return { id: 'ref' };
+            },
             offref: () => {},
         },
         commands: { commands: {} },
@@ -170,6 +177,7 @@ describe('GlobalKeyHandler', () => {
         focusedElement = null;
         targetInsideExplorer = true;
         scrollTarget = null;
+        activeLeafListeners = [];
         const mockDoc = makeMockDoc();
         const app = makeApp(mockDoc);
         currentApp = app;
@@ -505,6 +513,69 @@ describe('GlobalKeyHandler', () => {
             });
 
             expect(vi.mocked(event.preventDefault!).mock.calls.length).toBe(1);
+        });
+    });
+
+    describe('standard gate with a sidebar pane focused', () => {
+        const useDefaults = () => {
+            registry.clear();
+            registerDefaultGlobalMappings(
+                registry,
+                currentApp,
+                null,
+                undefined,
+                undefined,
+                { enableWorkspaceNav: true },
+            );
+        };
+        beforeEach(() => useDefaults());
+
+        const activateSidebar = (viewType: string) => {
+            const leaf = {
+                view: {
+                    getViewType: () => viewType,
+                    containerEl: { ownerDocument: null },
+                },
+            };
+            for (const cb of activeLeafListeners) cb(leaf);
+        };
+
+        it.each(['tag', 'outline', 'search', 'backlink'])(
+            'does not scroll the main editor while the %s pane is focused',
+            (viewType) => {
+                scrollTarget = { scrollBy: vi.fn() };
+                targetInsideExplorer = false;
+                activateSidebar(viewType);
+
+                pressKey('j', { target: { dispatchEvent: vi.fn(() => true) } });
+
+                expect(scrollTarget.scrollBy).not.toHaveBeenCalled();
+            },
+        );
+
+        it('still moves the explorer with j when the explorer is the active leaf', () => {
+            // j/k live in the standard scroll entries and branch on context,
+            // so a focused explorer must not be vetoed as a "plugin leaf".
+            activeViewType = 'file-explorer';
+            targetInsideExplorer = true;
+            activateSidebar('file-explorer');
+            const dispatchEvent = vi.fn((_e: Partial<KeyboardEvent>) => true);
+
+            pressKey('j', { target: { dispatchEvent } });
+
+            expect(dispatchEvent.mock.calls.map(([a]) => a.key)).toEqual([
+                'ArrowDown',
+            ]);
+        });
+
+        it('still scrolls when a main-area nav view is focused', () => {
+            scrollTarget = { scrollBy: vi.fn() };
+            targetInsideExplorer = false;
+            activateSidebar('markdown');
+
+            pressKey('j', { target: { dispatchEvent: vi.fn(() => true) } });
+
+            expect(scrollTarget.scrollBy).toHaveBeenCalledOnce();
         });
     });
 

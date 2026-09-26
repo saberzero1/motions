@@ -50,6 +50,7 @@ export class GlobalKeyHandler {
     private modeTracker: VimModeTracker | null;
     private registry: GlobalMappingRegistry;
     private explorerContext: FileExplorerContext;
+    private activeLeafViewType: string | null = null;
 
     private docs = new Set<Document>();
     private cleanups: (() => void)[] = [];
@@ -95,6 +96,10 @@ export class GlobalKeyHandler {
             },
         );
         this.cleanups.push(() => this.app.workspace.offref(ref));
+        const leafRef = this.app.workspace.on('active-leaf-change', (leaf) => {
+            this.activeLeafViewType = leaf?.view.getViewType() ?? null;
+        });
+        this.cleanups.push(() => this.app.workspace.offref(leafRef));
         this.explorerContext.observeActiveLeaf();
     }
 
@@ -169,7 +174,7 @@ export class GlobalKeyHandler {
         if (e.isComposing) return false;
         if (isEditorOrInputFocused(doc)) return false;
         if (isModalOpen(doc)) return false;
-        if (this.isPluginLeafActive()) return false;
+        if (this.isPluginLeafActive(e, doc)) return false;
         return true;
     }
 
@@ -196,7 +201,16 @@ export class GlobalKeyHandler {
         return true;
     }
 
-    private isPluginLeafActive(): boolean {
+    private isPluginLeafActive(e: KeyboardEvent, doc: Document): boolean {
+        // The File Explorer's j/k are the standard scroll entries branching on
+        // context, so a focused explorer must not veto them as a plugin leaf.
+        if (this.explorerContext.isActive(doc, e.target)) return false;
+        // getMostRecentLeaf() is root-split biased and never reports a sidebar
+        // leaf, so a focused sidebar pane looked like the main editor and
+        // standard keys scrolled it. Prefer the leaf that actually gained focus.
+        if (this.activeLeafViewType !== null) {
+            return !this.getNavViewTypes().has(this.activeLeafViewType);
+        }
         const leaf = this.app.workspace.getMostRecentLeaf();
         if (!leaf?.view) return false;
         const viewType =
@@ -377,7 +391,10 @@ export class GlobalKeyHandler {
         const result = this.registry.resolve(seq);
 
         if (result.type === 'exact') {
-            if (result.entry.gate === 'standard' && this.isPluginLeafActive()) {
+            if (
+                result.entry.gate === 'standard' &&
+                this.isPluginLeafActive(e, doc)
+            ) {
                 this.resetSequence();
                 return;
             }
