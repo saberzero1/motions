@@ -253,6 +253,7 @@ src/
     vault-search.ts        # :grep vault-wide search implementation
     global-key-handler.ts  # Global key event handling (outside editor) — always installed on desktop; every global key is a GlobalMappingRegistry entry, no exceptions; gates check focus/modal/leaf-type plus an explorer gate; dispatch hands builtin actions a GlobalDispatchContext and preserves raw counts and partial-match timeouts
     file-explorer-context.ts    # Tracks whether input belongs to the native File Explorer (pointer, focus, active-leaf)
+    core-view-tree.ts      # Allowlisted accessor for core-plugin view trees (changeFocusedItem/setCollapsed)
     global-mapping-registry.ts  # Registry for global key mappings
     external-mode.ts       # Backend-reported vim mode for per-mode host rendering and IM switching
     key-observer.ts        # Physical key observation feeding vim.on_key
