@@ -144,6 +144,15 @@ gunmap L
 
 The rhs must start with `:` — either `:command` (ex command) or `:obcommand command-id` (Obsidian command).
 
+The File Explorer's `h`/`j`/`k`/`l` are ordinary global mappings, so they follow the same rules:
+
+```vim
+gmap h :obcommand app:go-back    " replace the explorer's parent/collapse
+gunmap l                         " remove expand/enter entirely
+```
+
+Note that `j` and `k` are single entries that scroll in other views and move the tree in the File Explorer, so remapping one replaces both meanings.
+
 See [[vimrc#Global key mappings]] for details.
 
 ## Summary

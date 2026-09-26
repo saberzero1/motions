@@ -476,6 +476,22 @@ describe('GlobalKeyHandler', () => {
             ).not.toContain('h');
         });
 
+        it.each(['h', 'j'])(
+            'drives the explorer with %s even when workspaceNavViewTypes omits it',
+            (key) => {
+                settings.workspaceNavViewTypes = 'markdown,graph';
+                activeViewType = 'file-explorer';
+                targetInsideExplorer = true;
+                const dispatchEvent = vi.fn(
+                    (_e: Partial<KeyboardEvent>) => true,
+                );
+
+                pressKey(key, { target: { dispatchEvent } });
+
+                expect(dispatchEvent.mock.calls.length).toBe(1);
+            },
+        );
+
         it('lets a user mapping override the explorer h', () => {
             registry.addMapping(
                 'h',
@@ -557,6 +573,22 @@ describe('GlobalKeyHandler', () => {
             // j/k live in the standard scroll entries and branch on context,
             // so a focused explorer must not be vetoed as a "plugin leaf".
             activeViewType = 'file-explorer';
+            targetInsideExplorer = true;
+            activateSidebar('file-explorer');
+            const dispatchEvent = vi.fn((_e: Partial<KeyboardEvent>) => true);
+
+            pressKey('j', { target: { dispatchEvent } });
+
+            expect(dispatchEvent.mock.calls.map(([a]) => a.key)).toEqual([
+                'ArrowDown',
+            ]);
+        });
+
+        it('drives the explorer when it lives in a main-area tab', () => {
+            // getMostRecentLeaf() CAN report the explorer in this layout, so
+            // the gate would veto j/k were it not for the explorer exception.
+            activeViewType = 'file-explorer';
+            rootSplitViewType = 'file-explorer';
             targetInsideExplorer = true;
             activateSidebar('file-explorer');
             const dispatchEvent = vi.fn((_e: Partial<KeyboardEvent>) => true);
