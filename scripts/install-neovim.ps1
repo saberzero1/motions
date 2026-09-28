@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $Version = (Get-Content (Join-Path $PSScriptRoot 'neovim-version.txt') -Raw).Trim()
-$MinApiLevel = 12
+$MinApiLevel = 14
 $InstallDir = if ($args.Count -gt 0) {
     $args[0]
 } else {

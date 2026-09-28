@@ -23,6 +23,41 @@ Configure the three options under **Settings → Vim Motions → Vim engine**:
 > [!warning] Neovim is not sandboxed
 > Enabling this backend runs the binary and configuration you supply as arbitrary code. That code can load native libraries through LuaJIT FFI and read or write files outside the vault. Vim Motions never downloads or installs Neovim itself; it installs or updates Neovim plugins only when you ask it to and confirm what will be fetched.
 
+## Troubleshooting the connection
+
+### Check the version first
+
+The backend requires **Neovim 0.12 or newer**, which reports API level 14. Earlier releases are refused, because the bridge uses APIs they do not have:
+
+```
+nvim --version
+nvim --clean --headless -u NONE -c 'lua io.write(vim.version().api_level)' -c 'qa'
+```
+
+If that prints `13` or lower, upgrade from the [official Neovim releases](https://github.com/neovim/neovim/releases). Vim Motions never installs Neovim itself.
+
+### Reading the failure notice
+
+The notice tells you which half of the startup failed.
+
+| Notice                                                             | What it means                                                                                                                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `could not start Neovim at "…": the binary was not found (ENOENT)` | The path does not resolve to a file. Point it at the executable itself, not its folder, or clear the setting to use `nvim` from your `PATH`.                       |
+| `could not start Neovim at "…": … (EACCES)`                        | The file was found but the operating system refused to run it. On Windows, see below.                                                                              |
+| `could not start Neovim at "…": … (EPERM)`                         | Access was denied. Check the file permissions, and any antivirus or endpoint-protection software.                                                                  |
+| `Neovim 0.12 or newer is required at "…"`                          | The binary ran and is too old. See [Check the version first](#check-the-version-first).                                                                            |
+| `Neovim started at "…" but the connection failed: …`               | The binary and its path are fine — Neovim is running. The quoted text is Neovim's own error, so the cause is in your Neovim configuration or in a plugin it loads. |
+
+> [!tip] The path is only implicated by the first three
+> A notice that begins **Neovim started at** has already proved the path works. Moving the binary or changing its permissions cannot help; read the quoted Neovim error instead.
+
+### Windows
+
+- **Point the setting at `nvim.exe`**, not at the folder that contains it. `C:\Program Files\Neovim\bin\nvim.exe` is correct; `C:\Program Files\Neovim\bin` is not.
+- **Spaces in the path are fine.** The path is handed to the operating system directly rather than through a shell, so `C:\Program Files\…` needs no quoting and no escaping. Backslashes and forward slashes both work.
+- **`EACCES` on Windows means Windows refused to launch the executable**, not that a permission bit is missing. The usual cause is the **Run this program as an administrator** checkbox under the executable's **Properties → Compatibility**; clear it. The plugin runs inside Obsidian and cannot answer an elevation prompt.
+- **WSL is not supported.** Vim Motions launches the binary directly, with no shell, so a `.bat` or `.cmd` wrapper — including one that runs `wsl.exe -e /usr/bin/nvim` — is not a valid target, and a Linux `nvim` reached through `\\wsl$\…` or a mapped drive is not a Windows executable. Install Neovim for Windows and point the setting at that.
+
 ## Ownership
 
 While connected, Neovim owns editor input, text, mode, cursor, visual selection, registers, undo and redo, folds, dot-repeat, macros, persistent extmarks, floating windows, structural motions, Markdown text objects, and hard-wrap operations. Native IME preedit stays in a cursor-positioned host input; only committed text is sent through `nvim_input`.

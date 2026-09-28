@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 VERSION=$(tr -d '[:space:]' < "$SCRIPT_DIR/neovim-version.txt")
-MIN_API_LEVEL=12
+MIN_API_LEVEL=14
 INSTALL_DIR=${1:-"${HOME}/.local/neovim-${VERSION}"}
 
 case "$(uname -s)" in

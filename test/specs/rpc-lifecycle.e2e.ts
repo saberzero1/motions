@@ -22,6 +22,12 @@ interface RpcState {
 const spawnedPids = new Set<number>();
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
 
+// A spec cannot value-import a src module, so this restates
+// REQUIRED_API_LEVEL. test/unit/rpc/neovim-api-floor.test.ts pins the two
+// together; without that, raising the floor would turn the handshake scenario
+// below into a version-refusal scenario without failing anything.
+const ACCEPTED_STUB_API_LEVEL = 14;
+
 async function getRpcState(): Promise<RpcState> {
     return (await browser.executeObsidian(({ app }) => {
         const plugin = (
@@ -290,7 +296,7 @@ describe('Neovim RPC connection lifecycle', function () {
         const state = await waitForConnected();
         expect(state.pid).not.toBeNull();
         expect(pidIsAlive(state.pid as number)).toBe(true);
-        expect(state.apiLevel).toBeGreaterThanOrEqual(12);
+        expect(state.apiLevel).toBeGreaterThanOrEqual(14);
     });
 
     it('disconnects when the RPC setting is disabled while fork Vim remains active', async () => {
@@ -520,21 +526,143 @@ describe('Neovim RPC connection lifecycle', function () {
         expect(state.pid).toBeNull();
     });
 
-    it('refuses a Neovim API level below 12', async function () {
+    // Which of the two failure notices fires is decided by a `spawned` flag in
+    // connect(), and no unit test can see that wiring. The stub answers
+    // nvim_get_api_info with a level the gate accepts and then exits, so the
+    // next in-flight request rejects and the failure lands *after* spawn --
+    // the shape of #199, where a running Neovim's own Lua error was reported
+    // as a bad binary path and sent the reporter moving nvim.exe around.
+    it('reports a post-spawn failure as a Neovim error, not a bad path', async function () {
+        if (process.platform === 'win32') {
+            console.warn('SKIP: the executable stub scenario is POSIX-only.');
+            this.skip();
+            return;
+        }
+        const directory = mkdtempSync(join(tmpdir(), 'vim-motions-exit-nvim-'));
+        const stubProgramPath = join(directory, 'nvim-exit.js');
+        const stubPath = join(directory, 'nvim-exit');
+        const response = [
+            0x94,
+            0x01,
+            0x01,
+            0xc0,
+            0x92,
+            0x01,
+            0x81,
+            0xa7,
+            0x76,
+            0x65,
+            0x72,
+            0x73,
+            0x69,
+            0x6f,
+            0x6e,
+            0x81,
+            0xa9,
+            0x61,
+            0x70,
+            0x69,
+            0x5f,
+            0x6c,
+            0x65,
+            0x76,
+            0x65,
+            0x6c,
+            ACCEPTED_STUB_API_LEVEL,
+        ];
+        writeFileSync(
+            stubProgramPath,
+            `const response = Buffer.from(${JSON.stringify(response)});\nlet sent = false;\nprocess.stdin.on('data', () => { if (!sent) { sent = true; process.stdout.write(response, () => process.exit(0)); } });\nsetInterval(() => {}, 1000);\n`,
+        );
+        writeFileSync(
+            stubPath,
+            `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/nvim-exit.js" "$@"\n`,
+        );
+        chmodSync(stubPath, 0o755);
+        try {
+            await setRpcSettings(true, stubPath);
+            await browser.waitUntil(
+                async () =>
+                    (await getNotices()).some((notice) =>
+                        notice.includes(stubPath),
+                    ),
+                { timeout: 8000, interval: 100 },
+            );
+            const notices = (await getNotices()).filter((notice) =>
+                notice.includes(stubPath),
+            );
+            expect(
+                notices.some((notice) =>
+                    notice.includes('but the connection failed'),
+                ),
+            ).toBe(true);
+            expect(
+                notices.some((notice) =>
+                    notice.includes('could not start Neovim'),
+                ),
+            ).toBe(false);
+            expect((await getRpcState()).connected).toBe(false);
+        } finally {
+            rmSync(directory, { recursive: true, force: true });
+        }
+    });
+
+    // 12 and 13 are Neovim 0.10 and 0.11. Both used to clear this gate, because
+    // it read 12 while the notice it prints, the docs and the README all said
+    // 0.12 -- which is api_level 14. They then died inside the decoration
+    // bridge on `on_range`, a nvim_set_decoration_provider key that only exists
+    // from 0.12, and reported it as a binary-path problem. Issue #199. The
+    // original form of this test stubbed level 11 only, so it stayed green
+    // throughout.
+    for (const stubApiLevel of [11, 12, 13]) {
+        it(`refuses a Neovim reporting API level ${stubApiLevel}`, async function () {
+            await refusesApiLevel(this, stubApiLevel);
+        });
+    }
+
+    async function refusesApiLevel(
+        context: { skip(): void },
+        stubApiLevel: number,
+    ): Promise<void> {
         if (process.platform === 'win32') {
             console.warn(
                 'SKIP: the old-API executable stub scenario is POSIX-only.',
             );
-            this.skip();
+            context.skip();
             return;
         }
         const directory = mkdtempSync(join(tmpdir(), 'vim-motions-old-nvim-'));
         const stubProgramPath = join(directory, 'nvim-old.js');
         const stubPath = join(directory, 'nvim-old');
+        // Trailing byte is the reported api_level as a msgpack positive fixint.
         const response = [
-            0x94, 0x01, 0x01, 0xc0, 0x92, 0x01, 0x81, 0xa7, 0x76, 0x65, 0x72,
-            0x73, 0x69, 0x6f, 0x6e, 0x81, 0xa9, 0x61, 0x70, 0x69, 0x5f, 0x6c,
-            0x65, 0x76, 0x65, 0x6c, 0x0b,
+            0x94,
+            0x01,
+            0x01,
+            0xc0,
+            0x92,
+            0x01,
+            0x81,
+            0xa7,
+            0x76,
+            0x65,
+            0x72,
+            0x73,
+            0x69,
+            0x6f,
+            0x6e,
+            0x81,
+            0xa9,
+            0x61,
+            0x70,
+            0x69,
+            0x5f,
+            0x6c,
+            0x65,
+            0x76,
+            0x65,
+            0x6c,
+            stubApiLevel,
         ];
         writeFileSync(
             stubProgramPath,
@@ -580,5 +708,5 @@ describe('Neovim RPC connection lifecycle', function () {
         } finally {
             rmSync(directory, { recursive: true, force: true });
         }
-    });
+    }
 });

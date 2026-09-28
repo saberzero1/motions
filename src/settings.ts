@@ -121,6 +121,8 @@ export const DEFAULT_CURSOR_SHAPES: CursorShapes = {
 
 const NEOVIM_RPC_DISCLOSURE =
     'Desktop only. Runs the Neovim binary and configuration you supply. That configuration is arbitrary code, may load native libraries through LuaJIT FFI, and may read or write files outside the vault. No sandbox is provided. Vim Motions never installs Neovim itself, and installs Neovim plugins only on an explicit confirmed request.';
+const NEOVIM_BINARY_DESCRIPTION =
+    'Absolute path to the Neovim executable itself, not the folder containing it. Requires Neovim 0.12 or newer. Leave empty to use nvim from the system path.';
 const NEOVIM_CONFIG_DESCRIPTION =
     'Absolute path to a Neovim init.lua used only inside Obsidian. Leave empty to load your normal Neovim config. A minimal config avoids loading terminal-only LSP, dashboard, and statusline plugins and starts faster (20 ms versus 106 ms in the measured development setup).';
 
@@ -1157,7 +1159,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                             },
                             {
                                 name: 'Neovim binary path',
-                                desc: 'Absolute path to Neovim. Leave empty to use nvim from the system path.',
+                                desc: NEOVIM_BINARY_DESCRIPTION,
                                 visible: Platform.isDesktop,
                                 control: {
                                     type: 'text' as const,
@@ -3835,9 +3837,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
             new Setting(containerEl)
                 .setName('Neovim binary path')
-                .setDesc(
-                    'Absolute path to Neovim. Leave empty to use nvim from the system path.',
-                )
+                .setDesc(NEOVIM_BINARY_DESCRIPTION)
                 .addText((text) =>
                     text
                         .setPlaceholder('/usr/bin/nvim')

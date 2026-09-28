@@ -86,8 +86,13 @@ export interface NeovimConnectionState {
     mode: string | null;
 }
 
-const REQUIRED_API_LEVEL = 12;
-const REQUIRED_VERSION = '0.12';
+// Neovim 0.12 is api_level 14, not 12. 12 is 0.10 and 13 is 0.11, both of
+// which used to clear this gate and then fail inside the decoration bridge on
+// `on_range`, a key `nvim_set_decoration_provider` only learned in 0.12.
+// test/unit/rpc/neovim-api-floor.test.ts holds the floor against the keys
+// companion.lua actually passes.
+export const REQUIRED_API_LEVEL = 14;
+export const REQUIRED_VERSION = '0.12';
 const CONNECT_TIMEOUT_MS = 10_000;
 const SIGKILL_ESCALATION_MS = 2_000;
 
@@ -107,11 +112,46 @@ function getChildProcess(): ChildProcessModule {
     return childProcessCache;
 }
 
-function formatProcessError(error: ProcessError): string {
-    if (error.code === 'ENOENT') return 'the binary was not found';
-    if (error.code === 'EACCES') return 'the binary is not executable';
-    if (error.signal) return `the process ended with signal ${error.signal}`;
-    return error.message || String(error);
+// libuv's Windows error mapping read backwards (`uv_translate_sys_error`,
+// src/win/error.c): EACCES there is ERROR_ELEVATION_REQUIRED or
+// ERROR_CANT_ACCESS_FILE, while a plain ERROR_ACCESS_DENIED arrives as EPERM.
+// Reporting EACCES as "not executable" is therefore wrong on Windows, and is
+// what sent issue #199 hunting a file-permission problem that did not exist.
+function describeSpawnFailure(error: ProcessError, isWindows: boolean): string {
+    const code = typeof error.code === 'string' ? error.code : null;
+    if (code === 'ENOENT')
+        return 'the binary was not found (ENOENT). Leave the path empty to use nvim from your PATH.';
+    if (code === 'EACCES')
+        return isWindows
+            ? 'Windows refused to run it (EACCES). That usually means the executable is marked "Run this program as an administrator" under Properties → Compatibility, or that the path is not a native Windows executable — a WSL or mapped-drive path cannot be launched directly.'
+            : 'the binary is not executable (EACCES).';
+    if (code === 'EPERM')
+        return 'the operating system denied access (EPERM). Check the file permissions and any antivirus or endpoint-protection software.';
+    if (error.signal) return `the process ended with signal ${error.signal}.`;
+    return `${error.message || String(error)}${code ? ` (${code})` : ''}`;
+}
+
+export function neovimStartFailureNotice(
+    binaryPath: string,
+    error: unknown,
+    isWindows: boolean,
+): string {
+    const processError =
+        error instanceof Error
+            ? (error as ProcessError)
+            : new Error(String(error));
+    return `Vim Motions: could not start Neovim at "${binaryPath}": ${describeSpawnFailure(processError, isWindows)}`;
+}
+
+// Separate from the spawn notice on purpose. The process is already running by
+// the time this can fire, so the configured path and its permissions are
+// proven good and saying otherwise misdirects.
+export function neovimHandshakeFailureNotice(
+    binaryPath: string,
+    error: unknown,
+): string {
+    const message = error instanceof Error ? error.message : String(error);
+    return `Vim Motions: Neovim started at "${binaryPath}" but the connection failed: ${message}. The path is fine — this is a Neovim-side error, so check your Neovim configuration.`;
 }
 
 function apiLevelFromInfo(value: unknown): number | null {
@@ -232,8 +272,10 @@ export class NeovimConnection {
             this.handleClose(child, code, signal),
         );
 
+        let spawned = false;
         try {
             await this.waitForSpawn(child);
+            spawned = true;
             const info = await this.withTimeout(
                 rpc.request('nvim_get_api_info', []),
                 CONNECT_TIMEOUT_MS,
@@ -332,7 +374,7 @@ export class NeovimConnection {
             return true;
         } catch (error) {
             if (operation === this.operation) {
-                this.showStartFailure(binaryPath, error);
+                this.showStartFailure(binaryPath, error, spawned);
             }
             if (this.child === child) {
                 await this.disconnectChild(child, rpc);
@@ -566,13 +608,15 @@ export class NeovimConnection {
         }
     }
 
-    private showStartFailure(binaryPath: string, error: unknown): void {
-        const processError =
-            error instanceof Error
-                ? (error as ProcessError)
-                : new Error(String(error));
+    private showStartFailure(
+        binaryPath: string,
+        error: unknown,
+        spawned = false,
+    ): void {
         new Notice(
-            `Vim Motions: could not start Neovim at "${binaryPath}": ${formatProcessError(processError)}. Check the configured path and permissions.`,
+            spawned
+                ? neovimHandshakeFailureNotice(binaryPath, error)
+                : neovimStartFailureNotice(binaryPath, error, Platform.isWin),
         );
     }
 

@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const MIN_API_LEVEL = 12;
+const MIN_API_LEVEL = 14;
 
 interface SuiteContext {
     skip(): void;
