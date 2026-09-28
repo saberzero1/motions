@@ -1,6 +1,12 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getCursorPos, loadLuaConfig } from '../helpers';
+import {
+    setupEditor,
+    getCursorPos,
+    loadLuaConfig,
+    vimKeys,
+    getEditorValue,
+} from '../helpers';
 
 type PluginRef = {
     vimrcLoaded?: boolean;
@@ -304,6 +310,41 @@ describe('Config management commands (#168)', function () {
 
             expect(await checkUserMappingExists('Z', '^')).toBe(false);
             expect(await checkUserMappingExists('Q', '$')).toBe(true);
+        });
+
+        // Overriding a built-in pair is only safe if dropping the override
+        // brings the built-in back on a soft reload. Otherwise a user who tries
+        // one out is stuck with a rebound `(` until Obsidian restarts.
+        it('should restore the builtin surround pair when its override is removed from init.lua', async function () {
+            await loadLuaConfig(
+                'vim.obsidian.surround.set("(", { left = "(", right = ")" })\n',
+            );
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', '(');
+            expect(await getEditorValue()).toBe('(hello) world');
+
+            await browser.executeObsidian(async ({ app }) => {
+                const configDir = app.vault.configDir;
+                await app.vault.adapter.write(
+                    `${configDir}.init.lua`,
+                    'vim.opt.scrolloff = 3\n',
+                );
+            });
+            await browser.pause(500);
+            await executeCommand('reload-configuration');
+            await browser.waitUntil(
+                async () => (await getLuaCommandCount()) === 1,
+                {
+                    timeout: 10000,
+                    interval: 500,
+                    timeoutMsg:
+                        'Lua config did not reload after removing the surround override',
+                },
+            );
+
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', '(');
+            expect(await getEditorValue()).toBe('( hello ) world');
         });
     });
 

@@ -44,6 +44,26 @@ async function loadVimrc(content: string): Promise<void> {
     });
 }
 
+// Rewrites the vimrc and re-reads it in place. `loadVimrc` restarts Obsidian,
+// which resets the fork's module state on its own and so cannot observe whether
+// a reload releases what the previous one registered.
+async function loadVimrcSoft(content: string): Promise<void> {
+    await obsidianPage.write('.obsidian.vimrc', content);
+    await browser.executeObsidian(async ({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        { reloadAllConfigs?: () => Promise<void> }
+                    >;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        await plugin?.reloadAllConfigs?.();
+    });
+}
+
 async function assertPluginLoaded(): Promise<void> {
     const result = await browser.executeObsidian(({ app }) => {
         const plugins = (
@@ -1096,6 +1116,44 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
         it('surroundunmap should parse without crashing', async function () {
             await loadVimrc('surroundmap l [[ ]]\nsurroundunmap l\n');
             await assertPluginLoaded();
+        });
+
+        it('surroundmap should wrap with the mapped delimiters', async function () {
+            await loadVimrc('surroundmap l [[ ]]\n');
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', 'l');
+            expect(await getEditorValue()).toBe('[[hello]] world');
+        });
+
+        // The built-in `(` wraps as `( hello )`; the override is what drops the
+        // inner spaces, so this fails if the vimrc pair never reaches the fork.
+        it('surroundmap should override a builtin pair', async function () {
+            await loadVimrc('surroundmap ( ( )\n');
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', '(');
+            expect(await getEditorValue()).toBe('(hello) world');
+        });
+
+        it('surroundunmap should restore an overridden builtin pair', async function () {
+            await loadVimrc('surroundmap ( ( )\nsurroundunmap (\n');
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', '(');
+            expect(await getEditorValue()).toBe('( hello ) world');
+        });
+
+        // A reload that no longer declares the pair must drop it too, not just
+        // an explicit surroundunmap — otherwise a rebound `(` outlives the file
+        // that asked for it.
+        it('removing surroundmap from the vimrc should restore the builtin pair', async function () {
+            await loadVimrc('surroundmap ( ( )\n');
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', '(');
+            expect(await getEditorValue()).toBe('(hello) world');
+
+            await loadVimrcSoft('set scrolloff=3\n');
+            await setupEditor('hello world', { line: 0, ch: 0 });
+            await vimKeys('y', 's', 'i', 'w', '(');
+            expect(await getEditorValue()).toBe('( hello ) world');
         });
     });
 });

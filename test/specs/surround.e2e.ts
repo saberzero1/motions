@@ -514,6 +514,73 @@ describe('Surround operator (ds/cs/yss/S) — #9', function () {
         });
     });
 
+    describe('dot-repeat search position — #197', function () {
+        // The repeat must resolve the same pair the typed command would. The
+        // reported failure put the cursor on the last character before the
+        // closing quote, where a forward-shifted search start treats that
+        // closing quote as the *opening* quote of the following pair.
+        it('cs"b then . on the last character before the closing quote', async function () {
+            await setupEditor('"test", "test", "test", "test"', {
+                line: 0,
+                ch: 2,
+            });
+            await vimKeys('c', 's', '"', 'b');
+            expect(await getEditorValue()).toBe(
+                '(test), "test", "test", "test"',
+            );
+
+            // Column 12 is the final `t` of the second word, immediately
+            // before its closing quote at column 13.
+            await vimKeys('1', '2', 'l');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 12 });
+
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe(
+                '(test), (test), "test", "test"',
+            );
+        });
+
+        // Control: the same repeat from a mid-word cursor was never broken, so
+        // a fix that shifts the search start the other way fails here.
+        it('cs"b then . mid-word', async function () {
+            await setupEditor('"test", "test", "test", "test"', {
+                line: 0,
+                ch: 2,
+            });
+            await vimKeys('c', 's', '"', 'b');
+            expect(await getEditorValue()).toBe(
+                '(test), "test", "test", "test"',
+            );
+
+            await vimKeys('1', '0', 'l');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 10 });
+
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe(
+                '(test), (test), "test", "test"',
+            );
+        });
+
+        it('cs"b then . on the opening quote', async function () {
+            await setupEditor('"test", "test", "test", "test"', {
+                line: 0,
+                ch: 2,
+            });
+            await vimKeys('c', 's', '"', 'b');
+            expect(await getEditorValue()).toBe(
+                '(test), "test", "test", "test"',
+            );
+
+            await vimKeys('8', 'l');
+            expect(await getCursorPos()).toEqual({ line: 0, ch: 8 });
+
+            await vimKeys('.');
+            expect(await getEditorValue()).toBe(
+                '(test), (test), "test", "test"',
+            );
+        });
+    });
+
     describe('cursor position after surround — #22', function () {
         it('S] should place cursor on opening delimiter', async function () {
             await setupEditor('hello world', { line: 0, ch: 0 });

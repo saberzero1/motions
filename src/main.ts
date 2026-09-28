@@ -427,6 +427,7 @@ export default class VimMotionsPlugin extends Plugin {
     private pendingVimrcExCommands: string[] = [];
     private vimrcMapKeys: Set<string> = new Set();
     private vimrcExmapNames: Set<string> = new Set();
+    private vimrcSurroundTriggers: Set<string> = new Set();
     private vimrcWatchPath: string | null = null;
     private luaWatchPath: string | null = null;
     private luaLoading = false;
@@ -1325,6 +1326,9 @@ export default class VimMotionsPlugin extends Plugin {
                             );
                             this.vimrcExmapNames = new Set(
                                 vimrcResult.exmapNames ?? [],
+                            );
+                            this.vimrcSurroundTriggers = new Set(
+                                vimrcResult.surroundTriggers ?? [],
                             );
                             if (vimrcFound) {
                                 this.vimrcWatchPath = vimrcResult.path;
@@ -2960,9 +2964,17 @@ export default class VimMotionsPlugin extends Plugin {
                     /* intentional: skip missing command */
                 }
             }
+            for (const trigger of this.vimrcSurroundTriggers) {
+                try {
+                    vim.unregisterSurroundPair?.(trigger);
+                } catch {
+                    /* intentional: skip missing pair */
+                }
+            }
         }
         this.vimrcMapKeys.clear();
         this.vimrcExmapNames.clear();
+        this.vimrcSurroundTriggers.clear();
         this.luaExCommandNames = [];
         this.vimrcLoaded = false;
         this.luaLoaded = false;
@@ -4612,6 +4624,15 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.vimrcExmapNames.clear();
 
+        for (const trigger of this.vimrcSurroundTriggers) {
+            try {
+                vim.unregisterSurroundPair?.(trigger);
+            } catch {
+                /* intentional: skip missing pair */
+            }
+        }
+        this.vimrcSurroundTriggers.clear();
+
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         const cm = view ? getCmAdapter(view) : null;
         const leaderKey = this.leaderRegistry?.getLeaderKey() ?? '\\';
@@ -4628,6 +4649,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimrcMaps = result.deferredMaps;
         this.vimrcMapKeys = new Set(result.deferredMaps.map((m) => m.lhs));
         this.vimrcExmapNames = new Set(result.exmapNames);
+        this.vimrcSurroundTriggers = new Set(result.surroundTriggers);
         this.vimrcCommandCount = result.commandCount;
         applyVimrcMaps(vim, this.vimrcMaps);
 
@@ -5485,13 +5507,11 @@ export default class VimMotionsPlugin extends Plugin {
         vim: import('./types/vim-api').VimApi,
         pairs: Array<{ trigger: string; open: string; close: string }>,
     ): void {
-        if (pairs.length === 0) return;
-        if (typeof vim.registerSurroundPair !== 'function') {
-            new Notice(
-                'Vim Motions: custom surround pairs require fork mode. Disable built-in Vim in settings \u2192 editor \u2192 Vim key bindings.',
-            );
-            return;
-        }
+        // The unregister pass has to run even when the new config declares no
+        // pairs at all, which is what removing the last one looks like. Leaving
+        // it behind the empty-list return kept a dropped trigger bound until
+        // Obsidian restarted — invisible for an added character, but it strands
+        // a rebound built-in in a state the config no longer describes.
         for (const trigger of this.registeredSurroundTriggers) {
             try {
                 vim.unregisterSurroundPair?.(trigger);
@@ -5500,6 +5520,13 @@ export default class VimMotionsPlugin extends Plugin {
             }
         }
         this.registeredSurroundTriggers = [];
+        if (pairs.length === 0) return;
+        if (typeof vim.registerSurroundPair !== 'function') {
+            new Notice(
+                'Vim Motions: custom surround pairs require fork mode. Disable built-in Vim in settings \u2192 editor \u2192 Vim key bindings.',
+            );
+            return;
+        }
         for (const pair of pairs) {
             try {
                 vim.registerSurroundPair(pair.trigger, pair.open, pair.close);

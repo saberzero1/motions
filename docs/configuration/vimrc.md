@@ -101,7 +101,15 @@ gwhichkeylabel <leader>f Open file
 " Custom surround pairs
 surroundmap l [[ ]]
 surroundmap m $$ $$
+
+" Override a built-in pair: `ysiw(` wraps as `(word)`, not `( word )`
+surroundmap ( ( )
 ```
+
+Built-in surround characters can be overridden. Removing the `surroundmap` line
+and reloading restores the built-in — see
+[[surround#Overriding the built-in pairs]] for the three characters whose
+interactive behaviour an override replaces.
 
 ## Supported commands
 
@@ -121,8 +129,8 @@ surroundmap m $$ $$
 | `whichkeylabel`                                  | Label an individual binding in which-key           |
 | `gwhichkeygroup`                                 | Name a global which-key group by prefix            |
 | `gwhichkeylabel`                                 | Label a global binding in which-key                |
-| `surroundmap`                                    | Register a custom surround pair                    |
-| `surroundunmap`                                  | Remove a custom surround pair                      |
+| `surroundmap`                                    | Register a surround pair, or override a built-in   |
+| `surroundunmap`                                  | Remove a surround pair, restoring any built-in     |
 
 ## Leader key
 

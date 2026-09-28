@@ -1194,7 +1194,7 @@ These commands exist but behave differently from Neovim:
 - `cs({` now correctly finds and changes parens to braces with spaces
 - `ds}` space preservation — closing-bracket forms now preserve inner spaces (opening forms still strip)
 - `cs` chained operations — `_surroundReplacement` no longer leaks between different surround operation types
-- `cs` dot-repeat — `csba..` correctly changes nested bracket layers via search position offset
+- `cs` dot-repeat — `csba..` correctly changes nested bracket layers via search position offset. The offset was later found to be applied one iteration too early. It exists so a second or later pass through the count loop starts past the delimiter the previous pass wrote and expands outward; applied to the first pass it only moves the search off the cursor, so a repeat with the cursor on the last character before a closing quote matched that quote against the following pair's opening quote and produced `(test), "test(, )test", "test"` where `(test), (test), "test", "test"` was wanted. It now applies only when the cursor is standing on that delimiter — where `changeSurroundPair` parks it — so `csba..` still walks outward through `(((test)))` while a cursor resting inside a pair is left alone. ([#197](https://github.com/saberzero1/motions/issues/197))
 - Multiline `dsb` — cursor clamped to valid line length after bracket deletion
 - Count-prefixed `ds`/`cs` — now uses "apply N times" semantics matching nvim-surround (`2dsb` = delete twice, `3csbr` = change all 3 levels)
 - `ys` with line-crossing motions — `ysjb`, `ys2jB` correctly expand to full lines for linewise motions
@@ -1216,7 +1216,9 @@ These commands exist but behave differently from Neovim:
 - ~~`ys` dot-repeat with text objects~~ — Fixed for simple delimiters (`ysiwb`, `ysiw"`, `ysaw'`, `ysiw]`). Fork stores text object motion characters in `lastEditInputState._ysTextObjectMotion` and `_ysTextObjectChar` via the `onRepeat` callback. During dot-repeat, `repeatLastEdit` re-evaluates the text object at the current cursor position and applies `addSurroundToRange()`. Fork tests: 1806/0 (was 1803/3).
 - ~~Tag `cst`/`yst` (change/add tag)~~ — Verified working. Fork tests (`vim_cst_to_tag`, `vim_cst_to_char`, `vim_ysiw_tag`, `vim_dot_cst`) and plugin e2e tests (74 golden + 81 plugin-level) all pass. The original golden data was recorded against vanilla Neovim (no nvim-surround plugin), making golden comparison meaningless for surround. Plugin e2e tests are the definitive verification.
 
-**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 80 passing, 2 skipped (tag/function dot-repeat — verified at fork level). Fork: 1806 passing, 0 failing.
+**Test coverage**: `test/specs/vim-builtin/surround-golden.e2e.ts` — 74 golden tests. `test/specs/surround.e2e.ts` — 98 passing, 2 skipped (tag/function dot-repeat — verified at fork level). Fork: 238 surround cases pass; the full fork suite is 1915 passing with one pre-existing failure unrelated to surround (`vim_increment_octal`, which fails identically on pristine `master`).
+
+**Built-in pairs are overridable.** All 19 built-in surround characters used to be refused by `registerSurroundPair`; they are now rebindable from Lua and vimrc, including the three that carry interactive behaviour (`t` and `f` as targets, `<` as a replacement). An alias resolves to its canonical character first, so overriding `)` reaches `b`. Empty delimiters are rejected, because they would disable the character rather than rebind it. ([#197](https://github.com/saberzero1/motions/issues/197))
 
 ## `gr` replace-with-register parity gaps
 

@@ -1799,7 +1799,13 @@ vim.obsidian.surround.add({
 
 After registration, `ysiw l` wraps a word in `[[word]]`, `ds l` removes surrounding `[[...]]`, and `cs l m` changes `[[...]]` to `$$...$$`.
 
-The trigger must be a single character. Built-in surround characters (`(`, `)`, `[`, `]`, `{`, `}`, `<`, `>`, `b`, `B`, `r`, `a`, `t`, `T`, `f`, `F`, `"`, `'`, `` ` ``) are reserved and cannot be overridden.
+The trigger must be a single character, and `left`/`right` must both be
+non-empty. Built-in surround characters can be overridden — `set("(", { left = "(", right = ")" })`
+drops the inner spaces that `ysiw(` adds by default. An alias resolves to its
+canonical character first, so overriding `)` also changes `b`. Overriding `t`,
+`f`, or `<` replaces their interactive behaviour (tag target, function-call
+target, and tag-name prompt respectively). Dropping an override from the config
+and reloading restores the built-in. See [[surround#Overriding the built-in pairs]].
 
 > [!info] Fork mode required
 > Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings** for full support.

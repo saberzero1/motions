@@ -888,6 +888,7 @@ export interface VimrcLoadResult {
     }>;
     pendingExCommands: string[];
     exmapNames?: string[];
+    surroundTriggers?: string[];
 }
 
 export function applyVimrcMaps(vim: VimApi, maps: DeferredMap[]): void {
@@ -950,6 +951,7 @@ interface ApplyResult {
     }>;
     pendingExCommands: string[];
     exmapNames: string[];
+    surroundTriggers: string[];
 }
 
 export function applyVimrcCommands(
@@ -980,6 +982,7 @@ export function applyVimrcCommands(
     }> = [];
     const pendingExCommands: string[] = [];
     const exmapNames: string[] = [];
+    const surroundTriggers: string[] = [];
 
     vim.defineEx('whichkeygroup', 'whichkeyg', (_cm, params) => {
         if (!params.args?.length || params.args.length < 2) return;
@@ -1136,6 +1139,7 @@ export function applyVimrcCommands(
                 } else {
                     try {
                         vim.registerSurroundPair(parsed.lhs, open, close);
+                        surroundTriggers.push(parsed.lhs);
                         applied++;
                     } catch (e) {
                         console.warn(
@@ -1152,6 +1156,8 @@ export function applyVimrcCommands(
             if (typeof vim.unregisterSurroundPair === 'function') {
                 vim.unregisterSurroundPair(parsed.lhs);
             }
+            const undoIdx = surroundTriggers.indexOf(parsed.lhs);
+            if (undoIdx !== -1) surroundTriggers.splice(undoIdx, 1);
             applied++;
             continue;
         }
@@ -1265,6 +1271,7 @@ export function applyVimrcCommands(
         globalWhichKeyGroups,
         pendingExCommands,
         exmapNames,
+        surroundTriggers,
     };
 }
 
@@ -1343,6 +1350,7 @@ export async function loadVimrc(
         globalWhichKeyGroups: result.globalWhichKeyGroups,
         pendingExCommands: result.pendingExCommands,
         exmapNames: result.exmapNames,
+        surroundTriggers: result.surroundTriggers,
     };
 }
 

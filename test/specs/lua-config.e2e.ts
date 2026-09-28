@@ -552,6 +552,45 @@ describe('Lua config support', function () {
         expect(await getEditorValue()).toBe('hello world');
     });
 
+    // The built-in `(` adds inner spaces; overriding it is the only way to get
+    // `(hello)` out of `ysiw(`, and registration used to be refused outright.
+    it('should override the builtin ( pair', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("(", { left = "(", right = ")" })\n',
+        );
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('y', 's', 'i', 'w', '(');
+        expect(await getEditorValue()).toBe('(hello) world');
+    });
+
+    it('should override the builtin t target away from the tag finder', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("t", { left = "<<", right = ">>" })\n',
+        );
+        await setupEditor('<<hello>> world', { line: 0, ch: 3 });
+        await vimKeys('d', 's', 't');
+        expect(await getEditorValue()).toBe('hello world');
+    });
+
+    it('should override an alias target through its canonical character', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set(")", { left = "[[", right = "]]" })\n',
+        );
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('y', 's', 'i', 'w', 'b');
+        expect(await getEditorValue()).toBe('[[hello]] world');
+    });
+
+    // Control: overriding one built-in must not disturb its neighbours.
+    it('should leave other builtin pairs alone when one is overridden', async function () {
+        await loadLuaConfig(
+            'vim.obsidian.surround.set("(", { left = "(", right = ")" })\n',
+        );
+        await setupEditor('hello world', { line: 0, ch: 0 });
+        await vimKeys('y', 's', 'i', 'w', '[');
+        expect(await getEditorValue()).toBe('[ hello ] world');
+    });
+
     it('should register leader binding that executes an Obsidian command', async function () {
         await loadLuaConfig(
             'vim.g.mapleader = "\\\\"\n' +

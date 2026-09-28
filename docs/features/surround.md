@@ -126,7 +126,36 @@ After registration, all surround operations work with the custom pair:
 - `cs l m` changes `[[...]]` to `$$...$$`
 - Visual `S l` wraps the selection
 
-Built-in surround characters (`(`, `)`, `[`, `]`, `{`, `}`, `<`, `>`, `b`, `B`, `r`, `a`, `t`, `T`, `f`, `F`, `"`, `'`, `` ` ``) are reserved and cannot be overridden.
+### Overriding the built-in pairs
+
+Any built-in surround character can be rebound. The most common reason is the
+opening-bracket forms, which add inner spaces by default:
+
+```lua
+-- `ysiw(` wraps as `(word)` instead of `( word )`
+vim.obsidian.surround.set("(", { left = "(", right = ")" })
+
+-- Curly quotes instead of straight ones
+vim.obsidian.surround.set('"', { left = "\u{201c}", right = "\u{201d}" })
+```
+
+Removing the override from your config and reloading restores the built-in.
+
+Three characters carry interactive behaviour that an override replaces:
+
+| Character | Built-in behaviour it replaces                      |
+| --------- | --------------------------------------------------- |
+| `t`       | As a target, finds the surrounding HTML/XML tag     |
+| `f`       | As a target, finds the surrounding function call    |
+| `<`       | As a replacement, prompts for a tag name (`cs"<p>`) |
+
+An alias resolves to its canonical character first, so overriding `)` also
+changes `b`, `}` changes `B`, `]` changes `r`, and `>` changes `a`. Overriding
+the alias itself (`b`) leaves `)` on the built-in.
+
+> [!warning] Empty delimiters are rejected
+> `left` and `right` must both be non-empty. An empty delimiter would disable
+> the character rather than rebind it, so registration fails instead.
 
 > [!info] Fork mode required
 > Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings** for full support.
