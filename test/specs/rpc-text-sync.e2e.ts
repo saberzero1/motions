@@ -262,6 +262,21 @@ async function expectMarkdownBufferIdentity(): Promise<void> {
     });
 }
 
+async function mirrorSwapfileOption(): Promise<unknown> {
+    return request('nvim_get_option_value', ['swapfile', { buf: 0 }]);
+}
+
+// Diffed rather than asserted absolutely, because the swap directory is shared
+// with the developer's own Neovim and already holds whatever it holds. What
+// this test owns is whether *these* activations add to it.
+async function swapDirEntries(): Promise<string[]> {
+    return (await request('nvim_exec_lua', [
+        `local dir = vim.split(vim.o.directory, ',')[1]:gsub('//$', '')
+return vim.fn.glob(dir .. '/*.swp', false, true)`,
+        [],
+    ])) as string[];
+}
+
 async function writeKnownFiles(
     firstPath: string,
     firstContent: string,
@@ -380,6 +395,35 @@ describe('Neovim RPC text synchronisation', function () {
 
     it('uses a named acwrite Markdown buffer instead of the intro buffer', async () => {
         await expectMarkdownBufferIdentity();
+    });
+
+    // The mirror buffer carries the note's absolute path and is always
+    // modified, so Neovim allocates it a swap file like any other named
+    // buffer. Disconnect sends SIGTERM, and Neovim's signal handler
+    // *preserves* swap files by design rather than deleting them, so one is
+    // left behind per note visited. The next session names the same buffer and
+    // gets E325 "Found a swap file" -- a blocking prompt in an embedded
+    // Neovim, which is what made the editor look glitchy. Reported in #199 and
+    // reproduced on Linux; it was never platform-specific.
+    it('creates no swap file for the mirror buffer, across activations', async () => {
+        const before = await swapDirEntries();
+        expect(await mirrorSwapfileOption()).toBe(false);
+
+        await setRpcEnabled(false);
+        await writeKnownFiles('Welcome.md', 'A body', 'Target.md', 'B body');
+        await loadTwoFileWorkspace('Welcome.md', 'Target.md', 'first');
+        await setRpcEnabled(true);
+        await waitForConnected();
+
+        await activateFile('Welcome.md');
+        expect(await mirrorSwapfileOption()).toBe(false);
+        await activateFile('Target.md');
+        expect(await mirrorSwapfileOption()).toBe(false);
+
+        const added = (await swapDirEntries()).filter(
+            (entry) => !before.includes(entry),
+        );
+        expect(added).toEqual([]);
     });
 
     it('loads the pinned Neovim test configuration', async () => {

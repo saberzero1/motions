@@ -120,11 +120,23 @@ end
 // activation could ever attach one. Detaching here closes the old document, and
 // clearing 'buftype' makes each activation look like the first to Neovim's own
 // attach rule; the caller restores `acwrite` once the content is in place.
+//
+// The mirror carries the note's absolute path and is permanently modified, so
+// Neovim would give it a swap file like any other named buffer -- one per note
+// visited, because the buffer is renamed rather than reopened. Disconnect
+// sends SIGTERM, and Neovim's signal handler *preserves* swap files rather
+// than deleting them, so they are left behind by design; the next session
+// names the same buffer and gets E325, a blocking prompt that an embedded
+// Neovim cannot answer, so activation never completes and RPC fails to
+// connect. Obsidian owns saving and undo here, which is what a swap file would
+// be protecting, so the mirror opts out. This is buffer-local on purpose: the
+// user's own buffers keep whatever their config asked for. Issue #199.
 const PREPARE_ACTIVATION_LUA = `
 local buf = ...
 for _, client in ipairs(vim.lsp.get_clients({ bufnr = buf })) do
     pcall(vim.lsp.buf_detach_client, buf, client.id)
 end
+vim.bo[buf].swapfile = false
 vim.bo[buf].buftype = ''
 `;
 

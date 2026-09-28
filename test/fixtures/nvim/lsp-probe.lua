@@ -11,7 +11,6 @@
 -- config-time enable is the only path that attaches -- which is exactly the
 -- path a real user's init.lua takes.
 vim.g.vim_motions_test_config = true
-vim.opt.swapfile = false
 vim.opt.runtimepath:append(vim.fs.joinpath(vim.fn.getcwd(), 'test-vault'))
 
 _G.vim_motions_lsp_events = {}
