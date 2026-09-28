@@ -397,6 +397,7 @@ src/
     context.ts             # Snippet context filtering (prose, code, frontmatter)
     provider.ts            # Snippet source provider (bundled + user)
     dynamic-bridge.ts      # Bridge for reactive Lua snippet nodes (f/d/r)
+    live-preview-guard.ts  # Transaction filter that drops Obsidian's Live Preview cursor snap after a tabstop jump, so a tabstop inside `*`/`**`/backtick markers is not pushed outside them
     bundled/               # Bundled Obsidian-specific snippets
   editors/
     embeddable-editor.ts   # Reusable embeddable editor component (used by oil, table cell editor, textarea vim overlay) — ensureVimExtension() post-construction safety net adds vim via StateEffect.appendConfig if registerEditorExtension injection is absent; registerScopeKey() exposes the internal Obsidian Scope for registering key handlers that fire before Obsidian's default hotkeys (used by Oil for Ctrl-key combos); Escape handling via Scope.register with modal overlay guard (isHintModeActive, isEasyMotionActive, isFlashActive) + isVimIdle() sub-state detection (operator, surround, keyBuffer, expectLiteralNext); isolateKeyEvents option stops keydown/keyup propagation for modal isolation (used by textarea-vim); _destroying flag prevents blur handler from double-popping keymap scope during destroy(); setActiveLeaf override allows focus transfer when modal is open (checks .modal-container)

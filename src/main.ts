@@ -297,6 +297,7 @@ import {
     getActiveDynamicContext,
     setActiveDynamicContext,
 } from './snippets/dynamic-bridge';
+import { createSnippetLivePreviewGuard } from './snippets/live-preview-guard';
 import { snippetState } from './snippets/autocomplete-types';
 import { setJumpListInstance } from './workspace/navigate';
 
@@ -3508,6 +3509,7 @@ export default class VimMotionsPlugin extends Plugin {
     private buildSnippetRuntimeExtension(): Extension {
         return [
             createDynamicSnippetPlugin(() => getActiveDynamicContext()),
+            createSnippetLivePreviewGuard(),
             EditorView.updateListener.of((update) => {
                 const prev = update.startState.field(snippetState, false);
                 const curr = update.state.field(snippetState, false);

@@ -2335,6 +2335,8 @@ Investigation (issue [#33](https://github.com/saberzero1/motions/issues/33)) fou
 
 The transaction filter, the `formattingMarkMode` setting, and the `formattingmarkmode` vim option have been removed.
 
+**Not to be confused with `src/snippets/live-preview-guard.ts`**, added for [#198](https://github.com/saberzero1/motions/issues/198). The filter removed here _was itself_ moving the cursor away from formatting-mark ranges on every transaction. The snippet guard does the opposite and is far narrower: it drops **Obsidian's own** corrective selection dispatch, and only the one that arrives immediately after a snippet tabstop jump. Obsidian's snap is real — it is what pushed a tabstop out of `*a*` — but it is dispatched by Obsidian, from a zero-delay timer, against the decoration set built for the previous selection, and it skips any transaction that also changed the document. That is why it reaches tabstop jumps and not ordinary cursor motion, and why removing the guard is not a repeat of the fix recorded above.
+
 ~~**Permanent limitation: `ci*` in Live Preview**~~ — Investigation (spike27) found that `ci*` works correctly in Live Preview for multi-character content (`**bold text**` → `ci*` → type replacement → correct result). On the active line, Obsidian uses `Decoration.mark` (visible text nodes), not `Decoration.replace` — the cursor is not displaced by collapsed decorations. The original limitation was overstated based on early testing with a transaction filter that has since been removed.
 
 **Test coverage**: `test/specs/text-objects.e2e.ts` — `ci*` unskipped and passing for multi-character bold content.
