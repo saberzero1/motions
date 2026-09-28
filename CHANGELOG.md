@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-28
+
 ### Added
 
 - **Every built-in surround character can now be rebound** — `vim.obsidian.surround.set` and `surroundmap` refused all 19 of them, which meant the commonest reason to reach for a custom pair was the one thing the feature could not do: `ysiw(` wraps as `( word )` and nothing could ask for `(word)`. Registration now accepts them, and each dispatch that reads a built-in meaning _before_ it reads a delimiter pair yields to an override — `t` and `f` as targets, where they reach the tag and function-call finders, and `<`, `f` and `F` as replacements, where they open the tag-name and function-name prompts. An alias resolves to its canonical character first, so overriding `)` also reaches `b`; leaving it on the built-in would make `dsb` and `ds)` disagree about what the pair is. Overridden brackets keep depth-aware matching, because the search moves from the bracket scanner to the multi-character one, which counts depth as well. Empty delimiters are rejected instead of stored: they disable the character rather than rebinding it, a failure mode that only became reachable once a built-in could be the target. ([#197](https://github.com/saberzero1/motions/issues/197))
