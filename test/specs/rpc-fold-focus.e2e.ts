@@ -79,6 +79,27 @@ const SECOND_PANE_FIXTURE = [
     'gamma body',
 ].join('\n');
 
+const SECOND_FRONTMATTER_FIXTURE = [
+    '---',
+    'tag: beta',
+    '---',
+    '# Alpha',
+    'alpha body',
+].join('\n');
+
+// What a user's own Neovim config does. `g:markdown_folding` in the stock
+// Markdown ftplugin and a treesitter `foldexpr` in a personal ftplugin both
+// reach the window through a `FileType` handler, and `filetype detect` re-fires
+// them on every activation. A constant `0` stands in for both so the effect is
+// unambiguous and no parser has to be installed on the test machine.
+const CLOBBER_FOLDEXPR_LUA = `vim.api.nvim_create_autocmd("FileType", {
+    pattern = "markdown",
+    callback = function()
+        vim.api.nvim_set_option_value("foldmethod", "expr", { win = 0 })
+        vim.api.nvim_set_option_value("foldexpr", "0", { win = 0 })
+    end,
+})`;
+
 const FOLD_LINES_LUA = `local out = {}
 for lnum = 1, vim.api.nvim_buf_line_count(0) do
     out[#out + 1] = {
@@ -496,5 +517,60 @@ describe('Neovim RPC fold state on pane focus', function () {
             -1, -1, -1, -1, -1, -1, -1, -1,
         ]);
         expect(await renderedFoldCount()).toBe(0);
+    });
+
+    it('keeps the frontmatter fold when a FileType handler overwrites the fold expression (#199)', async () => {
+        await loadTwoPaneWorkspace();
+        await setPaneContent('Welcome.md', FRONTMATTER_FIXTURE);
+        await setPaneContent('Target.md', SECOND_FRONTMATTER_FIXTURE);
+        await focusPane('Welcome.md');
+        await setRpcEnabled(true);
+        await waitForConnected();
+        await waitForPaneMirror('Welcome.md', FRONTMATTER_FIXTURE);
+        expect((await foldLines())[0]).toEqual({
+            level: 20,
+            closed: 1,
+            closedEnd: 3,
+        });
+
+        await request('nvim_exec_lua', [CLOBBER_FOLDEXPR_LUA, []]);
+        await focusPane('Target.md');
+        await waitForPaneMirror('Target.md', SECOND_FRONTMATTER_FIXTURE);
+
+        // `activateDocument()` runs `filetype detect`, which re-fires the
+        // handler installed above. The connect-time fold expression is not
+        // reinstated by anything else, so without a per-activation reapply the
+        // frontmatter stops being folded from the second note onward and
+        // Neovim's cursor regains the properties widget.
+        const lines = await foldLines();
+        expect(lines[0]).toEqual({ level: 20, closed: 1, closedEnd: 3 });
+        expect(lines.map((line) => line.level)).toEqual([20, 20, 20, 1, 1]);
+    });
+
+    // Must stay green before and after the reapply: it is what stops the fix
+    // from over-reaching into `foldlevel`, which no FileType handler touches.
+    // Rewriting that one per activation would undo a user's own `zM` every time
+    // they changed panes.
+    it('leaves a user fold level alone across a pane switch (#199)', async () => {
+        await loadTwoPaneWorkspace();
+        await setPaneContent('Welcome.md', HEADING_FIXTURE);
+        await setPaneContent('Target.md', SECOND_PANE_FIXTURE);
+        await focusPane('Welcome.md');
+        await setRpcEnabled(true);
+        await waitForConnected();
+        await waitForPaneMirror('Welcome.md', HEADING_FIXTURE);
+
+        await input('zM');
+        expect((await foldLines()).map((line) => line.closed)).toEqual([
+            1, 1, 1, 1, 1, 1, 7, 7,
+        ]);
+
+        await focusPane('Target.md');
+        await waitForPaneMirror('Target.md', SECOND_PANE_FIXTURE);
+        await focusPane('Welcome.md');
+        await waitForPaneMirror('Welcome.md', HEADING_FIXTURE);
+        expect((await foldLines()).map((line) => line.closed)).toEqual([
+            1, 1, 1, 1, 1, 1, 7, 7,
+        ]);
     });
 });

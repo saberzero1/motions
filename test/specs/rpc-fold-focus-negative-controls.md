@@ -80,6 +80,70 @@ subject is the focus transition, and scenario 1 in the same spec is what refuses
 to let folding be absent, asserting the measured `level` ladder
 `[1, 1, 1, 1, 2, 2, 1, 1]` before it asserts anything about closure.
 
+## Unfixed product: a `FileType` handler reclaiming the window
+
+`activateDocument()` runs `filetype detect`, which re-fires the user's own
+`FileType` handlers on every activation, and setting a window-local fold
+expression there is ordinary Neovim configuration. Before the per-activation
+reapply, the connect-time expression survived the first note and nothing
+restored it afterwards, so the frontmatter guard was lost from the second note
+onward — `level: 0` is the user's expression answering where the plugin's
+sentinel used to be:
+
+```text
+5) keeps the frontmatter fold when a FileType handler overwrites the fold
+   expression (#199)
+  Object {
+-   "closed": 1,
+-   "closedEnd": 3,
+-   "level": 20,
++   "closed": -1,
++   "closedEnd": -1,
++   "level": 0,
+  }
+
+5 passing, 1 failing
+```
+
+## Reapply removed
+
+Deleting only the `applyFoldExpression()` call from `syncForActivation()` failed
+that scenario and nothing else, so the coverage is localised to the activation
+path rather than to folding in general:
+
+```text
+   ✖ keeps the frontmatter fold when a FileType handler overwrites the fold expression (#199)
+
+5 passing, 1 failing
+```
+
+## Reapply over-reaching into `foldlevel`
+
+The opposing control on the same method. Adding `foldlevel` to the per-activation
+reapply — the obvious way to "finish" the fix — restores the frontmatter guard
+and breaks the user's own fold level instead, undoing a `zM` on every pane
+switch:
+
+```text
+   ✖ leaves a user fold level alone across a pane switch (#199)
+  Array [
+-   1, 1, 1, 1, 1, 1, 7, 7,
++   -1, -1, -1, -1, -1, -1, -1, -1,
+  ]
+
+5 passing, 1 failing
+```
+
+Only reapplying `foldmethod` and `foldexpr` satisfies both, which is why the two
+scenarios are kept together. `leaves a user fold level alone` is green before
+and after the reapply was added; its job is to stay green, and this sabotage is
+what proves it is not decorative.
+
+`sync()` keeps its early return because `prepareKeyInput()` awaits it before
+every delegated keystroke. Collapsing the two methods would put two RPC
+round-trips on that path, which no gate would catch — `rpc-latency.e2e.ts` is
+explicitly non-blocking.
+
 ## Restored
 
 ```text
@@ -87,8 +151,10 @@ to let folding be absent, asserting the measured `level` ladder
    ✓ still closes the rendered frontmatter fold (#199)
    ✓ closes only the fold the user asks for (#199)
    ✓ leaves every pane unfolded as focus moves between them (#199)
+   ✓ keeps the frontmatter fold when a FileType handler overwrites the fold expression (#199)
+   ✓ leaves a user fold level alone across a pane switch (#199)
 
-4 passing (4.8s)
+6 passing (6s)
 Spec Files: 1 passed, 1 total
 ```
 

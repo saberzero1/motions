@@ -543,7 +543,7 @@ export class NeovimDocumentSync {
                 false,
                 { buf: buffer },
             ]);
-            await this.frontmatterFold.sync();
+            await this.frontmatterFold.syncForActivation();
         } finally {
             this.remirroring = false;
         }

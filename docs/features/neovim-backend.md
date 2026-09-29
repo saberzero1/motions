@@ -73,6 +73,9 @@ Obsidian continues to own the vault, Markdown rendering, properties widgets, wor
 
 Both **Settings → Editor → Properties in document** modes are supported. Source frontmatter remains navigable. Rendered frontmatter is protected by a Neovim fold while the properties widget remains owned by Obsidian. That fold is the only one closed when a pane is activated — headings, callouts and blockquotes arrive unfolded, and fold commands behave normally from there.
 
+> [!info]
+> The mirror window's `foldmethod` and `foldexpr` belong to the plugin and are reapplied every time a note is activated, so a Markdown `foldexpr` in your own config — `g:markdown_folding`, or a treesitter one in an ftplugin — does not apply to it. Without that, the frontmatter would stop being folded as soon as you switched notes. Your fold _level_ is left alone, so `zm`, `zM`, `zr` and `zR` behave normally and survive a pane switch.
+
 ## Configuration
 
 RPC mode uses your own Neovim configuration for everything Neovim owns. The plugin's `.obsidian.init.lua` and `.obsidian.vimrc` continue to load, but they configure the bundled Vim engine, which stands down while Neovim owns keys.

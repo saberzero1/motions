@@ -90,19 +90,51 @@ export class NeovimFrontmatterFold {
         private readonly rpc: MsgpackRpcClient,
     ) {}
 
+    // Awaited before every delegated keystroke, so the cache is what keeps it
+    // free on that path. It must stay a no-op once the mode matches.
     async sync(): Promise<void> {
-        const enabled =
-            getVaultConfig(this.app, 'propertiesInDocument') !== 'source';
+        const enabled = this.resolveEnabled();
         if (enabled === this.enabled) return;
+        await this.install(enabled);
+    }
+
+    // `activateDocument()` runs `filetype detect`, which re-fires the user's own
+    // `FileType` handlers on every activation. Setting a window-local fold
+    // expression there is ordinary Neovim configuration -- `g:markdown_folding`
+    // does it in the stock Markdown ftplugin, and a treesitter `foldexpr` in a
+    // personal ftplugin is commoner still -- and it lands after the connect-time
+    // install, so the expression has to be restored per activation or the
+    // frontmatter fold silently stops existing from the second note onward.
+    // `foldlevel` and `foldenable` are deliberately left alone: no `FileType`
+    // handler writes them, and rewriting them here would undo a user's `zm`/`zM`
+    // on every pane switch.
+    async syncForActivation(): Promise<void> {
+        const enabled = this.resolveEnabled();
+        if (enabled !== this.enabled) {
+            await this.install(enabled);
+            return;
+        }
+        await this.applyFoldExpression();
+    }
+
+    private resolveEnabled(): boolean {
+        return getVaultConfig(this.app, 'propertiesInDocument') !== 'source';
+    }
+
+    private async install(enabled: boolean): Promise<void> {
         await this.rpc.request('nvim_exec_lua', [
             foldExpressionSource,
             [enabled],
         ]);
-        await this.setWindowOption('foldmethod', 'expr');
-        await this.setWindowOption('foldexpr', foldExpression);
+        await this.applyFoldExpression();
         await this.setWindowOption('foldlevel', bodyFoldLevel);
         await this.setWindowOption('foldenable', true);
         this.enabled = enabled;
+    }
+
+    private async applyFoldExpression(): Promise<void> {
+        await this.setWindowOption('foldmethod', 'expr');
+        await this.setWindowOption('foldexpr', foldExpression);
     }
 
     private async setWindowOption(name: string, value: unknown): Promise<void> {
