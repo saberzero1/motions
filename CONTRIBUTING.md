@@ -709,6 +709,8 @@ test/
     rpc-oil-negative-controls.md # Forced interception and isolated action sabotage evidence
     rpc-folds-undo.e2e.ts   # Fold mirror, native undo, sidebar data, and refresh coverage
     rpc-folds-undo-negative-controls.md # Fold/sidebar ownership sabotage evidence
+    rpc-fold-focus.e2e.ts   # Activation fold level and pane-focus coverage; sets no fold option
+    rpc-fold-focus-negative-controls.md # Fold-level, absent-fold, and pane-seeding sabotage evidence
     rpc-structural-nav.e2e.ts # Fork-oracle structural motion/operator and native hard-wrap parity
     rpc-structural-nav-negative-controls.md # Mapping/width/level/operator/count sabotage evidence
     rpc-text-objects.e2e.ts # Fork-oracle Markdown text-object operator/visual/register/count parity

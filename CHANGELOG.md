@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every fold in the focused pane arrived closed under the Neovim backend, and appeared to spring open again when focus moved to another pane** — the mirror window was activated with `foldlevel` set to `0` whenever **Settings → Editor → Properties in document** was anything other than **Source**, which is Obsidian's default, so a note opened as if `zM` had been pressed. `0` was chosen to close the frontmatter fold, and it does, but it closes every heading fold with it. The expression fold marks frontmatter with a sentinel written as `100`, and Vim caps an expression fold at `MAX_LEVEL`, `20` — `foldnestmax` does not move that cap, measured at `5` and `10`, both still reporting `20` — so the level that closes the frontmatter and nothing else is `19`, not `0`. Raising it to `99` instead is the other wrong answer: the sentinel never reaches `99` either, so the frontmatter fold opens and Neovim's cursor gets the properties widget back. The sentinel is now written as the cap it resolves to and the window's level as one below it. The apparent `zR` on the pane being left needs no separate cause and is not a defect: CM6 folds are per-pane and the decoration bridge unfolds the pane it stops mirroring, so an all-closed pane visibly reopens as focus leaves it. Reproduced on Linux against Neovim 0.12.5; never platform-specific. ([#199](https://github.com/saberzero1/motions/issues/199))
+    - Plugin: `src/rpc/frontmatter-fold.ts`
+
+### Tests
+
+- **A new spec measures fold state as the activation leaves it, which no existing spec did.** `rpc-folds-undo.e2e.ts` sets `foldmethod`, `foldexpr`, `foldlevel=99` and `foldenable` and runs `zR` in its `beforeEach`, so the window it measures is never the window the product produced — the same fixture-hides-product shape as the `vim.opt.swapfile = false` line removed for the swap-file defect two entries above. Nothing in the new spec sets a fold option or runs `zR`. It also runs with `propertiesInDocument` set to `visible`; every other RPC spec sets `source`, which is the branch that already worked, and the mode has to be in place before connecting because `NeovimFrontmatterFold` caches it and reapplies nothing once it matches. Red first: all four scenarios failed, `foldclosed()` per line returning `[1, 1, 1, 1, 1, 1, 7, 7]` over the eight-line heading fixture where `-1` was expected — both top-level heading folds closed on arrival. Two further controls, each proven independently. Setting the window level to `99` failed the frontmatter scenario **and nothing else**, at `closed: -1, closedEnd: -1` against `1` and `3`, which is what makes that scenario the guard against the tempting fix rather than a duplicate of the others. Setting `foldmethod` to `manual`, so no folds exist at all, failed three of the four and left the pane-focus scenario passing vacuously — deliberate, and recorded: `foldclosed()` cannot tell a pane with no folds from a pane with no closed folds, and the level-ladder assertion `[1, 1, 1, 1, 2, 2, 1, 1]` in the first scenario is what refuses to let folding be absent. The pane-focus scenario seeds each leaf through its own editor rather than `setupEditor`, which re-focuses until it sees any focused CM6 editor and with two visible panes can already be the other one; seeding through it settled the mirror on the wrong pane and reported six lines where eight were expected. ([#199](https://github.com/saberzero1/motions/issues/199))
+    - Tests: `test/specs/rpc-fold-focus.e2e.ts` (new), `test/specs/rpc-fold-focus-negative-controls.md` (new)
+
+### Documentation
+
+- `AGENTS.md`, `CONTRIBUTING.md`: the new spec and its negative-control file, and why it does not overlap `rpc-folds-undo.e2e.ts`.
+- `KNOWN_LIMITATIONS.md`: the RPC frontmatter paragraph now states that the window's fold level sits one below the frontmatter fold so the body arrives unfolded, and that Vim's `MAX_LEVEL` cap is what decides that number.
+- `docs/features/neovim-backend.md`: a sentence in the properties-mode paragraph stating that only the frontmatter fold is closed on activation, which pairs with the existing note that fold persistence is unavailable in RPC mode.
+
 ## [1.3.0] - 2026-09-28
 
 ### Added

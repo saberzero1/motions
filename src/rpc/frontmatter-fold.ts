@@ -8,6 +8,17 @@ const luaFrontmatterPattern = FRONTMATTER_DELIMITER_PATTERN.replace(
     String.raw`\s`,
     '%s',
 );
+
+// Vim caps an expression fold at MAX_LEVEL, 20; `foldnestmax` does not move that
+// cap (measured at 5 and 10, both still 20). Writing the sentinel as the cap
+// keeps `bodyFoldLevel` one below a stated number rather than one below a silent
+// clamp, which is what made `foldlevel = 0` look like "close the frontmatter
+// only". It closed every heading fold as well, so a pane arrived as if `zM` had
+// run (#199). Markdown headings reach 6 and a callout one deeper, so 19 leaves
+// the whole body open while still closing the frontmatter.
+const frontmatterFoldLevel = 20;
+const bodyFoldLevel = frontmatterFoldLevel - 1;
+
 const foldExpressionSource = `local rendered = ...
 local delimiter = ${JSON.stringify(luaFrontmatterPattern)}
 local cached_tick = -1
@@ -44,11 +55,11 @@ _G.vim_motions_rpc_foldexpr = function()
     for index, line in ipairs(lines) do
         if closing and index <= closing then
             if index == 1 then
-                levels[index] = ">100"
+                levels[index] = ">${frontmatterFoldLevel}"
             elseif index == closing then
-                levels[index] = "<100"
+                levels[index] = "<${frontmatterFoldLevel}"
             else
-                levels[index] = 100
+                levels[index] = ${frontmatterFoldLevel}
             end
         else
             local level = heading_level(line)
@@ -89,7 +100,7 @@ export class NeovimFrontmatterFold {
         ]);
         await this.setWindowOption('foldmethod', 'expr');
         await this.setWindowOption('foldexpr', foldExpression);
-        await this.setWindowOption('foldlevel', enabled ? 0 : 99);
+        await this.setWindowOption('foldlevel', bodyFoldLevel);
         await this.setWindowOption('foldenable', true);
         this.enabled = enabled;
     }

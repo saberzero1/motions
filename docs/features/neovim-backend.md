@@ -71,7 +71,7 @@ When the status bar is enabled, Neovim's `msg_showmode` output takes precedence 
 
 Obsidian continues to own the vault, Markdown rendering, properties widgets, workspace panes and tabs, pickers, file navigation, Oil, Harpoon storage, cross-note jumps, and the undo-tree sidebar. `:w` routes through Obsidian's active-editor save command, while `:e` and `:e!` re-seed from the current Obsidian document rather than reading behind Obsidian's back.
 
-Both **Settings → Editor → Properties in document** modes are supported. Source frontmatter remains navigable. Rendered frontmatter is protected by a Neovim fold while the properties widget remains owned by Obsidian.
+Both **Settings → Editor → Properties in document** modes are supported. Source frontmatter remains navigable. Rendered frontmatter is protected by a Neovim fold while the properties widget remains owned by Obsidian. That fold is the only one closed when a pane is activated — headings, callouts and blockquotes arrive unfolded, and fold commands behave normally from there.
 
 ## Configuration
 
