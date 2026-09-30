@@ -656,6 +656,20 @@ Old values (`off`, `cursor`, `always`, `embedded`) are automatically migrated to
 
 **Table manipulation commands** (`<Leader>t` prefix and ex commands like `:tablerowafter`) call Obsidian commands via `executeCommandById`. In `native` mode, the native table widget is present and these commands work as expected.
 
+### `set tablewidget=raw` does not accept typed text inside a table in Live Preview
+
+`raw` mode is implemented purely in CSS — `body.vim-motions-raw-table .cm-editor .cm-table-widget { display: none }` in `styles.css`. That hides the widget's DOM but leaves Obsidian's own table decoration in the CodeMirror state, so the document model still treats the table range as replaced. With the cursor reported inside a cell, a typed character lands at the **end of the document** instead.
+
+Measured against the same five-line fixture with the cursor at offset 14, inside `|abc|def|`, entering insert mode and typing one character:
+
+| Render mode  | `tablewidget` | Result                                                    |
+| ------------ | ------------- | --------------------------------------------------------- |
+| Live Preview | `raw`         | character appended at offset 36, the end of the document  |
+| Source       | `raw`         | `\|abc\|defz\|` — correct                                 |
+| Live Preview | `native`      | `\|abc\| defz \|` — correct cell, widget realigns the row |
+
+`native` in Live Preview and `raw` in Source mode both behave correctly with the identical fixture and cursor, which is what isolates the failure to `raw` in Live Preview rather than to Live Preview or to the measurement. No snippet is involved; this is ordinary typing. Discovered while checking whether `raw` was a workaround for the snippet-tabstop case above — it is not. A real fix has to suppress the decoration rather than hide the element.
+
 ## Vimrc soft-reload
 
 Vimrc maps and settings are soft-reloaded when the vimrc file is modified — changes to `nmap`, `set`, and other map/setting commands take effect without reloading the plugin. The plugin watches the vimrc file via `vault.on('modify')` and re-applies maps and settings on change.
@@ -1882,6 +1896,12 @@ The following are intentionally not implemented in v1:
 - **Picker snippet expansion does not capture visual selection** — the picker-based snippet expansion (`picker-source.ts`) reads `view.state.selection.main` which is collapsed after visual mode exit. The `:snippet` command uses vim marks to recover the visual selection; the picker does not have access to the `cm` adapter. This is a latent issue — the picker is typically invoked from normal mode.
 - **`snip.env` for Lua `f()`/`d()` callbacks** — deferred. The current `f(args, parent)` / `d(args, parent, old_state)` callback signatures do not carry environment variables. LuaSnip exposes `snip.env.TM_SELECTED_TEXT`, `snip.env.LS_SELECT_RAW`, etc. Adding this requires changes to `dynamic-bridge.ts` and the Lua function invocation protocol.
 - **`$LINE_COMMENT` / `$BLOCK_COMMENT_START` / `$BLOCK_COMMENT_END`** — deferred. These require cursor-context-aware language detection for code blocks. The simple case (`%%` always for Markdown) is trivial but not useful inside code blocks where `//`, `/* */`, `#`, etc. would be expected.
+
+### Tabstop placement limitations
+
+A tabstop number may be repeated, and every occurrence is linked, as the LSP snippet specification requires — `$1 *a$2* *b$2* $0` puts a cursor in both `$2` positions and typing updates both. This is VS Code's and CodeMirror's presentation of that rule; Neovim's `vim.snippet` shows one cursor and mirrors the rest, so the resulting text agrees but the cursor count does not. Neovim additionally rejects a snippet whose repeated `${2:…}` placeholders carry _different_ default text, where each default here is inserted as written.
+
+- **A tabstop inside a table does not work in Live Preview.** Obsidian renders a Markdown table as an interactive widget that owns the region, so a tabstop landing between the pipes is inside a replaced range. The jump itself is placed correctly, but the next keystroke goes to the widget rather than the tabstop — with `|${2:---}|${2:---}|` a typed character was measured landing on an entirely different line while the selection stayed on the placeholders. This is not reachable from a transaction filter the way the emphasis case was: nothing can put a CodeMirror cursor inside a widget-replaced range. **Source mode is the only workaround**, and there both forms behave exactly as Neovim would: `|abc|def$2|` takes the typed character into the cell, and `|${2:---}|${2:---}|` becomes `|z|z|`. `set tablewidget=raw` is **not** a workaround — see the table-widget section below. ([#198](https://github.com/saberzero1/motions/issues/198))
 
 ### ~~Ex command snippet expansion~~ (Fixed)
 

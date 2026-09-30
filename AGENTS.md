@@ -256,6 +256,7 @@ The full e2e suite (`npm run test:e2e`) runs 213 spec files (212 sharded; `rpc-l
     npx wdio run ./wdio.conf.mts --spec test/specs/vim-builtin/operator-combos.e2e.ts
     npx wdio run ./wdio.conf.mts --spec 'test/specs/vim-builtin/*.e2e.ts'
     ```
+- **`npm run build:ci-test` first, every time. A bare `npx wdio run` does not rebuild `main.js`.** `test:e2e` is `npm run build:ci-test && wdio run`, and `wdio.conf.mts` has no build step — its `onPrepare` only downloads Obsidian. Skipping the build runs the specs against whatever bundle was last built, so a source change under test is simply **not present**, and the failure looks exactly like the fix not working. This is the plugin-side twin of the `cm-buildhelper` trap recorded for the fork, and it is worse here because there is no separate `dist/` to notice. It burns in both directions: a real fix reports the identical pre-fix values, and a sabotage for a negative control reports green. If a change to `src/**` provably has no effect — same expected-vs-actual numbers as before the edit — rebuild and re-run before forming any hypothesis. Temporary `console.log`/`window` instrumentation inside `src/**` that produces _no output at all_ is the cheapest tell.
 - The `test/specs/vim-builtin/` directory (~7 min) covers core Vim behavior and is the most relevant subset after fork changes.
 - Individual spec files typically complete in 30–90 seconds.
 

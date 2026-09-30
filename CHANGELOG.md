@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A repeated tabstop inside Markdown emphasis lost both cursors and the whole snippet on the first keystroke in Live Preview** — the follow-up half of [#198](https://github.com/saberzero1/motions/issues/198). With the reported body `$1 *a$2* *b$2* $0`, Tab placed cursors correctly at both `$2` occurrences, but typing `z` left them at `5` and `7` instead of `4` and `9`, outside the emphasis and outside the snippet's own field ranges — so CodeMirror dropped the session (`selectionInsideField` returns false) and a second keystroke produced `*az*y *ybz*` where `*azy* *bzy*` was wanted. A repeated tabstop is not an extension: the LSP snippet specification requires the occurrences to be linked ("typing in one will update others too"), VS Code and CodeMirror realise that as simultaneous selections, and Neovim's own `vim.snippet` as one cursor plus mirrored ranges. Two measurements locate the defect outside the snippet machinery — the same body with no markup (`$1 a$2 b$2 $0`) is correct through every keystroke in Live Preview, and the emphasis body is correct in Source mode. The guard shipped in 1.3.0 covers the tabstop **jump**; the second exposure is the first **edit** at a tabstop, where the document change closes the jump's window and Obsidian's snap arrives on transactions after it. Against a multi-range selection the snap does not offset each range past its marker as it does for one cursor — instrumentation recorded it collapsing `4:4,9:9` to `8:8` and then rebuilding it as `4:4,7:7`, across two separate dispatches — so the window is now held for the whole macrotask rather than being consumed by the first drop. Arming also covers any document change that leaves the selection inside the active field, and a transaction that re-sets the selection it already has no longer closes the window, because closing it there leaves the snap behind it unguarded.
+    - Plugin: `src/snippets/live-preview-guard.ts` (`isTabstopEdit` arming, `isMarkerSnap` extracted, the window no longer consumed by a dropped snap or by a selection-preserving transaction)
+
+### Tests
+
+- **Four scenarios for repeated tabstops, two of which are controls that must stay green.** Red first, against a rebuilt bundle: `keeps both cursors inside their emphasis after typing` returned `[{4,4},{9,9}]` → `[{5,5},{7,7}]`, and `keeps the repeated tabstop live for a second keystroke` returned `*az*y *ybz*` against `*azy* *bzy*`. Both halves of the fix were then sabotaged separately and each failed differently, which is what shows they are not one change: reverting the edit-arming reproduced the original failure exactly, while keeping the arming and consuming the window on the first dropped snap failed _partially_ — cursor one correct at `4:4`, cursor two still wrong at `7:7`, text `*azy* *ybz*` — the signature of a two-transaction cascade with only the first blocked. The markup-free body and the Source-mode case are the controls: were repeated tabstops simply unsupported, both would fail too, and neither moved at any point. ([#198](https://github.com/saberzero1/motions/issues/198))
+    - Tests: `test/specs/snippets/snippet-live-preview-tabstop.e2e.ts` (four scenarios, plus a multi-range selection reader — `getCursorPos` reports only the main range, so the previous assertions could not have seen a second cursor at all)
+
+### Documentation
+
+- `AGENTS.md`: a bare `npx wdio run` does not rebuild `main.js`, so a source change under test is silently absent and a negative-control sabotage reports green — the plugin-side twin of the `cm-buildhelper` trap already recorded for the fork.
+- `CONTRIBUTING.md`: the guard's two exposures, and why a dropped snap does not close its window.
+- `KNOWN_LIMITATIONS.md`: a new `### Tabstop placement limitations` entry for tabstops inside a table in Live Preview, and the repeated-tabstop support statement including where Neovim's presentation differs. Also a new `### set tablewidget=raw does not accept typed text inside a table in Live Preview` entry under the table-widget section, recording a previously unreported defect found while checking whether `raw` was a workaround: with the cursor inside a cell, a typed character lands at the end of the document. `raw` mode is CSS-only, so Obsidian's table decoration stays in the CodeMirror state. Measured with a control matrix — `native` in Live Preview and `raw` in Source mode are both correct on the identical fixture and cursor, which isolates the failure to `raw` in Live Preview. No snippet is involved.
+- `docs/features/snippets.md`: repeated tabstops documented as linked occurrences, with the table caveat.
+
 ## [1.3.1] - 2026-09-29
 
 ### Fixed

@@ -40,8 +40,50 @@ const FINAL_PREFIX = 'lptsend';
 const FINAL_BODY = '$1 *a$2*';
 const FINAL_EXPANDED = ' *a*';
 
+/**
+ * A repeated tabstop number, which the LSP grammar links ("typing in one will
+ * update others too") and CodeMirror realises as a multi-range selection.
+ *
+ * `DUP_BODY` (`$1 *a$2* *b$2* $0`) expands to ` *a* *b* `:
+ *
+ *   offset: 0 = ' ', 1 = '*', 2 = 'a', 3 = '*', 4 = ' ',
+ *           5 = '*', 6 = 'b', 7 = '*', 8 = ' '
+ *   $1 -> 0, $2 -> 3 and 7, $0 -> 9
+ *
+ * The exposure here is the first *edit* at the tabstop rather than the jump.
+ * On a multi-range selection Obsidian's snap does not merely push each range
+ * past its marker — it collapses the selection and rebuilds it wrongly.
+ *
+ * `DUP_PLAIN_BODY` is the same shape with no markup, so nothing is hidden and
+ * no snap is scheduled. It is the control: were repeated tabstops simply
+ * unsupported, it would fail too.
+ */
+const DUP_PREFIX = 'lptsdup';
+const DUP_BODY = '$1 *a$2* *b$2* $0';
+const DUP_EXPANDED = ' *a* *b* ';
+
+const DUP_PLAIN_PREFIX = 'lptsdupplain';
+const DUP_PLAIN_BODY = '$1 a$2 b$2 $0';
+const DUP_PLAIN_EXPANDED = ' a b ';
+
 const FIRST_TABSTOP_CH = 0;
 const EMPHASIS_TABSTOP_CH = 3;
+
+async function getSelectionRanges(): Promise<{ from: number; to: number }[]> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        if (!view) throw new Error('getSelectionRanges: no MarkdownView');
+        const cm = (view.editor as unknown as { cm: unknown }).cm as {
+            state: {
+                selection: { ranges: readonly { from: number; to: number }[] };
+            };
+        };
+        return cm.state.selection.ranges.map((r) => ({
+            from: r.from,
+            to: r.to,
+        }));
+    })) as { from: number; to: number }[];
+}
 
 async function registerSnippets(): Promise<void> {
     await browser.executeObsidian(
@@ -51,6 +93,10 @@ async function registerSnippets(): Promise<void> {
             middleBody: string,
             finalPrefix: string,
             finalBody: string,
+            dupPrefix: string,
+            dupBody: string,
+            dupPlainPrefix: string,
+            dupPlainBody: string,
         ) => {
             const plugin = (
                 app as unknown as {
@@ -90,6 +136,16 @@ async function registerSnippets(): Promise<void> {
                         body: finalBody,
                         description: 'Issue 198 reproduction, last tabstop',
                     },
+                    'Live Preview Repeated Tabstop': {
+                        prefix: dupPrefix,
+                        body: dupBody,
+                        description: 'Issue 198 follow-up, repeated tabstop',
+                    },
+                    'Repeated Tabstop Without Markup': {
+                        prefix: dupPlainPrefix,
+                        body: dupPlainBody,
+                        description: 'Issue 198 follow-up, markup-free control',
+                    },
                 },
                 'user',
             );
@@ -98,6 +154,10 @@ async function registerSnippets(): Promise<void> {
         MIDDLE_BODY,
         FINAL_PREFIX,
         FINAL_BODY,
+        DUP_PREFIX,
+        DUP_BODY,
+        DUP_PLAIN_PREFIX,
+        DUP_PLAIN_BODY,
     );
 }
 
@@ -202,6 +262,69 @@ describe('Snippet tabstops inside Markdown emphasis (issue #198)', function () {
                 ch: EMPHASIS_TABSTOP_CH,
             });
         });
+
+        it('puts a cursor in every occurrence of a repeated tabstop', async function () {
+            await expandSnippet(DUP_PREFIX);
+            await jumpToNextTabstop();
+
+            expect(await getEditorValue()).toBe(DUP_EXPANDED);
+            expect(await getSelectionRanges()).toEqual([
+                { from: 3, to: 3 },
+                { from: 7, to: 7 },
+            ]);
+        });
+
+        it('keeps both cursors inside their emphasis after typing', async function () {
+            await expandSnippet(DUP_PREFIX);
+            await jumpToNextTabstop();
+
+            await browser.keys(['z']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            expect(await getEditorValue()).toBe(' *az* *bz* ');
+            expect(await getSelectionRanges()).toEqual([
+                { from: 4, to: 4 },
+                { from: 9, to: 9 },
+            ]);
+        });
+
+        it('keeps the repeated tabstop live for a second keystroke', async function () {
+            await expandSnippet(DUP_PREFIX);
+            await jumpToNextTabstop();
+
+            await browser.keys(['z']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await browser.keys(['y']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            expect(await getEditorValue()).toBe(' *azy* *bzy* ');
+            expect(await getSelectionRanges()).toEqual([
+                { from: 5, to: 5 },
+                { from: 11, to: 11 },
+            ]);
+        });
+
+        it('types into a repeated tabstop that sits outside any markup', async function () {
+            await expandSnippet(DUP_PLAIN_PREFIX);
+            await jumpToNextTabstop();
+
+            expect(await getEditorValue()).toBe(DUP_PLAIN_EXPANDED);
+            expect(await getSelectionRanges()).toEqual([
+                { from: 2, to: 2 },
+                { from: 4, to: 4 },
+            ]);
+
+            await browser.keys(['z']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await browser.keys(['y']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            expect(await getEditorValue()).toBe(' azy bzy ');
+            expect(await getSelectionRanges()).toEqual([
+                { from: 4, to: 4 },
+                { from: 8, to: 8 },
+            ]);
+        });
     });
 
     describe('Source mode', function () {
@@ -223,6 +346,22 @@ describe('Snippet tabstops inside Markdown emphasis (issue #198)', function () {
                 line: 0,
                 ch: EMPHASIS_TABSTOP_CH,
             });
+        });
+
+        it('types into every occurrence of a repeated tabstop', async function () {
+            await expandSnippet(DUP_PREFIX);
+            await jumpToNextTabstop();
+
+            await browser.keys(['z']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            await browser.keys(['y']);
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+
+            expect(await getEditorValue()).toBe(' *azy* *bzy* ');
+            expect(await getSelectionRanges()).toEqual([
+                { from: 5, to: 5 },
+                { from: 11, to: 11 },
+            ]);
         });
     });
 });
