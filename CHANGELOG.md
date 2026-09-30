@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-30
+
 ### Added
 
 - **`:stopinsert` (`:stopi`), which `docs/guides/plugin-integration.md` has documented in three places without it existing.** `handleEx('stopinsert')` reported `unknownCommand: true` and the notice `Not an editor command ":stopinsert"`, while `:startinsert` resolved normally — so the published Better Paste recipes, whose whole point is returning to normal mode after handing insert mode to another plugin, silently left the editor in insert mode. Measured against Neovim 0.12.5 before implementing: `:stopinsert` is indistinguishable from `<Esc>` on the way out (`A` `x` on `hello` leaves `hellox` with the cursor on column `5` either way), and it is a no-op outside insert mode. It deliberately does **not** route through `doKeyToKey(cm, '<Esc>')` the way `:startinsert` routes through `i`/`A`: in normal mode that would run the fork's idle-normal Escape path and fire the host's `_idleEscapeCallback`, which dismisses popovers and blurs non-workspace editors, so a command Vim defines as doing nothing would have visible side effects. It calls `exitInsertMode` behind an `insertMode` guard instead.
