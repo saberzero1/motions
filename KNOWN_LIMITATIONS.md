@@ -801,6 +801,17 @@ This limitation is confirmed upstream in [obsidian-vimrc-support issue #16](http
 
 `noremap` does work for preventing recursion in multi-key mappings (e.g. `noremap G G$`) and for remapping keys to different key sequences. It only fails when trying to swap two built-in single-key motions with each other.
 
+## Only an exact Escape mapping overrides the built-in mode exit
+
+`<Esc>` is remappable in insert and visual mode, and a mapping you set wins over the built-in mode exit. Only a **full** match does, however: with `inoremap <Esc>q ZZ` and nothing bound to bare `<Esc>`, pressing `<Esc>` exits insert mode instead of waiting to see whether a `q` follows.
+
+This matches what Neovim does in the same situation (measured on 0.12.5: `inoremap <Esc>q ZZ` then `a` `<Esc>` leaves insert mode with the buffer unchanged), and here it is also a safety property rather than only a parity one. The bundled engine's insert-mode partial-match branch reports the key as consumed without arming the `insertModeEscKeysTimeout` fallback for a non-character key, so honouring the partial would leave no way out of insert mode at all — `<Esc>` would be swallowed indefinitely while the engine waited for a second key that the user may never intend to press.
+
+Two related behaviours are deliberate and match Vim:
+
+- `<C-[>` follows your `<Esc>` mapping, because `<C-[>` _is_ Escape — both send `0x1b`. `<C-c>` does not, because it is a distinct key. That makes `<C-c>` a dependable way out of insert mode regardless of what `<Esc>` is bound to.
+- A recursive `imap <Esc> <Esc>` falls back to the built-in exit rather than resolving to a no-op, because a mapping already being expanded is skipped when resolving the override.
+
 ## Table navigation on non-US keyboards
 
 `]|` and `[|` use the pipe character (`|`), which on many non-US keyboard layouts (German, Dutch, Nordic, etc.) requires AltGr or a modifier combination. codemirror-vim's `vimKeyFromEvent` translates AltGr keypresses as `<C-A-|>` or `<A-|>`, which does not match the registered `]|` keybinding.
