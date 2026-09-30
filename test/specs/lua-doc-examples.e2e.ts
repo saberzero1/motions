@@ -8,7 +8,9 @@ import {
     vimHandleKeysSync,
     sendVimEscape,
     getCursorPos,
+    getEditorValue,
     getPluginSetting,
+    getVimMode,
     PAUSE,
 } from '../helpers';
 
@@ -212,5 +214,25 @@ describe('Lua documentation example validation', function () {
         await browser.pause(PAUSE.EDITOR_SETTLE);
         const scrolloff = await getPluginSetting('scrolloffLines');
         expect(scrolloff).toBe(68);
+    });
+
+    // Guards plugin-integration.md's Better Paste recipes, which call
+    // vim.cmd("stopinsert") to restore normal mode after handing insert mode
+    // to another plugin.
+    it('vim.cmd("stopinsert") leaves insert mode from a keymap callback', async function () {
+        this.timeout(30000);
+        await loadLuaConfig(
+            'vim.g.mapleader = "\\\\"\n' +
+                'vim.keymap.set("n", "<leader>s", function()\n' +
+                '    vim.cmd("normal! a")\n' +
+                '    vim.cmd("stopinsert")\n' +
+                'end, { desc = "Enter then leave insert" })',
+        );
+        await setupEditor('abc', { line: 0, ch: 0 });
+        await vimHandleKeysSync('\\s', false);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        expect(await getVimMode()).toBe('normal');
+        expect(await getEditorValue()).toBe('abc');
     });
 });
