@@ -528,6 +528,8 @@ Execute commands via the `:` command line, grouped by function.
 | `:[range]le` / `:left`               | Left-align lines (trim leading spaces)  |
 | `:[range]ri [width]` / `:right`      | Right-align lines (default width: 80)   |
 | `:retab [tabstop]` / `:ret`          | Replace tabs with spaces                |
+| `:startinsert[!]` / `:start`         | Enter insert mode (`!` appends)         |
+| `:stopinsert` / `:stopi`             | Leave insert mode (no-op outside it)    |
 
 ### Window and tab
 

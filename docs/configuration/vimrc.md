@@ -297,6 +297,22 @@ whichkeylabel gd Go to definition
 
 Group and command labels from vimrc are merged with labels configured in Settings. If the same key appears in both, the vimrc value takes precedence.
 
+## Remapping `<Esc>`
+
+`imap`/`inoremap` and `vmap`/`vnoremap` work for `<Esc>`, and your mapping wins over the built-in mode exit:
+
+```vim
+" Leave insert mode and clear the search highlight
+inoremap <Esc> <Esc>:noh<CR>
+
+" Leave visual mode two columns to the right
+vnoremap <Esc> ll
+```
+
+Only an exact `<Esc>` mapping takes over. A longer one such as `inoremap <Esc>q ZZ` leaves bare `<Esc>` exiting insert mode as usual, so binding a prefix cannot strand you in insert mode. `<C-[>` follows your `<Esc>` mapping because it is the same key, while `<C-c>` does not — which makes `<C-c>` a dependable way out whatever you bind. See [[known-limitations#Only an exact Escape mapping overrides the built-in mode exit]].
+
+Use `:stopinsert` to leave insert mode from a mapping or Lua callback without sending a key. See [[ex-commands#stopinsert--stopi--leave-insert-mode]].
+
 ## Global key mappings
 
 `gmap` and `gnoremap` define key bindings for non-editor contexts — graph view, canvas, PDF viewer, reading mode, file explorer, and any other view where no editor is focused. These bindings use the same `<leader>` key as editor mappings.

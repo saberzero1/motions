@@ -52,6 +52,28 @@ Right-align lines by padding with spaces to the specified width (default:
 Replace all tab characters with spaces using the current `tabSize` setting.
 `:retab 2` replaces tabs with 2 spaces regardless of the `tabSize` setting.
 
+### `:stopinsert` / `:stopi` — leave insert mode
+
+Leaves insert mode, exactly as `<Esc>` does — the cursor ends on the same column
+`<Esc>` would leave it on. Outside insert mode it is a no-op, so it is safe to
+call unconditionally.
+
+It is most useful from Lua, where a callback enters insert mode to hand control
+to another plugin and has to restore normal mode afterwards:
+
+```lua
+vim.keymap.set('n', 'p', function()
+    vim.cmd('normal! a')
+    vim.obsidian.run_command('better-paste:paste')
+    vim.schedule(function()
+        vim.cmd('stopinsert')
+    end)
+end, { desc = 'Paste after (Better Paste)' })
+```
+
+The counterpart `:startinsert` (`:start`, or `:startinsert!` to append at
+end-of-line) enters insert mode.
+
 ## Obsidian integration
 
 ### `:ob` / `:obcommand` — execute Obsidian commands

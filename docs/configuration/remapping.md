@@ -39,6 +39,27 @@ vim.keymap.set('n', 'gh', ':nextheading<CR>')
 
 See [[ex-commands#Navigation and action commands]] for the full list of ex command aliases.
 
+### Remapping `<Esc>`
+
+`<Esc>` is remappable in insert and visual mode, and a mapping you set wins over
+the built-in mode exit:
+
+```lua
+vim.keymap.set('i', '<Esc>', '<Esc>:noh<CR>', { desc = 'Leave insert and clear search' })
+vim.keymap.set('x', '<Esc>', 'll', { desc = 'Leave visual two columns right' })
+```
+
+Three details match Vim and are worth knowing before you bind it:
+
+- **Only an exact `<Esc>` mapping wins.** A longer one such as `<Esc>q` leaves
+  bare `<Esc>` exiting the mode as usual, so binding a prefix cannot lock you
+  into insert mode.
+- **`<C-[>` follows your `<Esc>` mapping; `<C-c>` does not.** `<C-[>` is Escape —
+  the same byte — while `<C-c>` is a separate key. That makes `<C-c>` a reliable
+  way out of insert mode whatever you bind to `<Esc>`.
+- **A recursive mapping falls back to the built-in exit.** `vim.keymap.set('i',
+'<Esc>', '<Esc>', { remap = true })` leaves insert mode rather than looping.
+
 ## Oil explorer keybindings
 
 Oil keybindings are context-scoped — they only apply inside oil buffers. Use the `OilEnter` autocmd to set buffer-local keymaps.
