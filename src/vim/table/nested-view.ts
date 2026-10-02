@@ -23,6 +23,7 @@ import { mirrorRanges } from './selection-mirror';
 import { tableCellDecorations } from './cell-decorations';
 import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
+import { buildTableLayout, cellAt } from './layout-model';
 import {
     TABLE_SURFACE_ROOT_SELECTOR,
     nestedHostContainer,
@@ -135,6 +136,35 @@ export function getNestedSelectionReport(): {
     };
 }
 
+/**
+ * A child offset moved out of a delimiter and into a cell.
+ *
+ * A click on a rendered `|` resolves to a position inside the delimiter's own
+ * range, which belongs to no cell — the next motion or text object would then
+ * act from between two cells. `cellAt` deliberately returns null there rather
+ * than guessing, so the choice is made here: prefer the cell that starts
+ * immediately after the delimiter, and fall back to the one ending at it for a
+ * row's final `|`.
+ */
+function snapOutOfDelimiter(table: TableRange, childPos: number): number {
+    const layout = buildTableLayout({
+        from: 0,
+        to: table.lines.join('\n').length,
+        lines: table.lines,
+    });
+    if (!layout || cellAt(layout, childPos)) return childPos;
+
+    for (const row of layout.rows) {
+        if (childPos < row.from || childPos > row.to) continue;
+        const after = row.cells.find((c) => c.from === childPos + 1);
+        if (after) return after.from;
+        const before = row.cells.find((c) => c.to === childPos);
+        if (before) return before.to;
+        return childPos;
+    }
+    return childPos;
+}
+
 /** The table the parent's cursor is in, or null. */
 function activeTable(state: EditorState): TableRange | null {
     const head = state.selection.main.head;
@@ -199,6 +229,8 @@ function findSurfaceRoot(
 class NestedTableHost implements PluginValue {
     private frame: number | null = null;
     private current: Mounted | null = null;
+    /** True while this host is writing the child's selection. */
+    private mirroring = false;
     /** Captured at construction: a popout's window must survive teardown. */
     private readonly win: Window;
 
@@ -337,15 +369,64 @@ class NestedTableHost implements PluginValue {
         // never sees a cursor command of its own. Measured without this, the
         // child sat at `scrollLeft: 0` through 60 `l` presses while native
         // reached 623 — `owned` was strictly worse than `native`.
-        held.view.dispatch({
-            selection: EditorSelection.create(
-                mapped.ranges.map((r) =>
-                    EditorSelection.range(r.anchor, r.head),
+        this.mirroring = true;
+        try {
+            held.view.dispatch({
+                selection: EditorSelection.create(
+                    mapped.ranges.map((r) =>
+                        EditorSelection.range(r.anchor, r.head),
+                    ),
+                    mapped.mainIndex,
                 ),
-                mapped.mainIndex,
-            ),
-            scrollIntoView: true,
+                scrollIntoView: true,
+            });
+        } finally {
+            this.mirroring = false;
+        }
+    }
+
+    /**
+     * Carries a selection the **child** originated back up to the parent.
+     *
+     * Needed because a click is the one way the caret moves without the parent
+     * knowing. Measured: clicking the `cc` cell moved the child's head from 34
+     * to 52 and left the parent's at 46, so the caret the user saw and the
+     * position the next vim command acted on were different cells.
+     *
+     * Only selection-only updates are considered. A `docChanged` update is
+     * `sync-up.ts`'s business, and it already carries the caret.
+     *
+     * The `mirroring` guard is what stops a loop: this host writes the child's
+     * selection whenever the parent's moves, and without the flag that write
+     * would bounce straight back. A focus check is not sufficient — the child
+     * holds focus in exactly the case the mirror runs.
+     */
+    private selectionUpExtension(): Extension {
+        return EditorView.updateListener.of((update) => {
+            if (this.mirroring) return;
+            if (!update.selectionSet || update.docChanged) return;
+            const held = this.current;
+            if (!held || update.view !== held.view) return;
+
+            const table = this.tableAt(held.from);
+            if (!table) return;
+
+            const childHead = update.state.selection.main.head;
+            const snapped = snapOutOfDelimiter(table, childHead);
+            const parentHead = table.from + snapped;
+            if (this.parent.state.selection.main.head === parentHead) return;
+            this.parent.dispatch({ selection: { anchor: parentHead } });
         });
+    }
+
+    /** The live table starting at `from`, re-resolved rather than captured. */
+    private tableAt(from: number): TableRange | null {
+        for (const candidate of findRenderableTableRanges(
+            this.parent.state.doc,
+        )) {
+            if (candidate.from === from) return candidate;
+        }
+        return null;
     }
 
     /**
@@ -401,6 +482,7 @@ class NestedTableHost implements PluginValue {
                     // is not themed like the rest of the editor.
                     drawSelection(),
                     syncUpExtension(target),
+                    this.selectionUpExtension(),
                 ],
             }),
             parent: host,
