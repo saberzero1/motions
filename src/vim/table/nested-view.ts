@@ -204,7 +204,7 @@ class NestedTableHost implements PluginValue {
     private reconcile(): void {
         const table = activeTable(this.parent.state);
         if (!table) {
-            this.unmount();
+            this.handOff();
             return;
         }
 
@@ -351,6 +351,26 @@ class NestedTableHost implements PluginValue {
             ],
         };
         live.add(this.current);
+    }
+
+    /**
+     * The cursor has left the table: unmount and give focus back to the parent.
+     *
+     * Unmounting destroys the child's DOM, and with it the only focused element
+     * in the editor — so without this the next keystroke reaches nothing and the
+     * cursor simply stops moving. A motion out of the table looks like it worked
+     * once and then the editor appears dead.
+     *
+     * Conditional on the child actually holding focus. `unmount` also runs when
+     * the view is destroyed or the table is replaced, and focusing the parent
+     * there would pull focus away from wherever the user really is.
+     */
+    private handOff(): void {
+        const held = this.current;
+        if (!held) return;
+        const hadFocus = held.view.hasFocus;
+        this.unmount();
+        if (hadFocus) this.parent.contentDOM.focus();
     }
 
     private unmount(): void {
