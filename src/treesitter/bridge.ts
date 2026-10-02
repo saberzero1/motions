@@ -11,6 +11,7 @@ import {
     extractFoldMetadata,
     setFoldMetadata,
 } from '../fold/metadata';
+import { classifySurface } from '../util/surface-gate';
 import { getOrCreateParser } from './runtime';
 import { setTreeForView, deleteTreeForView } from './tree-state';
 
@@ -190,6 +191,53 @@ class TreeSitterBridge implements PluginValue {
     }
 }
 
+/**
+ * Decides whether this view gets a bridge at all, and defers both the decision
+ * and the parser until the view is in the document.
+ *
+ * Obsidian's Live Preview table editor creates one `EditorView` per cell, so
+ * an un-gated bridge allocates a WASM parser and retains a tree for every
+ * one-line cell document (defect A3; `.omo/table-probe/FINDINGS.md` § Q4).
+ *
+ * The wait is not caution, it is necessity: a cell editor is **constructed
+ * detached**, measured at `isConnected: false` with no `.cm-table-widget`
+ * ancestor and a document of `"aa"`, so a surface classified in the plugin's
+ * create function reads `'document'` for every cell. Deciding on the first
+ * connected update is also the mechanism that already works in production
+ * (`src/vim/table-cell-cursor-guard.ts` reads `update.view`).
+ *
+ * The latch fails in the safe direction. A view that is never connected never
+ * parses, and a surface this cannot classify keeps its bridge — degrading to
+ * the previous behaviour rather than silently removing a feature.
+ *
+ * Earlier attempts instead kept the extension out of the view's configuration
+ * via `appendConfig` from a `ViewPlugin`, which installed it *nowhere*, main
+ * editors included, and passed their cell-side assertions for that reason.
+ * Keep a parent control in any test of this: it is the only assertion that
+ * caught those failures (§ "SURFACE GATE").
+ */
+class GatedTreeSitterBridge implements PluginValue {
+    private inner: TreeSitterBridge | null = null;
+    private decided = false;
+
+    constructor(private readonly langName: string) {}
+
+    update(update: ViewUpdate): void {
+        if (!this.decided) {
+            if (!update.view.dom.isConnected) return;
+            this.decided = true;
+            if (classifySurface(update.view) === 'table-cell') return;
+            this.inner = new TreeSitterBridge(update.view, this.langName);
+            return;
+        }
+        this.inner?.update(update);
+    }
+
+    destroy(): void {
+        this.inner?.destroy();
+    }
+}
+
 export function createBridgeExtension(langName: string): Extension {
-    return ViewPlugin.define((view) => new TreeSitterBridge(view, langName));
+    return ViewPlugin.define(() => new GatedTreeSitterBridge(langName));
 }

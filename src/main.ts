@@ -292,6 +292,9 @@ import {
     type TableSurfaceBlocker,
 } from './vim/table/gates';
 import { getTableSurfaceRedrawCount as readTableSurfaceRedrawCount } from './vim/table/surface-widget';
+import { classifySurface, type EditorSurface } from './util/surface-gate';
+import { getTreeForView } from './treesitter/tree-state';
+import { getActiveTableCellEditorView } from './vim/native-table-adapter';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -3418,6 +3421,31 @@ export default class VimMotionsPlugin extends Plugin {
     /** Redraw count for the owned table surface, for e2e assertions. */
     getTableSurfaceRedrawCount(): number {
         return readTableSurfaceRedrawCount();
+    }
+
+    /**
+     * Per-surface treesitter allocation, for e2e assertions.
+     *
+     * Both halves are required: a report showing the cell without a tree
+     * proves nothing on its own, because an extension installed nowhere reads
+     * identically. `parent` is the control.
+     */
+    getTreesitterSurfaceReport(): {
+        parent: { surface: EditorSurface; hasTree: boolean } | null;
+        cell: { surface: EditorSurface; hasTree: boolean } | null;
+    } {
+        const describe = (view: EditorView | null) =>
+            view
+                ? {
+                      surface: classifySurface(view),
+                      hasTree: getTreeForView(view) !== null,
+                  }
+                : null;
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        return {
+            parent: describe(mdView ? getEditorView(mdView) : null),
+            cell: describe(getActiveTableCellEditorView(this.app)),
+        };
     }
 
     /**

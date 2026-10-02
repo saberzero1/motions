@@ -4,6 +4,7 @@ import {
     expect,
     beforeAll,
     afterAll,
+    beforeEach,
     afterEach,
     vi,
 } from 'vitest';
@@ -12,6 +13,7 @@ import { resolve } from 'path';
 import { EditorState, type Transaction } from '@codemirror/state';
 import type { EditorView, PluginValue, ViewUpdate } from '@codemirror/view';
 import { Parser, Language } from 'web-tree-sitter';
+import { TABLE_CELL_SELECTOR } from '../../../src/util/surface-gate';
 import { createBridgeExtension } from '../../../src/treesitter/bridge';
 import { getOrCreateParser } from '../../../src/treesitter/runtime';
 import { getTreeForView } from '../../../src/treesitter/tree-state';
@@ -49,6 +51,7 @@ const markdownWasm = readFileSync(
 describe('bridge fold metadata publication', () => {
     let parser: Parser;
     let plugin: PluginValue | undefined;
+    let pluginView: EditorView | undefined;
 
     beforeAll(async () => {
         await Parser.init({
@@ -60,9 +63,16 @@ describe('bridge fold metadata publication', () => {
         parser.setLanguage(language);
     });
 
+    // `restoreAllMocks` does not clear a `vi.fn()` from a module factory, so
+    // parser-allocation counts would accumulate across tests.
+    beforeEach(() => {
+        vi.mocked(getOrCreateParser).mockClear();
+    });
+
     afterEach(() => {
         plugin?.destroy?.();
         plugin = undefined;
+        pluginView = undefined;
         vi.restoreAllMocks();
     });
 
@@ -70,20 +80,48 @@ describe('bridge fold metadata publication', () => {
         parser?.delete();
     });
 
-    function create(doc = '# Title\nBody') {
+    function create(
+        doc = '# Title\nBody',
+        ancestorSelector: string | null = null,
+        connected = true,
+    ) {
         vi.mocked(getOrCreateParser).mockReturnValue(parser);
         createBridgeExtension('markdown');
         if (!bridgeFactory.create) throw new Error('Missing bridge factory');
         // Only the host lifecycle is simulated; parsing and states are real.
-        const view = { state: EditorState.create({ doc }), dispatch: vi.fn() };
+        // `dom` is read by the surface gate, so removing it crashes this file.
+        // A detached editor has no ancestors to find, which is precisely why
+        // the gate cannot classify in the create function. A `closest` that
+        // answered while detached would make the gate look like it works.
+        const dom: {
+            isConnected: boolean;
+            closest: (selector: string) => object | null;
+        } = {
+            isConnected: connected,
+            closest: (selector: string) =>
+                dom.isConnected && selector === ancestorSelector
+                    ? { selector }
+                    : null,
+        };
+        const view = {
+            state: EditorState.create({ doc }),
+            dispatch: vi.fn(),
+            dom,
+        };
         const editorView = view as unknown as EditorView;
         plugin = bridgeFactory.create(editorView);
-        return { view, editorView };
+        pluginView = editorView;
+        // The gate defers its decision, and the parse, to the first update on
+        // a connected view, because a cell editor is constructed detached.
+        update(view, view.state.update({}));
+        return { view, editorView, dom };
     }
 
     function update(view: { state: EditorState }, transaction: Transaction) {
+        if (!pluginView) throw new Error('Missing plugin view');
         view.state = transaction.state;
         plugin?.update?.({
+            view: pluginView,
             state: transaction.state,
             docChanged: transaction.docChanged,
             changes: transaction.changes,
@@ -150,6 +188,65 @@ describe('bridge fold metadata publication', () => {
         expect(
             getFoldMetadata(view.state)?.headingsByLineStart.get(0)?.to,
         ).toBe(view.state.doc.length);
+    });
+
+    it('allocates nothing for a table cell surface while still reaching a document surface', () => {
+        const cell = create('aa', TABLE_CELL_SELECTOR);
+        expect(vi.mocked(getOrCreateParser)).not.toHaveBeenCalled();
+        expect(getTreeForView(cell.editorView)).toBeNull();
+        expect(getFoldMetadata(cell.view.state)).toBeUndefined();
+
+        // The parent control. Both previous gate attempts passed their
+        // cell-side assertions by installing the extension nowhere at all;
+        // this is the assertion that caught them.
+        const doc = create('# Title\nBody');
+        expect(vi.mocked(getOrCreateParser)).toHaveBeenCalledTimes(1);
+        expect(getTreeForView(doc.editorView)).not.toBeNull();
+        expect(
+            getFoldMetadata(doc.view.state)?.headingsByLineStart.get(0)?.title,
+        ).toBe('Title');
+    });
+
+    it('still gates a cell that is detached when the plugin is created', () => {
+        // Obsidian constructs its cell editors detached, so a surface read in
+        // the create function sees no widget ancestor and reads 'document' for
+        // every cell. This sequence is the one the product actually performs.
+        const { view, editorView, dom } = create(
+            'aa',
+            TABLE_CELL_SELECTOR,
+            false,
+        );
+        expect(vi.mocked(getOrCreateParser)).not.toHaveBeenCalled();
+
+        dom.isConnected = true;
+        update(view, view.state.update({}));
+
+        expect(vi.mocked(getOrCreateParser)).not.toHaveBeenCalled();
+        expect(getTreeForView(editorView)).toBeNull();
+        expect(getFoldMetadata(view.state)).toBeUndefined();
+    });
+
+    it('gives a detached document surface its bridge once it connects', () => {
+        const { view, editorView, dom } = create('# Title\nBody', null, false);
+        expect(getTreeForView(editorView)).toBeNull();
+
+        dom.isConnected = true;
+        update(view, view.state.update({}));
+
+        expect(vi.mocked(getOrCreateParser)).toHaveBeenCalledTimes(1);
+        expect(getTreeForView(editorView)).not.toBeNull();
+        expect(
+            getFoldMetadata(view.state)?.headingsByLineStart.get(0)?.title,
+        ).toBe('Title');
+    });
+
+    it('ignores updates on a gated-out surface instead of parsing late', () => {
+        const { view, editorView } = create('aa', TABLE_CELL_SELECTOR);
+        update(view, view.state.update({ changes: { from: 2, insert: 'bb' } }));
+        expect(view.state.doc.toString()).toBe('aabb');
+        expect(vi.mocked(getOrCreateParser)).not.toHaveBeenCalled();
+        expect(getTreeForView(editorView)).toBeNull();
+        expect(getFoldMetadata(view.state)).toBeUndefined();
     });
 
     it('does not republish stale metadata after a failed incremental parse', () => {
