@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { EditorState, Prec } from '@codemirror/state';
+import { EditorState, Prec, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView } from '@codemirror/view';
 import type { DecorationSet } from '@codemirror/view';
 import { createTableSurface } from '../../../src/vim/table/surface-field';
@@ -197,5 +197,48 @@ describe('table surface gating', () => {
             extensions: [open.extension],
         });
         expect(open.decorations(state).size).toBe(1);
+    });
+});
+
+describe('table surface gate changes', () => {
+    /**
+     * Regression for a gap in the tests above: they all used a CONSTANT
+     * predicate, so a gate that flips was never exercised. The field rebuilt
+     * only on `docChanged`, and switching Live Preview to Source mode changes
+     * the gate without touching the document — so the cached decoration set
+     * survived and the table stayed replaced in Source mode, which is issue
+     * #167 item 2 reproduced by the gate meant to prevent it. Caught in a
+     * browser, not here.
+     *
+     * The gate must be **state-derived** to model production, where it reads
+     * `editorLivePreviewField`. A predicate closing over a mutable variable
+     * cannot exercise the fix at all: both `tr.startState` and `tr.state`
+     * would read the same current value, so nothing would ever look changed.
+     */
+    it('rebuilds when the gate flips without a document change', () => {
+        const setLive = StateEffect.define<boolean>();
+        const liveField = StateField.define<boolean>({
+            create: () => true,
+            update: (value, tr) => {
+                for (const effect of tr.effects) {
+                    if (effect.is(setLive)) return effect.value;
+                }
+                return value;
+            },
+        });
+        const surface = createTableSurface(
+            (state) => state.field(liveField, false) === true,
+        );
+        const state = EditorState.create({
+            doc: TABLE.join('\n'),
+            extensions: [liveField, surface.extension],
+        });
+        expect(surface.decorations(state).size).toBe(1);
+
+        const hidden = state.update({ effects: setLive.of(false) }).state;
+        expect(surface.decorations(hidden).size).toBe(0);
+
+        const shown = hidden.update({ effects: setLive.of(true) }).state;
+        expect(surface.decorations(shown).size).toBe(1);
     });
 });

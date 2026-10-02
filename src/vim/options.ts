@@ -448,6 +448,7 @@ export function registerVimOptions(
             always: 'raw',
             native: 'native',
             raw: 'raw',
+            owned: 'owned',
         };
         const mapped = mapping[str];
         if (mapped) {

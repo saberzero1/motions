@@ -65,7 +65,17 @@ export function createTableSurface(shouldRender: ShouldRender): TableSurface {
 
     const field = StateField.define<DecorationSet>({
         create: (state) => build(state),
-        update: (value, tr) => (tr.docChanged ? build(tr.state) : value),
+        update: (value, tr) => {
+            // Rebuilding on `docChanged` alone is not enough: switching
+            // between Live Preview and Source mode changes the gate without
+            // touching the document, so the cached set survived and the table
+            // stayed replaced in Source mode — issue #167 item 2, reproduced
+            // by the very gate meant to prevent it.
+            const gateChanged =
+                shouldRender(tr.startState) !== shouldRender(tr.state);
+            if (tr.docChanged || gateChanged) return build(tr.state);
+            return value;
+        },
         provide: (f) => Prec.highest(EditorView.decorations.from(f)),
     });
 

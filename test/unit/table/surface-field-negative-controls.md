@@ -3,9 +3,9 @@
 Plan B Step 2. Per `.agents/skills/negative-control/SKILL.md`: each assertion
 was shown to fail before being trusted.
 
-Baseline with the implementation intact: **11 passed**.
+Baseline with the implementation intact: **12 passed**.
 
-All three controls were re-run after the module was restructured to take an
+All controls were re-run after the module was restructured to take an
 injected `shouldRender` predicate, because a restructure can silently make a
 test vacuous. Each still fails exactly its own assertion.
 
@@ -76,6 +76,33 @@ test. Production supplies the Live Preview check — the decoration must not
 engage in Source mode or Reading view, because replacing table source in a
 mode meant to show source is issue #167 item 2.
 
+## Control 4 — rebuilding when the gate flips
+
+**Sabotage** in the field's `update`, rebuilding only on a document change:
+
+```ts
+void gateChanged;
+if (tr.docChanged) return build(tr.state); // SABOTAGE
+```
+
+`1 failed | 11 passed` — only `rebuilds when the gate flips without a document
+change`.
+
+This control exists because the bug it guards was **missed by the unit suite
+and caught in a browser**. Every earlier gating test used a _constant_
+predicate, so a gate that flips was never exercised: the field rebuilt only on
+`docChanged`, and switching Live Preview to Source mode changes the gate
+without touching the document, so the cached decoration set survived and the
+table stayed replaced in Source mode. That is issue #167 item 2 reproduced by
+the gate written to prevent it.
+
+The regression test's gate must be **state-derived** to model production,
+where it reads `editorLivePreviewField`. The first version of the test closed
+over a mutable variable and failed even against the correct implementation,
+because `shouldRender(tr.startState)` and `shouldRender(tr.state)` both read
+the same current value and nothing could ever look changed. A predicate backed
+by a real `StateField` and flipped with a `StateEffect` exercises it properly.
+
 ## Not testable at this level — deferred with its observable named
 
 Removing `updateDOM` (reverting to the inherited `false`) cannot be caught
@@ -90,4 +117,4 @@ than rendering.
 
 ## Restored
 
-`11 passed` with all three sabotages reverted.
+`12 passed` with all four sabotages reverted.

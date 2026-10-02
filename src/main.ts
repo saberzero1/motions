@@ -284,6 +284,14 @@ import { skipInTableCells } from './util/cell-editor-guard';
 import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { createTableNavExtension } from './vim/table-nav-controller';
+import { createTableSurface } from './vim/table/surface-field';
+import {
+    describeTableSurfaceBlocker,
+    livePreviewOnly,
+    resolveTableSurfaceBlocker,
+    type TableSurfaceBlocker,
+} from './vim/table/gates';
+import { getTableSurfaceRedrawCount as readTableSurfaceRedrawCount } from './vim/table/surface-widget';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
@@ -404,6 +412,10 @@ export default class VimMotionsPlugin extends Plugin {
     private buildTreesitterBridge: (() => Extension) | null = null;
     private animatedCursorSlot: Extension[] = [];
     private undoTreeSlot: Extension[] = [];
+
+    private tableSurfaceSlot: Extension[] = [];
+
+    private tableSurfaceBlockerNotified: TableSurfaceBlocker = null;
     private snippetCompletionSlot: Extension[] = [];
     private snippetTabSlot: Extension[] = [];
     private neovimConnection!: NeovimConnection;
@@ -2815,6 +2827,7 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.vimExtensionSlot.push(this.undoTreeSlot);
+        this.vimExtensionSlot.push(this.tableSurfaceSlot);
 
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
@@ -3376,6 +3389,38 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     /**
+     * Installs the owned table surface, or explains why it is not installed.
+     *
+     * Every blocker is a deliberate restriction rather than a missing feature,
+     * so a blocked surface tells the user once instead of silently falling
+     * back to the native editor, which reads as a bug.
+     */
+    private applyTableSurfaceSlot(): void {
+        const blocker = resolveTableSurfaceBlocker(
+            this.app,
+            this.settings.tableWidgetMode,
+        );
+        if (blocker === null) {
+            this.tableSurfaceBlockerNotified = null;
+        } else if (this.tableSurfaceBlockerNotified !== blocker) {
+            this.tableSurfaceBlockerNotified = blocker;
+            const message = describeTableSurfaceBlocker(blocker);
+            if (message) new Notice(message);
+        }
+        this.setSlotEnabled(
+            this.tableSurfaceSlot,
+            'tableSurface',
+            blocker === null,
+            () => createTableSurface(livePreviewOnly()).extension,
+        );
+    }
+
+    /** Redraw count for the owned table surface, for e2e assertions. */
+    getTableSurfaceRedrawCount(): number {
+        return readTableSurfaceRedrawCount();
+    }
+
+    /**
      * The snippet runtime is kept in its own slot, separate from the two
      * trigger integrations. Switching `snippetTriggerMode` then adds or removes
      * only the completion or tab extension and leaves an in-progress snippet
@@ -3550,6 +3595,7 @@ export default class VimMotionsPlugin extends Plugin {
     private populateRuntimeSlots(): void {
         this.applyAnimatedCursorSlot();
         this.applyUndoTreeSlot();
+        this.applyTableSurfaceSlot();
         this.applySnippetSlots();
     }
 

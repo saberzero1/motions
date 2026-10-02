@@ -191,7 +191,7 @@ export interface VimMotionsSettings {
     enableDial: boolean;
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
-    tableWidgetMode: 'native' | 'raw';
+    tableWidgetMode: 'native' | 'raw' | 'owned';
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
 
@@ -963,6 +963,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     options: {
                                         native: "Use Obsidian's built-in table editor with vim support (recommended)",
                                         raw: 'Always show raw markdown table syntax',
+                                        owned: "Experimental: render tables with the plugin's own editor (desktop, Live Preview, bundled engine only)",
                                     },
                                     disabled: () =>
                                         this.isOverridden('tableWidgetMode'),
@@ -3581,6 +3582,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         "Use Obsidian's built-in table editor with Vim support (recommended)",
                     )
                     .addOption('raw', 'Always show raw Markdown table syntax')
+                    .addOption(
+                        'owned',
+                        "Experimental: render tables with the plugin's own editor (desktop, Live Preview, bundled engine only)",
+                    )
                     .setValue(this.plugin.settings.tableWidgetMode)
                     .setDisabled(isOverridden('tableWidgetMode'))
                     .onChange(async (value) => {
