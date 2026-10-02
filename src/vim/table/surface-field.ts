@@ -10,6 +10,14 @@ import {
 import { findRenderableTableRanges } from './renderable-ranges';
 import { TableSurfaceWidget } from './surface-widget';
 
+/** Decides, per state, whether this editor should render owned tables. */
+export type ShouldRender = (state: EditorState) => boolean;
+
+export interface TableSurface {
+    extension: Extension;
+    decorations(state: EditorState): DecorationSet;
+}
+
 /**
  * Block-replaces every renderable table with our own widget.
  *
@@ -21,43 +29,48 @@ import { TableSurfaceWidget } from './surface-widget';
  *   decoration, which is measurably removed from the DOM entirely. At a lower
  *   precedence Obsidian's renders instead and ours is dropped.
  *
+ * `shouldRender` is injected rather than read from Obsidian here, so this
+ * module stays free of an `obsidian` import and the field is constructible in
+ * a unit test. Production supplies the Live Preview check; the decoration must
+ * not engage in Source mode or Reading view, since replacing table source in a
+ * mode meant to show source is issue #167 item 2.
+ *
  * The set is rebuilt on every document change rather than mapped forward.
  * That is deliberate: DOM survival is `TableSurfaceWidget.updateDOM`'s job,
  * not the field's, so a rebuilt widget with equal content is either ignored by
  * CM6 (`eq` true) or patched in place. An earlier version mapped the set and
- * reused widget instances to preserve identity; that preserved the DOM but
- * left the reused widget's cached `lines` stale, and its range-keyed reuse
- * broke when an edit landed exactly on a table's end boundary.
+ * reused widget instances; that preserved the DOM but left the reused widget's
+ * cached `lines` stale, and its range-keyed reuse broke when an edit landed
+ * exactly on a table's end boundary.
  *
  * The remaining cost is the scan itself. `findRenderableTableRanges` is linear
  * in the document, so a very large note pays it per keystroke; replacing the
  * rebuild with a mapped, incrementally reconciled set is a measured
  * optimisation deferred until it is shown to matter.
  */
-const tableSurfaceField = StateField.define<DecorationSet>({
-    create: (state) => build(state),
-    update: (value, tr) => (tr.docChanged ? build(tr.state) : value),
-    provide: (field) => Prec.highest(EditorView.decorations.from(field)),
-});
+export function createTableSurface(shouldRender: ShouldRender): TableSurface {
+    const build = (state: EditorState): DecorationSet => {
+        if (!shouldRender(state)) return Decoration.none;
+        const ranges: Range<Decoration>[] = [];
+        for (const table of findRenderableTableRanges(state.doc)) {
+            ranges.push(
+                Decoration.replace({
+                    widget: new TableSurfaceWidget(table.lines),
+                    block: true,
+                }).range(table.from, table.to),
+            );
+        }
+        return Decoration.set(ranges, true);
+    };
 
-function build(state: EditorState): DecorationSet {
-    const ranges: Range<Decoration>[] = [];
-    for (const table of findRenderableTableRanges(state.doc)) {
-        ranges.push(
-            Decoration.replace({
-                widget: new TableSurfaceWidget(table.lines),
-                block: true,
-            }).range(table.from, table.to),
-        );
-    }
-    return Decoration.set(ranges, true);
-}
+    const field = StateField.define<DecorationSet>({
+        create: (state) => build(state),
+        update: (value, tr) => (tr.docChanged ? build(tr.state) : value),
+        provide: (f) => Prec.highest(EditorView.decorations.from(f)),
+    });
 
-export function createTableSurfaceExtension(): Extension {
-    return [tableSurfaceField];
-}
-
-/** @internal — read the field's decorations for assertions. */
-export function getTableSurfaceDecorations(state: EditorState): DecorationSet {
-    return state.field(tableSurfaceField);
+    return {
+        extension: [field],
+        decorations: (state) => state.field(field),
+    };
 }

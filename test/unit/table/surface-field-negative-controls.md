@@ -3,7 +3,11 @@
 Plan B Step 2. Per `.agents/skills/negative-control/SKILL.md`: each assertion
 was shown to fail before being trusted.
 
-Baseline with the implementation intact: **9 passed**.
+Baseline with the implementation intact: **11 passed**.
+
+All three controls were re-run after the module was restructured to take an
+injected `shouldRender` predicate, because a restructure can silently make a
+test vacuous. Each still fails exactly its own assertion.
 
 ## Control 1 — `Prec.highest`
 
@@ -13,7 +17,7 @@ Baseline with the implementation intact: **9 passed**.
 provide: (field) => EditorView.decorations.from(field), // SABOTAGE
 ```
 
-`1 failed | 8 passed` — only `provides its decorations at the highest
+`1 failed | 10 passed` — only `provides its decorations at the highest
 precedence`. The test seeds a `Prec.high` competitor precisely so that losing
 `Prec.highest` is detectable; without the competitor our value would still sit
 at index 0 and the assertion would pass vacuously.
@@ -33,7 +37,7 @@ cached ??= new TableSurfaceWidget(table.lines);      // SABOTAGE
 widget: cached,
 ```
 
-`1 failed | 8 passed` — only `reflects the NEW text after an edit inside the
+`1 failed | 10 passed` — only `reflects the NEW text after an edit inside the
 table`.
 
 This is a regression test for a design error made and corrected during this
@@ -51,6 +55,27 @@ returns `false`** — which is why an unimplemented `updateDOM` causes the
 redraw in the first place. The correct pairing is therefore `eq` on content
 **plus** `updateDOM` patching in place.
 
+## Control 3 — the Live Preview gate
+
+**Sabotage** in `createTableSurface`, ignoring the injected predicate:
+
+```ts
+void shouldRender; // SABOTAGE: gate ignored
+```
+
+`1 failed | 10 passed` — only `renders nothing when shouldRender is false`.
+
+The two gating tests are a deliberate pair: one asserts nothing renders when
+the predicate is false, the other that a table _does_ render when it is true.
+Either alone is satisfiable by a field that never renders, or by one that
+ignores the gate.
+
+The predicate is injected rather than read from Obsidian inside the field, so
+the field stays free of an `obsidian` import and is constructible in a unit
+test. Production supplies the Live Preview check — the decoration must not
+engage in Source mode or Reading view, because replacing table source in a
+mode meant to show source is issue #167 item 2.
+
 ## Not testable at this level — deferred with its observable named
 
 Removing `updateDOM` (reverting to the inherited `false`) cannot be caught
@@ -65,4 +90,4 @@ than rendering.
 
 ## Restored
 
-`9 passed` with both sabotages reverted.
+`11 passed` with all three sabotages reverted.

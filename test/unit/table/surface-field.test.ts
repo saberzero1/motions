@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { EditorState, Prec } from '@codemirror/state';
 import { Decoration, EditorView } from '@codemirror/view';
 import type { DecorationSet } from '@codemirror/view';
-import {
-    createTableSurfaceExtension,
-    getTableSurfaceDecorations,
-} from '../../../src/vim/table/surface-field';
+import { createTableSurface } from '../../../src/vim/table/surface-field';
 import {
     TableSurfaceWidget,
     getTableSurfaceRedrawCount,
@@ -32,10 +29,13 @@ import {
 
 const TABLE = ['| Name | Value |', '|------|-------|', '| aa   | 11    |'];
 
+/** Live Preview is injected, so these tests drive the field directly. */
+const surface = createTableSurface(() => true);
+
 function stateOf(...lines: string[]): EditorState {
     return EditorState.create({
         doc: lines.join('\n'),
-        extensions: [createTableSurfaceExtension()],
+        extensions: [surface.extension],
     });
 }
 
@@ -48,7 +48,7 @@ interface Entry {
 
 function entries(state: EditorState): Entry[] {
     const out: Entry[] = [];
-    const cursor = getTableSurfaceDecorations(state).iter();
+    const cursor = surface.decorations(state).iter();
     while (cursor.value !== null) {
         const spec = cursor.value.spec as {
             widget?: unknown;
@@ -153,12 +153,12 @@ describe('table surface field', () => {
                 // Given a precedence boost of its own, so this fails if
                 // `Prec.highest` is dropped from the field.
                 Prec.high(EditorView.decorations.of(Decoration.none)),
-                createTableSurfaceExtension(),
+                surface.extension,
             ],
         });
 
         const values = state.facet(EditorView.decorations);
-        const ours = getTableSurfaceDecorations(state);
+        const ours = surface.decorations(state);
         expect(values.indexOf(ours as DecorationSet)).toBe(0);
     });
 
@@ -177,5 +177,25 @@ describe('TableSurfaceWidget.eq', () => {
             a.eq(new TableSurfaceWidget([...TABLE.slice(0, 2), '| bb | 22 |'])),
         ).toBe(false);
         expect(a.eq(new TableSurfaceWidget(TABLE.slice(0, 2)))).toBe(false);
+    });
+});
+
+describe('table surface gating', () => {
+    it('renders nothing when shouldRender is false', () => {
+        const gated = createTableSurface(() => false);
+        const state = EditorState.create({
+            doc: TABLE.join('\n'),
+            extensions: [gated.extension],
+        });
+        expect(gated.decorations(state).size).toBe(0);
+    });
+
+    it('renders when shouldRender is true, so the gate is what decides', () => {
+        const open = createTableSurface(() => true);
+        const state = EditorState.create({
+            doc: TABLE.join('\n'),
+            extensions: [open.extension],
+        });
+        expect(open.decorations(state).size).toBe(1);
     });
 });
