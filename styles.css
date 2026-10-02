@@ -1,5 +1,11 @@
 /* --- Hide plugin decorations in table cell editors --- */
 
+/* The ONLY suppression available for the facet-based gutters. They are built
+   with CodeMirror's `gutter({...})` API, which has no per-view condition, so
+   `classifySurface` cannot withhold them from Obsidian's per-cell table
+   editors the way it withholds the treesitter parser and the scrolloff
+   enforcer. Not redundant: deleting this shows four gutters inside every
+   one-line table cell. */
 .cm-table-widget .cm-gutters {
     display: none;
 }

@@ -1,6 +1,22 @@
 import { EditorView, ViewPlugin } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
 import type { Plugin } from 'obsidian';
+import { classifySurface } from '../util/surface-gate';
+
+/**
+ * How many times the enforcer has run for a view, for e2e assertions.
+ *
+ * A geometry reading cannot verify the cell gate below: a one-line cell editor
+ * has `scrollHeight ≈ clientHeight`, so the enforcer's own `>= 1` threshold
+ * means it never writes `scrollTop` there. "It did not scroll" is therefore
+ * true whether or not the listener ran, and only a count distinguishes inert
+ * from no-op.
+ */
+const applied = new WeakMap<EditorView, number>();
+
+export function getScrolloffApplications(view: EditorView): number {
+    return applied.get(view) ?? 0;
+}
 
 let scrolloffLines = 0;
 let mouseActive = false;
@@ -40,6 +56,17 @@ export function createScrolloffExtension(): Extension {
         EditorView.updateListener.of((update) => {
             if (scrolloffLines <= 0 || mouseActive) return;
             if (!update.selectionSet) return;
+            // Obsidian creates one editor per table cell, and this listener
+            // measured 8 runs inside a cell across two keystrokes. A one-line
+            // cell cannot scroll, so the work is pure cost.
+            //
+            // No connected-view latch is needed here, unlike the treesitter
+            // bridge's: that gate runs in a `ViewPlugin` constructor, which
+            // executes while a cell editor is still detached. An
+            // `updateListener` has no such phase, and `selectionSet` above
+            // already implies the view is in the document.
+            if (classifySurface(update.view) === 'table-cell') return;
+            applied.set(update.view, (applied.get(update.view) ?? 0) + 1);
 
             const view = update.view;
             const head = view.state.selection.main.head;

@@ -37,6 +37,7 @@ import { VimModeTracker } from './vim/mode-tracker';
 import {
     ScrolloffManager,
     createScrolloffExtension,
+    getScrolloffApplications,
     getScrolloffLines,
 } from './vim/scrolloff';
 import {
@@ -280,7 +281,6 @@ import { getEditorView } from './util/editor';
 import { isInsideInlineNodeType } from './treesitter/js-api';
 import { isBuiltinVimEnabled, getVaultConfig } from './util/vault';
 import { invariant, devAssert } from './util/invariant';
-import { skipInTableCells } from './util/cell-editor-guard';
 import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { createTableNavExtension } from './vim/table-nav-controller';
@@ -2771,9 +2771,7 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.scrolloffManager = new ScrolloffManager(this);
         this.scrolloffManager.setup(this.settings.scrolloffLines);
-        this.vimExtensionSlot.push(
-            skipInTableCells(createScrolloffExtension()),
-        );
+        this.vimExtensionSlot.push(createScrolloffExtension());
 
         if (!Platform.isMobile) {
             this.globalRegistry = new GlobalMappingRegistry();
@@ -2851,28 +2849,20 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimExtensionSlot.push(createImModeWatcherExtension());
         this.vimExtensionSlot.push(createAutocmdModeWatcherExtension());
         this.vimExtensionSlot.push(createAutocmdEventExtension());
-        this.vimExtensionSlot.push(skipInTableCells(foldSyncExtension()));
+        this.vimExtensionSlot.push(foldSyncExtension());
         setFoldAwareNavigation(this.settings.foldAwareNavigation);
-        this.vimExtensionSlot.push(skipInTableCells(foldEnableExtension()));
-        this.vimExtensionSlot.push(skipInTableCells(foldLevelExtension()));
-        this.vimExtensionSlot.push(skipInTableCells(markdownFoldProvider()));
+        this.vimExtensionSlot.push(foldEnableExtension());
+        this.vimExtensionSlot.push(foldLevelExtension());
+        this.vimExtensionSlot.push(markdownFoldProvider());
+        this.vimExtensionSlot.push(foldPlaceholderExtension());
+        this.vimExtensionSlot.push(signColumnFieldExtension());
         this.vimExtensionSlot.push(
-            skipInTableCells(foldPlaceholderExtension()),
+            createMarkGutterExtension(this.settings.signcolumn),
         );
         this.vimExtensionSlot.push(
-            skipInTableCells(signColumnFieldExtension()),
-        );
-        this.vimExtensionSlot.push(
-            skipInTableCells(
-                createMarkGutterExtension(this.settings.signcolumn),
-            ),
-        );
-        this.vimExtensionSlot.push(
-            skipInTableCells(
-                createStatusColumnExtension(
-                    this.settings.statuscolumn,
-                    this.getStatusColumnSettings(),
-                ),
+            createStatusColumnExtension(
+                this.settings.statuscolumn,
+                this.getStatusColumnSettings(),
             ),
         );
 
@@ -2881,21 +2871,17 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimExtensionSlot.push(this.snippetRuntimeSlot);
 
         this.vimExtensionSlot.push(
-            skipInTableCells(
-                createLineNumberExtension(
-                    this.settings.number,
-                    this.settings.relativenumber,
-                    this.settings.linenumbermode,
-                ),
+            createLineNumberExtension(
+                this.settings.number,
+                this.settings.relativenumber,
+                this.settings.linenumbermode,
             ),
         );
         this.vimExtensionSlot.push(
-            skipInTableCells(
-                createLineNumberSecondaryExtension(
-                    this.settings.number,
-                    this.settings.relativenumber,
-                    this.settings.linenumbermode,
-                ),
+            createLineNumberSecondaryExtension(
+                this.settings.number,
+                this.settings.relativenumber,
+                this.settings.linenumbermode,
             ),
         );
         if (this.settings.number || this.settings.relativenumber) {
@@ -2909,11 +2895,9 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.cursorlineopt,
         );
         this.vimExtensionSlot.push(
-            skipInTableCells(
-                createCursorlineExtension(
-                    this.settings.cursorline,
-                    this.settings.cursorlineopt,
-                ),
+            createCursorlineExtension(
+                this.settings.cursorline,
+                this.settings.cursorlineopt,
             ),
         );
         setCursorShapes(
@@ -2925,9 +2909,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimExtensionSlot.push(this.animatedCursorSlot);
         this.populateRuntimeSlots();
         this.vimExtensionSlot.push(
-            skipInTableCells(
-                createFoldColumnExtension(this.settings.foldcolumn),
-            ),
+            createFoldColumnExtension(this.settings.foldcolumn),
         );
 
         installEscapeGuard(this.app);
@@ -3322,9 +3304,7 @@ export default class VimMotionsPlugin extends Plugin {
                 maxLength: this.settings.smearMaxLength,
             });
             if (this.animatedCursorSlot.length === 0) {
-                this.animatedCursorSlot.push(
-                    skipInTableCells(createAnimatedCursorExtension()),
-                );
+                this.animatedCursorSlot.push(createAnimatedCursorExtension());
             }
             setCursorSuppressed(true);
         } else {
@@ -3437,6 +3417,23 @@ export default class VimMotionsPlugin extends Plugin {
     /** Nested table editor lifecycle counts, for e2e assertions. */
     getNestedTableStats(): NestedTableStats {
         return getNestedTableStats();
+    }
+
+    /**
+     * Scrolloff enforcement counts per surface, for e2e assertions.
+     *
+     * Both halves are required. A cell count of zero reads identically whether
+     * the gate withheld the listener or the extension never reached the view at
+     * all; `parent` is what distinguishes them.
+     */
+    getScrolloffReport(): { parent: number | null; cell: number | null } {
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const parent = mdView ? getEditorView(mdView) : null;
+        const cell = getActiveTableCellEditorView(this.app);
+        return {
+            parent: parent ? getScrolloffApplications(parent) : null,
+            cell: cell ? getScrolloffApplications(cell) : null,
+        };
     }
 
     /**
