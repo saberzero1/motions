@@ -11,7 +11,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 - **[[text-objects|Text objects]]** — 13 Markdown-aware text objects for bold, italic, code, math, strikethrough, highlight, links, blockquotes, callouts, code blocks, tags, table rows, and table cells, plus **general-purpose objects** for subwords (`iS`), numbers (`in`), quotes (`iq`), wikilinks (`iD`), URLs (`gL`), and arguments (`i,`). Supports **custom text objects via Lua**.
 - **[[structural-navigation|Structural navigation]]** — jump between headings (`]h`/`[h`), list items (`]l`/`[l`), links (`]n`/`[n`), and open buffers (`]b`/`[b`), plus **subword motions** (`w`/`b`/`e`/`ge`) for camelCase/snake_case navigation. Works with counts and operators.
-- **[[tables|Tables]]** — cell navigation (`]c`/`[c`), row navigation (`]r`/`[r`), cell text objects (`i|`/`a|`), row text objects (`ir`/`ar`), table manipulation (`<Leader>t` prefix), format-on-exit auto-alignment, cursor-aware table widget for Live Preview, and embedded per-cell editing with vim modality (two-Escape pattern, entry modes, register sharing).
+- **[[tables|Tables]]** — cell navigation (`]c`/`[c`), row navigation (`]r`/`[r`), cell text objects (`i|`/`a|`), row text objects (`ir`/`ar`), table manipulation (`<Leader>t` prefix), manual realignment, native table editor integration for Live Preview, and embedded per-cell editing with vim modality (two-Escape pattern, entry modes, register sharing).
 - **[[hardwrap|Hard-wrap formatting]]** — `gq`/`gw` operators with Markdown-aware line wrapping. Preserves blockquote, list, and nested structural prefixes on continuation lines.
 
 ## Jump navigation
