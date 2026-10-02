@@ -20,6 +20,7 @@ import {
     type SnippetTabHandler,
 } from './key-router';
 import { mirrorRanges } from './selection-mirror';
+import { tableCellDecorations } from './cell-decorations';
 import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
 import {
@@ -382,6 +383,7 @@ class NestedTableHost implements PluginValue {
                     // Visual block mirrors one range per row; without this
                     // CodeMirror keeps only the first.
                     EditorState.allowMultipleSelections.of(true),
+                    tableCellDecorations(),
                     // Without this a selection is left to the browser's native
                     // highlight, which renders no `.cm-selectionBackground` and
                     // is not themed like the rest of the editor.
