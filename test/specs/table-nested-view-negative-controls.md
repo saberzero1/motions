@@ -106,6 +106,67 @@ return cm.state.doc.toString() !== before;
 control fails while the blocked-cell assertion still passes, which is the proof
 that the control is the load-bearing half.
 
+## Control 7 — the native cell-editor suppressor
+
+`keeps the cursor's own cell writable …` asserts three links in a chain: the
+suppressor fired, Obsidian's cell editor is gone, and a write to that cell
+lands. Two sabotages, hitting different links.
+
+**7a — suppressor disabled** (`src/vim/table/native-cell-suppressor.ts`):
+
+```ts
+if (true) return false; // SABOTAGE
+```
+
+`5 passing | 1 failing`, at `suppressions` (`Expected: > 0 / Received: 0`).
+
+**7b — suppressor counts without clearing**, which is the more interesting
+half, because it leaves the counter satisfied:
+
+```ts
+return true; // SABOTAGE: counted, not cleared
+```
+
+`5 passing | 1 failing`, at `tableCellActive` (`Expected: false / Received:
+true`).
+
+Both the counter and the state assertion are therefore load-bearing. The
+counter alone would pass under 7b; the state assertion alone would pass on a
+run where Obsidian never opened a cell editor at all — which does happen, see
+below.
+
+## Why `suppressions > 0` sits next to the write assertions
+
+A probe run measured `editMode.tableCell == null` after the identical
+park-the-cursor sequence, with the write landing unassisted. Obsidian does not
+always open a cell editor. On such a run every assertion about writability
+passes with the suppressor doing nothing, so the test would report a working
+suppressor it had not exercised. `suppressions > 0` is what excludes it.
+
+## Measurement behind the suppressor
+
+| step                                        | `editMode.tableCell` | write to that cell lands |
+| ------------------------------------------- | -------------------- | ------------------------ |
+| cursor parked in the cell                   | set                  | **no**                   |
+| after `cell.destroy()`                      | **still set**        | **no**                   |
+| after `editMode.tableCell = null`           | null                 | **yes**                  |
+| 1 s idle after clearing                     | null                 | —                        |
+| after moving the selection within the table | set again            | —                        |
+
+`destroy()` alone is not sufficient — the reference is what gates the lock — and
+`destroy()` alone is not harmless to skip either, since it is what releases the
+editor's own resources. Hence destroy-then-null.
+
+It does not return on its own, so there is no clear/reopen churn while idle; it
+does return when the selection moves inside a table, which is why the suppressor
+runs from the same reconcile pass as the nested editor.
+
+Where that editor lives, measured: `cm.dom.isConnected === false`, inside a
+detached `.cm-table-widget`, with `document.activeElement` on the parent's
+`.cm-content` and not inside the cell editor. In owned mode Obsidian builds the
+whole thing off-document — which is why it is invisible, why it does not steal
+focus, and why it was not noticed until a write was attempted.
+
 ## Measurement behind the header-row edit target
 
 The survival scenario edits line 3 (the header) rather than line 5 (the cursor's

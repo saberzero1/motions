@@ -31,6 +31,7 @@ interface Stats {
     mounts: number;
     unmounts: number;
     cleanups: number;
+    suppressions: number;
     mounted: number;
     gutters: number;
     cursorLayers: number;
@@ -65,6 +66,7 @@ async function readReport(): Promise<Report> {
                 mounts: -1,
                 unmounts: -1,
                 cleanups: -1,
+                suppressions: -1,
                 mounted: -1,
                 gutters: -1,
                 cursorLayers: -1,
@@ -300,15 +302,20 @@ describe('Nested table editor lifecycle (Plan B Step 3b)', function () {
         expect(report.nested.doc).toContain('xxxxxxxxxx');
     });
 
-    it("Obsidian's cell editor stays active in owned mode and owns its own cell's range", async () => {
-        // Characterisation, not a wish. Owning the *renderer* does not take
-        // over the *editor*: parking the cursor in a table still opens
-        // Obsidian's TableCellEditor, and writes to the cell it holds are
-        // dropped. Steps 4 and 5 forward insert-mode text to the parent
-        // document, so this is the constraint they have to answer.
+    it("keeps the cursor's own cell writable by clearing Obsidian's cell editor", async () => {
+        // Owning the renderer does not take over the editor: parking the
+        // cursor in a table still constructs Obsidian's TableCellEditor,
+        // off-document, and while `editMode.tableCell` holds it a change to
+        // that one cell's range does not apply. Step 5 forwards insert-mode
+        // text to exactly that cell, so the suppressor is a prerequisite.
         await enterOwnedTableDoc();
         await selectInsideTable();
-        expect((await readReport()).tableCellActive).toBe(true);
+        const report = await readReport();
+        // Cleared, not merely absent: a run where Obsidian never opened one
+        // would satisfy the write assertions below without the suppressor
+        // doing anything.
+        expect(report.nested.suppressions).toBeGreaterThan(0);
+        expect(report.tableCellActive).toBe(false);
 
         const outcome = (await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
@@ -339,9 +346,9 @@ describe('Nested table editor lifecycle (Plan B Step 3b)', function () {
             return { ownCell: write(5), headerRow: write(3) };
         })) as { ownCell: boolean; headerRow: boolean };
 
-        expect(outcome.ownCell).toBe(false);
-        // The control: dispatching is not broken in general, and the block is
-        // scoped to one cell rather than the whole table range.
+        expect(outcome.ownCell).toBe(true);
+        // The control: proves the write path works at all, so a false reading
+        // above would mean the cell is locked rather than dispatch is broken.
         expect(outcome.headerRow).toBe(true);
     });
 

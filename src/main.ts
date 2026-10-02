@@ -290,6 +290,7 @@ import {
     getNestedTableStats,
     type NestedTableStats,
 } from './vim/table/nested-view';
+import { suppressNativeCellEditor } from './vim/table/native-cell-suppressor';
 import {
     describeTableSurfaceBlocker,
     livePreviewOnly,
@@ -3421,7 +3422,9 @@ export default class VimMotionsPlugin extends Plugin {
             blocker === null,
             () => [
                 createTableSurface(livePreviewOnly()).extension,
-                createNestedTableHost(),
+                createNestedTableHost((parent) =>
+                    suppressNativeCellEditor(this.app, parent),
+                ),
             ],
         );
     }

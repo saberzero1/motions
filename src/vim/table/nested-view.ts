@@ -16,10 +16,19 @@ import {
 
 const NESTED_CLASS = 'vim-motions-table-nested';
 
+/**
+ * Clears Obsidian's own cell editor for this parent; true if one was cleared.
+ *
+ * Injected rather than imported so this module stays free of an `obsidian`
+ * dependency, matching how `surface-field.ts` takes its Live Preview gate.
+ */
+export type SuppressNativeCellEditor = (parent: EditorView) => boolean;
+
 export interface NestedTableStats {
     mounts: number;
     unmounts: number;
     cleanups: number;
+    suppressions: number;
     mounted: number;
     gutters: number;
     cursorLayers: number;
@@ -37,6 +46,7 @@ interface Mounted {
 let mounts = 0;
 let unmounts = 0;
 let cleanups = 0;
+let suppressions = 0;
 const live = new Set<Mounted>();
 
 /**
@@ -60,6 +70,7 @@ export function getNestedTableStats(): NestedTableStats {
         mounts,
         unmounts,
         cleanups,
+        suppressions,
         mounted: live.size,
         gutters: first
             ? first.view.dom.querySelectorAll('.cm-gutters').length
@@ -139,7 +150,10 @@ class NestedTableHost implements PluginValue {
     /** Captured at construction: a popout's window must survive teardown. */
     private readonly win: Window;
 
-    constructor(private readonly parent: EditorView) {
+    constructor(
+        private readonly parent: EditorView,
+        private readonly suppressNativeCellEditor: SuppressNativeCellEditor,
+    ) {
         this.win = parent.dom.win;
     }
 
@@ -175,6 +189,10 @@ class NestedTableHost implements PluginValue {
             this.unmount();
             return;
         }
+
+        // Before anything else: while Obsidian's own cell editor holds this
+        // cell, the parent document cannot be written at that one range.
+        if (this.suppressNativeCellEditor(this.parent)) suppressions++;
 
         const text = table.lines.join('\n');
         const held = this.current;
@@ -251,6 +269,10 @@ class NestedTableHost implements PluginValue {
     }
 }
 
-export function createNestedTableHost(): Extension {
-    return ViewPlugin.define((view) => new NestedTableHost(view));
+export function createNestedTableHost(
+    suppressNativeCellEditor: SuppressNativeCellEditor,
+): Extension {
+    return ViewPlugin.define(
+        (view) => new NestedTableHost(view, suppressNativeCellEditor),
+    );
 }
