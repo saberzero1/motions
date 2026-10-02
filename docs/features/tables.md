@@ -64,7 +64,8 @@ A suite of manipulation commands is available under the `<Leader>t` prefix for s
 Vim Motions includes built-in auto-formatting for tables:
 
 - **Manual realignment**: Use `<Leader>tr` or `:tablerealign` to realign a table's columns at any time. In table-nav mode, `=` does the same.
-- **No automatic realignment**: Vim Motions never reformats a table on its own — not while you type, not when the cursor leaves the table. Realignment happens only when you ask for it, so the cursor stays where you expect it. Obsidian's own table editor may normalise a table's formatting when it commits a cell edit; that is Obsidian's behaviour rather than this plugin's.
+- **Vim Motions never reformats a table on its own** — not while you type, not when the cursor leaves the table. Realignment happens only when you ask for it, so the cursor stays where you expect it.
+- **Obsidian does realign automatically, in `native` mode**: its table editor realigns the columns when it commits a cell edit. That is Obsidian's behaviour, not this plugin's — and because `owned` mode replaces Obsidian's widget, automatic realignment does not happen there. Use `:tablerealign` instead.
 
 ## Table widget in Live Preview
 
@@ -105,7 +106,7 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 
 - **Idle cells render as plain text**, not as a formatted table. Only the cursor's table is affected; this is the main reason `owned` is not the default.
 - **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
-- **Visual block** renders as the enclosing charwise span, because a rectangular selection cannot be expressed as one CodeMirror range.
+- **Visual block** renders as the enclosing charwise span. The underlying per-row ranges already exist — `<C-v>` over three rows produces three ranges holding the individual cell texts — so mirroring them as a true multi-cell selection is planned rather than ruled out.
 - **Some Obsidian widget features** are not reproduced: row and column buttons, the cell and column context menus, column and row drag-to-reorder, sort by column, multi-cell selection, copy and paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering. Column _resizing_ is not in that list — Obsidian's widget does not offer it, so nothing is lost.
 - **`scrolloff=100` disables horizontal scrolling inside a table**, in `owned` and `native` alike. Ordinary horizontal scrolling works in both — the nested editor follows the caret.
 
