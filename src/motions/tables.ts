@@ -9,6 +9,7 @@ import type { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
 import { executeCommand } from '../util/commands';
 import { findUnescapedPipes, realignTableLines } from '../vim/table-utils';
+import { canRealignTable } from '../vim/table-operations';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -182,6 +183,8 @@ function findTableBounds(
 }
 
 export function realignTable(cm: CmAdapter): void {
+    // Insert mode and composition are both unsafe: see `canRealignTable`.
+    if (!canRealignTable(cm.cm6)) return;
     const cursor = cm.getCursor();
     const bounds = findTableBounds(cm, cursor.line);
     if (!bounds) return;

@@ -270,6 +270,18 @@ class NestedTableHost implements PluginValue {
                 });
             }
             this.syncSelection(held, table);
+            // While the cursor is in a table the child owns focus — that is
+            // the whole arrangement, and it has to be reclaimed rather than
+            // only taken at mount. A command that writes the parent through
+            // the adapter focuses it as a side effect: measured after
+            // `:tablerealign`, `mounted: 1` with the child `focused: false`
+            // and the parent focused, which leaves the editor rendered by the
+            // child and driven by neither — `u` and `.` both did nothing.
+            // Conditional on the parent actually holding focus, so focus is
+            // never pulled from another pane or a modal.
+            if (!held.view.hasFocus && this.parent.hasFocus) {
+                held.view.contentDOM.focus();
+            }
             return;
         }
 
