@@ -139,6 +139,41 @@ async function expand(prefix: string): Promise<void> {
     await browser.pause(800);
 }
 
+async function registerRepeatedSnippet(): Promise<void> {
+    await browser.executeObsidian(({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        {
+                            snippetRegistry?: {
+                                loadFile: (
+                                    f: Record<
+                                        string,
+                                        { prefix: string; body: string }
+                                    >,
+                                    s: string,
+                                ) => void;
+                            };
+                        }
+                    >;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        if (!plugin?.snippetRegistry) throw new Error('no snippetRegistry');
+        plugin.snippetRegistry.loadFile(
+            {
+                'Repeated Tabstop': {
+                    prefix: 'zrep',
+                    body: '${1:a}--${1:a}$0',
+                },
+            },
+            'user',
+        );
+    });
+}
+
 async function openOwnedTable(): Promise<void> {
     await setPluginSettingAndReload('tableWidgetMode', 'owned');
     await ensureLivePreview();
@@ -257,6 +292,49 @@ describe('Table snippets (Plan D)', function () {
         expect(undone).not.toContain('u[[');
         expect(undone).not.toContain('| u');
         expect(undone).not.toContain('[[page|alias]]');
+    });
+
+    it('a repeated tabstop updates only the first occurrence (known gap)', async () => {
+        // Linked mirrors: `${1:a}--${1:a}` should make both occurrences follow
+        // the typed text, and outside a table they do. Inside a cell only the
+        // field being edited changes, because the child's edit reaches the
+        // parent as a plain document change through `sync-up`, which is not
+        // the input path CodeMirror propagates a mirror from.
+        //
+        // The in-cell assertion pins a measured GAP, not desired behaviour.
+        // When mirrors are fixed it must be changed to `z--z`; the outside
+        // control beside it is what says which of the two is wrong.
+        await registerRepeatedSnippet();
+
+        await enterCell();
+        await expand('zrep');
+        const expanded = await report();
+        expect(expanded.doc).toBe(TABLE_DOC.replace('| aa', '| a--aaa'));
+        expect(expanded.parentSel).toBe('a');
+        // The field is selected in the cell, so typing replaces it rather
+        // than inserting beside it.
+        expect(expanded.childSel).toBe('a');
+
+        await browser.keys(['z']);
+        await browser.pause(800);
+        const typed = await report();
+        expect(typed.doc).toBe(TABLE_DOC.replace('| aa', '| z--aaa'));
+    });
+
+    it('control: a repeated tabstop outside a table does mirror', async () => {
+        // Separate scenario rather than a tail on the one above: the in-cell
+        // half ends inside insert mode with a session open, and continuing
+        // there was measured typing the control's own keys in as literal text
+        // (`\tizrepzplain`). `beforeEach` is what gives this a clean editor.
+        await registerRepeatedSnippet();
+        await setupEditor('plain', { line: 0, ch: 0 });
+        await browser.pause(500);
+        await expand('zrep');
+        expect((await report()).parentSel).toBe('a');
+
+        await browser.keys(['z']);
+        await browser.pause(800);
+        expect((await report()).doc).toBe('z--zplain');
     });
 
     it('an unmatched Tab writes nothing into the table', async () => {

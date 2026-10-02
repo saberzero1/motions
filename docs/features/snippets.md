@@ -48,6 +48,8 @@ Two conversions Obsidian's own table editor performs are **not** applied yet, so
 | `\|`        | inserted as-is, opening an extra column         |
 | a newline   | cannot be represented; the row does not survive |
 
+**Linked mirrors do not propagate in a cell.** A repeated tabstop such as `${1:a}--${1:a}` updates both occurrences anywhere else; inside a cell only the occurrence you are editing changes.
+
 A body containing a literal pipe — including a wikilink alias such as `[[${1:page}\|${2:alias}]]` — needs the pipe escaped as `\\\|` in the snippet definition until this is handled automatically.
 
 ## Bundled snippets

@@ -142,3 +142,37 @@ The two survivors are deliberate: `still collapses an already-empty selection`
 and `leaves visual mode taking precedence` assert behaviour the flag does
 **not** change, so a control that broke them would mean the flag was reaching
 further than intended.
+
+## Control 8 — the repeated-tabstop gap is itself falsifiable
+
+A scenario that pins a **known gap** is worth nothing if it cannot fail, so the
+same always-collapse sabotage from control 5 was run against it.
+
+`6 passing | 2 failing` — `shows the active tabstop inside the cell`
+(`Expected: "page" / Received: ""`) and `a repeated tabstop updates only the
+first occurrence` (`Expected: "a" / Received: ""`).
+
+### The gap, measured after the mirror fix
+
+Linked mirrors — a repeated `${1:…}` — do not propagate inside a cell:
+
+|                  | after expand                  | after typing `z`                          |
+| ---------------- | ----------------------------- | ----------------------------------------- |
+| in a cell        | `\| a--aaa \|`, selection `a` | `\| z--aaa \|`, **first occurrence only** |
+| outside, control | `a--aplain`, selection `a`    | `z--zplain`, **both**                     |
+
+The child's edit reaches the parent as a plain document change through
+`sync-up`, which is not the input path CodeMirror propagates a mirror from.
+
+This had to be **re-measured**. The first reading was taken before the mirror
+fix and showed `az--a` — an _insertion_ beside the field rather than a
+replacement of it — which would have been diagnosed as a `minimalDiff`
+over-forwarding problem and sent the fix at `sync-up.ts`. With the field
+actually selected the behaviour is `z--a`, a different defect in a different
+place. Plan D's D5 explicitly warned that a fixture which can only produce one
+region proves nothing; the subtler version of that trap is a fixture measured
+while an _unrelated_ defect is still present.
+
+`minimalDiff` was therefore left alone, as Plan D's MUST NOT requires: it is
+pinned by 11 unit tests and a dot-repeat negative control, and nothing here
+measured it over-forwarding.
