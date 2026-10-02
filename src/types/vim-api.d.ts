@@ -114,6 +114,14 @@ export interface VimState {
     status?: string;
     /** True while a pending command awaits a literal `<character>` argument (`r`, `f`, `m`, …). */
     expectLiteralNext?: boolean;
+    /**
+     * Visual-mode anchor and head, zero-based.
+     *
+     * The only source for a **linewise** range: measured, `V` leaves the
+     * editor's own CM6 selection collapsed at the line start, while charwise
+     * visual does set it to the real range.
+     */
+    sel?: { anchor: VimPos; head: VimPos };
 }
 
 /** Keymap entry types used by Vim.mapCommand. */

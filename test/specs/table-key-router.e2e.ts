@@ -40,6 +40,7 @@ interface Stats {
     childHead: number;
     routed: number;
     doc: string | null;
+    selectedText: string;
 }
 
 interface RouterPlugin {
@@ -52,6 +53,8 @@ interface Snapshot {
     parentHead: number;
     parentFocused: boolean;
     activeTag: string;
+    selectionRects: number;
+    selectedText: string;
 }
 
 async function snapshot(): Promise<Snapshot> {
@@ -63,10 +66,13 @@ async function snapshot(): Promise<Snapshot> {
                 childHead: -1,
                 routed: -1,
                 doc: null,
+                selectedText: '',
             } as Stats,
             parentHead: -1,
             parentFocused: false,
             activeTag: '',
+            selectionRects: -1,
+            selectedText: '',
         };
         const plugin = (
             app as unknown as {
@@ -90,6 +96,16 @@ async function snapshot(): Promise<Snapshot> {
             parentFocused: cm.hasFocus,
             activeTag:
                 (document.activeElement as HTMLElement | null)?.tagName ?? '',
+            // What the user can actually see, plus what it covers. A count
+            // alone cannot tell a correct mirror from one highlighting the
+            // wrong rows.
+            selectionRects: document.querySelectorAll(
+                '.vim-motions-table-nested .cm-selectionBackground',
+            ).length,
+            selectedText: (window.getSelection()?.toString() ?? '').replace(
+                /\u00a0/g,
+                ' ',
+            ),
         };
     })) as Snapshot;
 }
@@ -300,6 +316,49 @@ describe('Table key router (Plan B Step 4)', function () {
         const doc = await getEditorValue();
         expect(doc).not.toContain('u|');
         expect(doc).not.toContain('| u');
+    });
+
+    it('renders the mirrored selection for V, Vj and clears it on Escape', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+        expect(before.selectionRects).toBe(0);
+
+        await browser.keys(['V']);
+        await browser.pause(600);
+        expect(await getVimMode()).toBe('visual');
+        const oneRow = await snapshot();
+        expect(oneRow.selectionRects).toBeGreaterThan(0);
+        // Content, not just presence: the whole row, and only that row.
+        expect(oneRow.nested.selectedText).toContain('| aa   | 11    |');
+        expect(oneRow.nested.selectedText).not.toContain('| bb');
+
+        await browser.keys(['j']);
+        await browser.pause(600);
+        const twoRows = await snapshot();
+        expect(twoRows.nested.selectedText).toContain('| aa   | 11    |');
+        expect(twoRows.nested.selectedText).toContain('| bb   | 22    |');
+        expect(twoRows.nested.selectedText).not.toContain('| Name');
+
+        await browser.keys(['Escape']);
+        await browser.pause(600);
+        const cleared = await snapshot();
+        expect(await getVimMode()).toBe('normal');
+        expect(cleared.selectionRects).toBe(0);
+        expect(cleared.nested.selectedText).toBe('');
+    });
+
+    it('renders a charwise selection covering exactly the characters vim selected', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+
+        await browser.keys(['v', 'l', 'l']);
+        await browser.pause(600);
+
+        const snap = await snapshot();
+        expect(await getVimMode()).toBe('visual');
+        expect(snap.selectionRects).toBeGreaterThan(0);
+        // vll selects three characters from the cursor.
+        expect(snap.nested.selectedText).toBe('aa ');
     });
 
     it('routes V into visual mode and Vjd removes two rows', async () => {

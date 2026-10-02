@@ -2,12 +2,15 @@ import { EditorState, type Extension } from '@codemirror/state';
 import {
     EditorView,
     ViewPlugin,
+    drawSelection,
     type PluginValue,
     type ViewUpdate,
 } from '@codemirror/view';
 import type { TableRange } from '../table-utils';
 import { runCleanups } from '../../util/cleanup';
+import { getCmAdapterFromEditorView } from '../vim-api';
 import { getRoutedKeyCount, installKeyRouter } from './key-router';
+import { mirrorRange } from './selection-mirror';
 import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
 import {
@@ -39,6 +42,7 @@ export interface NestedTableStats {
     focused: boolean;
     childHead: number;
     routed: number;
+    selectedText: string;
 }
 
 interface Mounted {
@@ -88,6 +92,12 @@ export function getNestedTableStats(): NestedTableStats {
         focused: first ? first.view.hasFocus : false,
         childHead: first ? first.view.state.selection.main.head : -1,
         routed: getRoutedKeyCount(),
+        selectedText: first
+            ? first.view.state.sliceDoc(
+                  first.view.state.selection.main.from,
+                  first.view.state.selection.main.to,
+              )
+            : '',
     };
 }
 
@@ -224,7 +234,7 @@ class NestedTableHost implements PluginValue {
                     },
                 });
             }
-            this.syncCaret(held, table);
+            this.syncSelection(held, table);
             return;
         }
 
@@ -236,25 +246,35 @@ class NestedTableHost implements PluginValue {
 
         this.unmount();
         this.mount(table, text, root);
-        if (this.current) this.syncCaret(this.current, table);
+        if (this.current) this.syncSelection(this.current, table);
     }
 
     /**
-     * Put the child's caret where the parent's vim head is.
+     * Put the child's selection where the parent's is — a caret in normal mode,
+     * the visual range in visual mode.
      *
-     * The child's document is exactly the parent's slice `[from, to]`, so the
-     * translation is a subtraction. Without it the user's caret and the
-     * position commands act on drift apart, and every command appears to
-     * operate somewhere other than where the cursor is.
+     * Without this the user's caret and the position commands act on drift
+     * apart, and every command appears to operate somewhere other than where
+     * the cursor is. The visual half is what makes a selection visible at all:
+     * the child is the focused view, so its selection is what renders.
      */
-    private syncCaret(held: Mounted, table: TableRange): void {
-        const head = this.parent.state.selection.main.head;
-        const offset = Math.max(
-            0,
-            Math.min(head - table.from, held.view.state.doc.length),
+    private syncSelection(held: Mounted, table: TableRange): void {
+        const doc = this.parent.state.doc;
+        const next = mirrorRange(
+            getCmAdapterFromEditorView(this.parent)?.state?.vim,
+            this.parent.state.selection.main,
+            {
+                start: (line) => doc.line(line + 1).from,
+                end: (line) => doc.line(line + 1).to,
+            },
+            table,
         );
-        if (held.view.state.selection.main.head === offset) return;
-        held.view.dispatch({ selection: { anchor: offset } });
+
+        const current = held.view.state.selection.main;
+        if (current.anchor === next.anchor && current.head === next.head) {
+            return;
+        }
+        held.view.dispatch({ selection: next });
     }
 
     /**
@@ -301,6 +321,10 @@ class NestedTableHost implements PluginValue {
                 doc: text,
                 extensions: [
                     EditorView.editorAttributes.of({ class: NESTED_CLASS }),
+                    // Without this a selection is left to the browser's native
+                    // highlight, which renders no `.cm-selectionBackground` and
+                    // is not themed like the rest of the editor.
+                    drawSelection(),
                     syncUpExtension(target),
                 ],
             }),
