@@ -115,6 +115,21 @@ Available when the table widget is set to "Embedded" and the cursor enters a tab
 | `=`                             | Realign table                            |
 | `Tab` / `Shift-Tab`             | Next / previous cell (wraps across rows) |
 
+## Owned table surface
+
+Available when `set tablewidget=owned` and the cursor is inside a table in Live Preview. The plugin renders the table itself and a nested editor hosts the caret, while the **parent editor's vim owns every command** — one vim state, one undo history, one document.
+
+| Keybinding                  | Description                                                    |
+| --------------------------- | -------------------------------------------------------------- |
+| Any normal-mode command     | Routed to the parent's vim (`dd`, `D`, `u`, `.`, `zz`, counts) |
+| `h` / `l`                   | Move by one character within the table                         |
+| `j` / `k`                   | Move one table row; at the first or last row, leaves the table |
+| `v` / `V`                   | Charwise / linewise visual mode, rendered inside the table     |
+| `i` / `a` / `o` and friends | Enter insert mode; typed text goes into the document           |
+| `Escape`                    | Leave insert or visual mode                                    |
+
+Desktop, Live Preview and the bundled engine only. See [[tables#Owned table surface]] for what is not supported yet.
+
 ## Picker shortcuts
 
 Open picker sources with the `<leader>f` prefix.

@@ -55,6 +55,8 @@ interface Snapshot {
     activeTag: string;
     selectionRects: number;
     selectedText: string;
+    statusBar: string;
+    statusBarMode: string;
 }
 
 async function snapshot(): Promise<Snapshot> {
@@ -73,6 +75,8 @@ async function snapshot(): Promise<Snapshot> {
             activeTag: '',
             selectionRects: -1,
             selectedText: '',
+            statusBar: '',
+            statusBarMode: '',
         };
         const plugin = (
             app as unknown as {
@@ -106,6 +110,11 @@ async function snapshot(): Promise<Snapshot> {
                 /\u00a0/g,
                 ' ',
             ),
+            statusBar:
+                document.querySelector('.vim-motions-mode')?.textContent ?? '',
+            statusBarMode:
+                document.querySelector<HTMLElement>('.vim-motions-mode')
+                    ?.dataset['vimMode'] ?? '',
         };
     })) as Snapshot;
 }
@@ -345,6 +354,50 @@ describe('Table key router (Plan B Step 4)', function () {
         expect(await getVimMode()).toBe('normal');
         expect(cleared.selectionRects).toBe(0);
         expect(cleared.nested.selectedText).toBe('');
+    });
+
+    it('#167.1: the status bar tracks the owning surface, not a stale mode', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+        expect(before.statusBarMode).toBe('normal');
+
+        await browser.keys(['V']);
+        await browser.pause(600);
+        const visual = await snapshot();
+        // The precise mode, not merely "something visual": v-line is what
+        // linewise should read, and a charwise reading here would be wrong.
+        expect(visual.statusBarMode).toBe('v-line');
+
+        await browser.keys(['Escape']);
+        await browser.pause(600);
+        const normal = await snapshot();
+        // The reported symptom was a status bar left reading V-Line after the
+        // mode had gone.
+        expect(normal.statusBarMode).toBe('normal');
+        expect(normal.statusBar.toLowerCase()).not.toContain('v-line');
+    });
+
+    it('#167.3: routes D and zz without inserting literal text', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+
+        await browser.keys(['D']);
+        await browser.pause(700);
+        const afterD = await getEditorValue();
+        // D deletes to end of line from the cursor; the row keeps its prefix.
+        expect(afterD).toContain('| ');
+        expect(afterD).not.toContain('D');
+        expect(afterD).not.toContain('| aa   | 11    |');
+
+        await browser.keys(['u']);
+        await browser.pause(600);
+        expect(await getEditorValue()).toBe(TABLE_DOC);
+
+        // z is a prefix: zz centres the view and must not reach the document.
+        await browser.keys(['z', 'z']);
+        await browser.pause(600);
+        expect(await getEditorValue()).toBe(TABLE_DOC);
+        expect(await getVimMode()).toBe('normal');
     });
 
     it('renders a charwise selection covering exactly the characters vim selected', async () => {

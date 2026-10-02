@@ -963,7 +963,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     options: {
                                         native: "Use Obsidian's built-in table editor with vim support (recommended)",
                                         raw: 'Always show raw markdown table syntax',
-                                        owned: "Experimental, display only: render tables with the plugin's own renderer. Editing inside the table is not supported yet — use native to edit (desktop, Live Preview, bundled engine only)",
+                                        owned: "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop, Live Preview and the bundled engine only; falls back to native otherwise",
                                     },
                                     disabled: () =>
                                         this.isOverridden('tableWidgetMode'),
@@ -3584,7 +3584,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .addOption('raw', 'Always show raw Markdown table syntax')
                     .addOption(
                         'owned',
-                        "Experimental, display only: render tables with the plugin's own renderer. Editing inside the table is not supported yet — use native to edit (desktop, Live Preview, bundled engine only)",
+                        "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop, Live Preview and the bundled engine only; falls back to native otherwise",
                     )
                     .setValue(this.plugin.settings.tableWidgetMode)
                     .setDisabled(isOverridden('tableWidgetMode'))

@@ -72,6 +72,7 @@ Vim Motions includes built-in auto-formatting for tables:
 Vim Motions integrates with Obsidian's native table editor in Live Preview. Two rendering modes are available via `set tablewidget`:
 
 - **`native`** (default): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
+- **`owned`** (experimental): the plugin renders the table itself, replacing Obsidian's widget entirely. See [[tables#Owned table surface]] below.
 - **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview. The vim cursor remains fully visible in raw mode — cursor suppression only activates when a native table widget is visible.
 
 In **source mode**, tables are always rendered as raw markdown regardless of the `tablewidget` setting. The cursor behaves normally — no cursor suppression occurs.
@@ -83,6 +84,43 @@ The `tablenav` setting (on by default) controls whether the **table-nav overlay*
 | `native` + `tablenav` (default) | Full table-nav overlay with cell highlighting and structural commands |
 | `native` + `notablenav`         | Native table editor with vim cell editing and cross-cell navigation   |
 | `raw`                           | Raw markdown tables                                                   |
+| `owned`                         | The plugin's own renderer, with Vim normal, visual and insert mode    |
+
+## Owned table surface
+
+> [!warning]
+> Experimental, and not the default. Enable with `set tablewidget=owned` or **Settings → Vim Motions → General → Table widget in live preview**.
+
+With `owned`, the plugin replaces Obsidian's table decoration with its own and mounts a nested editor inside it when the cursor enters a table. The nested editor hosts the caret; the **parent editor's vim owns every command**, so there is one vim state, one undo history and one document.
+
+![[keybindings#Owned table surface]]
+
+### What works
+
+- Normal-mode commands, including `dd`, `D`, `u`, `.`, `zz` and counts
+- Charwise and linewise visual mode, with the selection rendered inside the table
+- Insert mode, including IME composition — a composition commits once and one `u` reverses it
+- Leaving the table by `j`/`k` at the first or last row, preserving the desired column and any count; re-entering remounts
+
+### What is not supported yet
+
+- **Idle cells render as plain text**, not as a formatted table. Only the cursor's table is affected; this is the main reason `owned` is not the default.
+- **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
+- **Visual block** renders as the enclosing charwise span, because a rectangular selection cannot be expressed as one CodeMirror range.
+- **Nine Obsidian widget features** are not reproduced: row and column buttons, the context menu, column resizing, multi-cell selection, copy and paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering.
+- **Horizontal scrolling inside a wide table** is no better than `native` — measured, neither mode scrolls horizontally.
+
+### When it falls back
+
+`owned` is skipped, with a one-time notice, when any of these hold. Each is a deliberate restriction rather than a missing feature:
+
+| Condition                                  | Reason                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| Obsidian's own **Vim key bindings** are on | Only the bundled engine has been measured against this surface          |
+| **Mobile**                                 | Desktop only for now                                                    |
+| The **Neovim backend** is connected        | Neovim owns text and keys; this surface's input path is not wired to it |
+| **Source mode** or Reading view            | Replacing table source in a mode meant to show source is a defect       |
+| The setting is not `owned`                 | Opt-in                                                                  |
 
 ## Table-nav mode
 
