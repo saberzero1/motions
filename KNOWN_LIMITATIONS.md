@@ -648,7 +648,7 @@ The following are intentionally not implemented:
 The plugin uses Obsidian's native table editor in Live Preview. Two rendering modes are available via `set tablewidget`:
 
 - **`native`** (default): Uses Obsidian's built-in `cm-table-widget`. Vim is injected into cell editors via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping, cursor positioning, and `<br>` conversion automatically. Cross-cell `h`/`j`/`k`/`l` navigation is always active in native mode, independent of the `tablenav` setting.
-- **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview.
+- **`raw`**: Hides the widget. **In Live Preview this renders the table as nothing at all** — see the measured subsection below; it does not fall back to showing markdown source. Use **Source mode** for source-style table editing instead.
 
 Old values (`off`, `cursor`, `always`, `embedded`) are automatically migrated to `native` or `raw`.
 
@@ -669,6 +669,10 @@ Measured against the same five-line fixture with the cursor at offset 14, inside
 | Live Preview | `native`      | `\|abc\| defz \|` — correct cell, widget realigns the row |
 
 `native` in Live Preview and `raw` in Source mode both behave correctly with the identical fixture and cursor, which is what isolates the failure to `raw` in Live Preview rather than to Live Preview or to the measurement. No snippet is involved; this is ordinary typing. Discovered while checking whether `raw` was a workaround for the snippet-tabstop case above — it is not. A real fix has to suppress the decoration rather than hide the element.
+
+**The table is also invisible, not merely uneditable.** Measured separately: with `raw` active the widget's computed `display` is `none` **and** no `.cm-line` in the table's range contains a pipe — the four source lines produce no rendered line at all, because Obsidian block-replaces them and hiding the widget removes the only rendering of them. So `raw` in Live Preview yields an invisible table that `j`/`k` still navigate, since the document itself is untouched. **Source mode is the supported way to edit table source**; `raw` is retained only because its `j`/`k` behaviour is covered by [#136](https://github.com/saberzero1/motions/issues/136) regression tests.
+
+The "suppress the decoration rather than hide the element" fix is now measured as achievable: a `Prec.highest` block-replace decoration supplied from a `StateField` removes Obsidian's table widget from the DOM entirely. That is the foundation of the planned owned table renderer, which is also what will let `raw` be retired.
 
 ## Vimrc soft-reload
 

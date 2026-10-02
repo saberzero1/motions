@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - `KNOWN_LIMITATIONS.md`'s RPC/table-overlay entry claimed the table-nav overlay "needs nothing" under RPC. That measurement covered the overlay only and never covered cell editing; the entry now records the distinction and the Escape fix.
+- `KNOWN_LIMITATIONS.md` described `set tablewidget=raw` as showing "raw markdown table syntax". It does not: the widget is hidden with CSS while Obsidian still block-replaces the source, so no `.cm-line` in the table's range renders at all and the table is **invisible** while remaining navigable by `j`/`k`. The entry now records that, points at Source mode as the supported way to edit table source, and notes that suppressing the decoration — rather than hiding the element — is measured as achievable via a highest-precedence block replace from a state field.
 
 ## [1.4.0] - 2026-09-30
 
