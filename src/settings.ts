@@ -962,7 +962,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     key: 'tableWidgetMode',
                                     options: {
                                         native: "Use Obsidian's built-in table editor with vim support (recommended)",
-                                        raw: 'Always show raw markdown table syntax',
+                                        raw: 'Deprecated: always show raw Markdown table syntax. It hides the table without showing its source; use source mode instead',
                                         owned: "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop, Live Preview and the bundled engine only; falls back to native otherwise",
                                     },
                                     disabled: () =>
@@ -3581,7 +3581,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         'native',
                         "Use Obsidian's built-in table editor with Vim support (recommended)",
                     )
-                    .addOption('raw', 'Always show raw Markdown table syntax')
+                    .addOption(
+                        'raw',
+                        'Deprecated: always show raw Markdown table syntax. It hides the table without showing its source; use source mode instead',
+                    )
                     .addOption(
                         'owned',
                         "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop, Live Preview and the bundled engine only; falls back to native otherwise",

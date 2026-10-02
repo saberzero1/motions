@@ -73,7 +73,7 @@ Vim Motions integrates with Obsidian's native table editor in Live Preview. Two 
 
 - **`native`** (default): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
 - **`owned`** (experimental): the plugin renders the table itself, replacing Obsidian's widget entirely. See [[tables#Owned table surface]] below.
-- **`raw`**: Always shows raw markdown table syntax. No widget rendering. Useful for users who prefer source-style editing in Live Preview. The vim cursor remains fully visible in raw mode — cursor suppression only activates when a native table widget is visible.
+- **`raw`** (**deprecated**, will be removed): despite the name it does **not** show Markdown source. It hides Obsidian's widget with CSS while Obsidian still replaces the table's range, so the table renders as nothing at all. Use **Source mode** to edit a table's source. No widget rendering. Useful for users who prefer source-style editing in Live Preview. The vim cursor remains fully visible in raw mode — cursor suppression only activates when a native table widget is visible.
 
 In **source mode**, tables are always rendered as raw markdown regardless of the `tablewidget` setting. The cursor behaves normally — no cursor suppression occurs.
 
@@ -207,7 +207,7 @@ In raw Markdown mode, you can operate on entire table rows using the `ir` and `a
 These text objects are useful for quickly deleting, changing, or yanking whole rows while editing the Markdown source.
 
 > [!info]
-> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=native` / `set tablewidget=raw` in your vimrc.
+> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=native` / `set tablewidget=owned` in your vimrc. `set tablewidget=raw` still works but is **deprecated** — see below.
 
 ## Ex commands
 

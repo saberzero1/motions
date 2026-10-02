@@ -199,6 +199,7 @@ import {
     migrateConfigModeSettings,
     migrateCursorlineoptSettings,
     migrateSigncolumnSettings,
+    migrateTableWidgetMode,
 } from './settings-migration';
 import type { lua_State } from './lib/fengari';
 import { pickerRegistry } from './picker/registry';
@@ -425,6 +426,7 @@ export default class VimMotionsPlugin extends Plugin {
     private tableSurfaceSlot: Extension[] = [];
 
     private tableSurfaceBlockerNotified: TableSurfaceBlocker = null;
+    private rawDeprecationNotified = false;
     private snippetCompletionSlot: Extension[] = [];
     private snippetTabSlot: Extension[] = [];
     private neovimConnection!: NeovimConnection;
@@ -3637,7 +3639,32 @@ export default class VimMotionsPlugin extends Plugin {
         this.applyAnimatedCursorSlot();
         this.applyUndoTreeSlot();
         this.applyTableSurfaceSlot();
+        this.applyRawDeprecationNotice();
         this.applySnippetSlots();
+    }
+
+    /**
+     * Tells a `raw` user once that the mode is going away.
+     *
+     * `raw` does not show Markdown source: it hides the widget with CSS while
+     * Obsidian still block-replaces the range, so the table renders as nothing
+     * at all. Source mode is what does what users reach for `raw` to get.
+     *
+     * The mode keeps working — a documented vimrc and Lua option must not break
+     * under its users — so this is the only signal that it is deprecated.
+     */
+    private applyRawDeprecationNotice(): void {
+        if (this.settings.tableWidgetMode !== 'raw') {
+            this.rawDeprecationNotified = false;
+            return;
+        }
+        if (this.rawDeprecationNotified) return;
+        this.rawDeprecationNotified = true;
+        new Notice(
+            'Vim Motions: table widget mode "raw" is deprecated and will be ' +
+                'removed. It hides the table without showing its Markdown ' +
+                'source — use Source mode to edit table source instead.',
+        );
     }
 
     reloadFeatures(): void {
@@ -6173,22 +6200,9 @@ export default class VimMotionsPlugin extends Plugin {
 
     private migrateLegacySettings(raw: Record<string, unknown> | null): void {
         if (!raw) return;
-        if (
-            'suppressTableWidget' in raw &&
-            typeof raw.suppressTableWidget === 'boolean'
-        ) {
-            this.settings.tableWidgetMode = raw.suppressTableWidget
-                ? 'raw'
-                : 'native';
-        }
-        // Migrate old tableWidgetMode values to new scheme
-        const twm = raw.tableWidgetMode;
-        if (typeof twm === 'string') {
-            if (twm === 'off' || twm === 'cursor' || twm === 'embedded') {
-                this.settings.tableWidgetMode = 'native';
-            } else if (twm === 'always') {
-                this.settings.tableWidgetMode = 'raw';
-            }
+        const migratedTableMode = migrateTableWidgetMode(raw);
+        if (migratedTableMode) {
+            this.settings.tableWidgetMode = migratedTableMode;
         }
         delete (this.settings as unknown as Record<string, unknown>)
             .formattingMarkMode;

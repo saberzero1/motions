@@ -64,3 +64,40 @@ export function migrateSigncolumnSettings(
     }
     return data;
 }
+
+/**
+ * Legacy table-widget values, resolved to a current one.
+ *
+ * Every legacy shape retargets to `'native'`, including the two that used to
+ * mean `'raw'` (`suppressTableWidget: true` and `tablewidget=always`). `raw` is
+ * deprecated, and it does not do what those settings were chosen for: it hides
+ * Obsidian's widget with CSS while Obsidian still replaces the table's range,
+ * so the table renders as nothing at all.
+ *
+ * An **explicit** stored `'raw'` is deliberately returned unchanged. This
+ * release deprecates that value rather than removing it, and silently moving a
+ * user off a documented option they chose is the thing a deprecation exists to
+ * avoid.
+ */
+export function migrateTableWidgetMode(
+    raw: Record<string, unknown> | null,
+): 'native' | 'raw' | 'owned' | null {
+    if (!raw) return null;
+    if (
+        'suppressTableWidget' in raw &&
+        typeof raw.suppressTableWidget === 'boolean'
+    ) {
+        return 'native';
+    }
+    const mode = raw.tableWidgetMode;
+    if (typeof mode !== 'string') return null;
+    if (
+        mode === 'off' ||
+        mode === 'cursor' ||
+        mode === 'embedded' ||
+        mode === 'always'
+    ) {
+        return 'native';
+    }
+    return null;
+}

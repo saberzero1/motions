@@ -23,6 +23,7 @@ import { DEFAULT_SETTINGS } from '../../src/settings';
 import {
     migrateConfigModeSettings,
     migrateCursorlineoptSettings,
+    migrateTableWidgetMode,
 } from '../../src/settings-migration';
 
 const applyMigration = (
@@ -109,5 +110,56 @@ describe('migrateCursorlineoptSettings', () => {
             migrateCursorlineoptSettings(data as Partial<VimMotionsSettings>),
         );
         expect(merged.cursorlineopt).toBe('number');
+    });
+});
+
+describe('tableWidgetMode migration', () => {
+    it('retargets suppressTableWidget=true to native, not raw', () => {
+        // The legacy flag meant "hide the widget", and `raw` is what used to
+        // implement that — but `raw` renders the table as nothing, so native
+        // is the honest destination.
+        expect(migrateTableWidgetMode({ suppressTableWidget: true })).toBe(
+            'native',
+        );
+    });
+
+    it('retargets suppressTableWidget=false to native', () => {
+        expect(migrateTableWidgetMode({ suppressTableWidget: false })).toBe(
+            'native',
+        );
+    });
+
+    it('retargets tablewidget=always to native, not raw', () => {
+        expect(migrateTableWidgetMode({ tableWidgetMode: 'always' })).toBe(
+            'native',
+        );
+    });
+
+    it.each(['off', 'cursor', 'embedded'])(
+        'retargets the legacy value %s to native',
+        (legacy) => {
+            expect(migrateTableWidgetMode({ tableWidgetMode: legacy })).toBe(
+                'native',
+            );
+        },
+    );
+
+    it('leaves an explicit raw alone, because this release only deprecates it', () => {
+        // The load-bearing case. Migrating a user off a documented option they
+        // chose is precisely what a deprecation exists to avoid.
+        expect(migrateTableWidgetMode({ tableWidgetMode: 'raw' })).toBeNull();
+    });
+
+    it('leaves current values alone', () => {
+        expect(
+            migrateTableWidgetMode({ tableWidgetMode: 'native' }),
+        ).toBeNull();
+        expect(migrateTableWidgetMode({ tableWidgetMode: 'owned' })).toBeNull();
+    });
+
+    it('returns null for absent, null and non-string data', () => {
+        expect(migrateTableWidgetMode(null)).toBeNull();
+        expect(migrateTableWidgetMode({})).toBeNull();
+        expect(migrateTableWidgetMode({ tableWidgetMode: 42 })).toBeNull();
     });
 });

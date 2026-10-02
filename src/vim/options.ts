@@ -445,7 +445,9 @@ export function registerVimOptions(
             off: 'native',
             cursor: 'native',
             embedded: 'native',
-            always: 'raw',
+            // `always` retargets to `native`, not `raw`: `raw` is deprecated,
+            // and it renders the table as nothing rather than as source.
+            always: 'native',
             native: 'native',
             raw: 'raw',
             owned: 'owned',
