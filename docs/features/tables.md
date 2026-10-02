@@ -104,7 +104,7 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 
 ### What is not supported yet
 
-- **Idle cells render as plain text**, not as a formatted table. Only the cursor's table is affected; this is the main reason `owned` is not the default.
+- **Neither renderer re-aligns a cell's contents.** Both the idle grid and the cursor's editor show the table's source characters exactly, with cells and delimiters marked up for styling and each column's alignment carried as a class. A column marked `---:` is therefore themeable but its text is not moved to the right, because the two renderers must agree glyph-for-glyph — otherwise the grid visibly shifts the moment the cursor enters the table. Neither is an HTML `<table>`, for the same reason.
 - **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
 - **Some Obsidian widget features** are not reproduced: row and column buttons, the cell and column context menus, column and row drag-to-reorder, sort by column, mouse multi-cell selection, copy and paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering. Keyboard multi-cell selection **is** supported — `<C-v>` renders a true rectangular selection, one range per row. Column _resizing_ is not in that list — Obsidian's widget does not offer it, so nothing is lost.
 - **`scrolloff=100` disables horizontal scrolling inside a table**, in `owned` and `native` alike. Ordinary horizontal scrolling works in both — the nested editor follows the caret.

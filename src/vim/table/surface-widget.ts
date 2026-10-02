@@ -1,4 +1,7 @@
 import { WidgetType } from '@codemirror/view';
+import type { Alignment } from '../table-utils';
+import { CELL_CLASS, DELIMITER_CLASS } from './cell-decorations';
+import { buildTableLayout, type TableRowLayout } from './layout-model';
 
 const ROOT_CLASS = 'vim-motions-table-surface';
 const ROWS_CLASS = 'vim-motions-table-surface-rows';
@@ -95,18 +98,92 @@ export class TableSurfaceWidget extends WidgetType {
     private paint(root: HTMLElement): void {
         const container = rowsContainer(root);
         const rows = container.children;
+        const layout = buildTableLayout({
+            from: 0,
+            to: this.lines.join('\n').length,
+            lines: [...this.lines],
+        });
+
         for (let i = 0; i < this.lines.length; i++) {
             const line = this.lines[i] ?? '';
             const existing = rows.item(i);
-            if (existing instanceof HTMLElement) {
-                if (existing.textContent !== line) existing.textContent = line;
-            } else {
-                const row = container.createDiv({ cls: ROW_CLASS });
-                row.textContent = line;
-            }
+            const row =
+                existing instanceof HTMLElement
+                    ? existing
+                    : container.createDiv({ cls: ROW_CLASS });
+            this.paintRow(row, line, layout?.rows[i], layout?.alignments);
         }
         while (rows.length > this.lines.length) {
             rows.item(rows.length - 1)?.remove();
         }
+    }
+
+    /**
+     * One row, as cell and delimiter spans over **exactly** the line's text.
+     *
+     * Same classes the nested editor's decorations use, so a theme styles one
+     * surface and gets both.
+     *
+     * Not a `<table>`, and not re-aligned. The nested editor is CodeMirror text
+     * showing the padded source, so anything that moved a glyph here would
+     * shift the grid the moment the cursor entered the table — the jump
+     * `table-typography.e2e.ts` pins to within 1px. Every character of `line`
+     * is emitted in order and nothing is inserted or hidden; the only thing
+     * added is structure to hang styling on.
+     *
+     * Guarded by the line text so an edit elsewhere in the note does not
+     * rebuild spans for rows that did not change.
+     */
+    private paintRow(
+        row: HTMLElement,
+        line: string,
+        rowLayout: TableRowLayout | undefined,
+        alignments: readonly Alignment[] | undefined,
+    ): void {
+        if (row.dataset['vimMotionsRow'] === line) return;
+        row.dataset['vimMotionsRow'] = line;
+        row.textContent = '';
+        row.classList.toggle('is-header', rowLayout?.kind === 'header');
+        row.classList.toggle('is-separator', rowLayout?.kind === 'separator');
+
+        if (!rowLayout) {
+            row.textContent = line;
+            return;
+        }
+
+        const base = rowLayout.from;
+        let cursor = 0;
+        const emit = (text: string, cls?: string): void => {
+            if (text.length === 0) return;
+            if (cls === undefined) row.appendText(text);
+            else row.createSpan({ cls, text });
+        };
+
+        // The separator row carries delimiters only, matching the nested
+        // editor's decorations — `buildTableLayout` does produce cells for it,
+        // and treating them as cells here would give the two surfaces
+        // different class counts for the same table.
+        const isSeparator = rowLayout.kind === 'separator';
+
+        for (const offset of rowLayout.delimiters) {
+            const index = offset - base;
+            const cell = isSeparator
+                ? undefined
+                : rowLayout.cells.find(
+                      (c) => c.from - base === cursor && cursor < index,
+                  );
+            if (cell) {
+                const align = alignments?.[cell.column] ?? 'none';
+                emit(
+                    line.slice(cursor, index),
+                    `${CELL_CLASS} is-align-${align}`,
+                );
+            } else {
+                emit(line.slice(cursor, index));
+            }
+            emit(line.slice(index, index + 1), DELIMITER_CLASS);
+            cursor = index + 1;
+        }
+        emit(line.slice(cursor));
     }
 }
