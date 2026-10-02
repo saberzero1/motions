@@ -305,7 +305,10 @@ import { getActiveTableCellEditorView } from './vim/native-table-adapter';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
-import { createSnippetTabKeymap } from './snippets/tab-expand';
+import {
+    createSnippetTabKeymap,
+    expandSnippetAtCursor,
+} from './snippets/tab-expand';
 import { registerSnippetCommands } from './snippets/commands';
 import { createSnippetsPickerSource } from './snippets/picker-source';
 import type { SnippetRegistry } from './snippets/registry';
@@ -316,7 +319,13 @@ import {
     setActiveDynamicContext,
 } from './snippets/dynamic-bridge';
 import { createSnippetLivePreviewGuard } from './snippets/live-preview-guard';
-import { snippetState } from './snippets/autocomplete-types';
+import {
+    hasNextSnippetField,
+    hasPrevSnippetField,
+    nextSnippetField,
+    prevSnippetField,
+    snippetState,
+} from './snippets/autocomplete-types';
 import { setJumpListInstance } from './workspace/navigate';
 
 import { runCleanups } from './util/cleanup';
@@ -3404,8 +3413,10 @@ export default class VimMotionsPlugin extends Plugin {
             blocker === null,
             () => [
                 createTableSurface(livePreviewOnly()).extension,
-                createNestedTableHost((parent) =>
-                    suppressNativeCellEditor(this.app, parent),
+                createNestedTableHost(
+                    (parent) => suppressNativeCellEditor(this.app, parent),
+                    (parent, direction) =>
+                        this.runTableSnippetTab(parent, direction),
                 ),
             ],
         );
@@ -3419,6 +3430,28 @@ export default class VimMotionsPlugin extends Plugin {
     /** Nested table editor lifecycle counts, for e2e assertions. */
     getNestedTableStats(): NestedTableStats {
         return getNestedTableStats();
+    }
+
+    /**
+     * The snippet session on the **parent** editor, for e2e assertions.
+     *
+     * Read from the parent's state rather than from a module-level flag: a
+     * session can be open in another leaf, and a boolean "a snippet is active
+     * somewhere" cannot tell the two apart.
+     */
+    getSnippetSessionReport(): {
+        active: boolean;
+        field: number;
+        ranges: number;
+    } {
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const parent = mdView ? getEditorView(mdView) : null;
+        const session = parent ? parent.state.field(snippetState, false) : null;
+        return {
+            active: !!session,
+            field: session ? session.active : -1,
+            ranges: session ? session.ranges.length : -1,
+        };
     }
 
     /**
@@ -3588,20 +3621,54 @@ export default class VimMotionsPlugin extends Plugin {
         ];
     }
 
+    private isVimInsertMode(): boolean {
+        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!mdView) return false;
+        const adapter = getCmAdapter(mdView);
+        if (!adapter) return false;
+        const vimState = adapter.state.vim as
+            Record<string, unknown> | undefined;
+        return !!vimState?.insertMode;
+    }
+
     private buildSnippetTabExtension(): Extension {
         return createSnippetTabKeymap(
             () => this.snippetRegistry,
             () => this.getSnippetPreprocessContext(),
-            () => {
-                const mdView =
-                    this.app.workspace.getActiveViewOfType(MarkdownView);
-                if (!mdView) return false;
-                const adapter = getCmAdapter(mdView);
-                if (!adapter) return false;
-                const vimState = adapter.state.vim as
-                    Record<string, unknown> | undefined;
-                return !!vimState?.insertMode;
-            },
+            () => this.isVimInsertMode(),
+            () => this.settings.enableSnippets,
+        );
+    }
+
+    /**
+     * Tab inside the owned table surface, driven against the parent editor.
+     *
+     * Navigation before expansion, matching the precedence the parent's own
+     * keymaps already have: `createSnippetTabKeymap` declines while a next
+     * field exists so CodeMirror's snippet keymap can move, and that keymap is
+     * unreachable here because the parent is unfocused.
+     *
+     * Returning false leaves the key to the router's ordinary handling. Only
+     * snippet commands run — the parent's full keymap stack must not, because
+     * an unmatched Tab there reaches Obsidian's indent handler and writes a
+     * literal tab into the table row.
+     */
+    private runTableSnippetTab(
+        parent: EditorView,
+        direction: 'next' | 'prev',
+    ): boolean {
+        if (!this.settings.enableSnippets) return false;
+        if (direction === 'prev') {
+            return hasPrevSnippetField(parent.state)
+                ? prevSnippetField(parent)
+                : false;
+        }
+        if (hasNextSnippetField(parent.state)) return nextSnippetField(parent);
+        return expandSnippetAtCursor(
+            parent,
+            () => this.snippetRegistry,
+            () => this.getSnippetPreprocessContext(),
+            () => this.isVimInsertMode(),
             () => this.settings.enableSnippets,
         );
     }

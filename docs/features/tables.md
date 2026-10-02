@@ -109,6 +109,8 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 - **Visual block** renders as the enclosing charwise span. The underlying per-row ranges already exist — `<C-v>` over three rows produces three ranges holding the individual cell texts — so mirroring them as a true multi-cell selection is planned rather than ruled out.
 - **Some Obsidian widget features** are not reproduced: row and column buttons, the cell and column context menus, column and row drag-to-reorder, sort by column, multi-cell selection, copy and paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering. Column _resizing_ is not in that list — Obsidian's widget does not offer it, so nothing is lost.
 - **`scrolloff=100` disables horizontal scrolling inside a table**, in `owned` and `native` alike. Ordinary horizontal scrolling works in both — the nested editor follows the caret.
+- **A snippet body containing a `|` or a newline damages the row.** Snippets otherwise work in a cell in this mode — see [[snippets#Snippets in a table cell]] — but a literal pipe is inserted as-is and opens an extra column, and a newline cannot be represented in a row at all. Obsidian's own table editor converts these to `\|` and `<br>`; this mode does not yet. Escape the pipe in the snippet definition as a workaround.
+- **Only the active tabstop is marked.** The remaining tabstops of an open snippet carry no highlight inside a cell, because that decoration is driven from the parent editor's state and the cell renders its own. The active one is visible as the selection.
 
 ### When it falls back
 

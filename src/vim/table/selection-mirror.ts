@@ -47,12 +47,25 @@ export function mirrorRange(
     parentSelection: ChildRange,
     lines: LineOffsets,
     table: TableBounds,
+    keepNonEmpty = false,
 ): ChildRange {
     const width = table.to - table.from;
     const clamp = (offset: number) =>
         Math.max(0, Math.min(offset - table.from, width));
 
     if (!vim?.visualMode) {
+        // A snippet tabstop is a non-empty selection in *insert* mode, which
+        // the collapse below would hide: measured, the child's selected text
+        // was empty at every tabstop while the parent's read `page`, so the
+        // user could not see which field they were on. Opt-in rather than
+        // unconditional, because normal mode also carries a non-empty CM6
+        // selection for the block cursor and drawing that would be wrong.
+        if (keepNonEmpty && parentSelection.anchor !== parentSelection.head) {
+            return {
+                anchor: clamp(parentSelection.anchor),
+                head: clamp(parentSelection.head),
+            };
+        }
         const head = clamp(parentSelection.head);
         return { anchor: head, head };
     }

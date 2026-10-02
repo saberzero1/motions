@@ -8,8 +8,13 @@ import {
 } from '@codemirror/view';
 import type { TableRange } from '../table-utils';
 import { runCleanups } from '../../util/cleanup';
+import { snippetState } from '../../snippets/autocomplete-types';
 import { getCmAdapterFromEditorView } from '../vim-api';
-import { getRoutedKeyCount, installKeyRouter } from './key-router';
+import {
+    getRoutedKeyCount,
+    installKeyRouter,
+    type SnippetTabHandler,
+} from './key-router';
 import { mirrorRange } from './selection-mirror';
 import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
@@ -171,6 +176,7 @@ class NestedTableHost implements PluginValue {
     constructor(
         private readonly parent: EditorView,
         private readonly suppressNativeCellEditor: SuppressNativeCellEditor,
+        private readonly snippetTab: SnippetTabHandler,
     ) {
         this.win = parent.dom.win;
     }
@@ -268,6 +274,7 @@ class NestedTableHost implements PluginValue {
                 end: (line) => doc.line(line + 1).to,
             },
             table,
+            !!this.parent.state.field(snippetState, false),
         );
 
         const current = held.view.state.selection.main;
@@ -337,7 +344,11 @@ class NestedTableHost implements PluginValue {
             parent: host,
         });
 
-        const releaseRouter = installKeyRouter(view, this.parent);
+        const releaseRouter = installKeyRouter(
+            view,
+            this.parent,
+            this.snippetTab,
+        );
         // Focus is the point of the nested editor: a block-replaced range has
         // no caret of its own. The parent keeps its selection parked where it
         // is precisely because it is no longer the focused view.
@@ -392,8 +403,10 @@ class NestedTableHost implements PluginValue {
 
 export function createNestedTableHost(
     suppressNativeCellEditor: SuppressNativeCellEditor,
+    snippetTab: SnippetTabHandler,
 ): Extension {
     return ViewPlugin.define(
-        (view) => new NestedTableHost(view, suppressNativeCellEditor),
+        (view) =>
+            new NestedTableHost(view, suppressNativeCellEditor, snippetTab),
     );
 }

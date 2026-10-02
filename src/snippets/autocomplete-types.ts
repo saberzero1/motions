@@ -122,6 +122,22 @@ export const ActiveSnippet = mod['ActiveSnippet'] as new (
     choices?: SnippetChoices,
 ) => ActiveSnippet;
 
+type SnippetCommand = (target: {
+    state: EditorState;
+    dispatch: (tr: Transaction) => void;
+}) => boolean;
+
+export const clearSnippet = mod['clearSnippet'] as SnippetCommand;
+export const nextSnippetField = mod['nextSnippetField'] as SnippetCommand;
+export const prevSnippetField = mod['prevSnippetField'] as SnippetCommand;
+
+export const hasNextSnippetField = mod['hasNextSnippetField'] as (
+    state: EditorState,
+) => boolean;
+export const hasPrevSnippetField = mod['hasPrevSnippetField'] as (
+    state: EditorState,
+) => boolean;
+
 export const autocompletion = mod['autocompletion'] as (config?: {
     override?: CompletionSource[];
     activateOnTyping?: boolean;

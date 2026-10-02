@@ -112,4 +112,75 @@ describe('mirrorRange', () => {
             mirrorRange(undefined, { anchor: 25, head: 30 }, LINES, TABLE),
         ).toStrictEqual({ anchor: 10, head: 10 });
     });
+
+    describe('keepNonEmpty, for snippet tabstops', () => {
+        // A tabstop is a non-empty selection in *insert* mode, so the
+        // visual-mode branches above never see it and the default collapse
+        // hides it. The first test here is paired with the existing
+        // "collapses to a caret when not in visual mode", which passes no
+        // flag and is what proves the default is unchanged.
+        it('preserves a non-empty range outside visual mode', () => {
+            expect(
+                mirrorRange(
+                    normal,
+                    { anchor: 25, head: 30 },
+                    LINES,
+                    TABLE,
+                    true,
+                ),
+            ).toStrictEqual({ anchor: 5, head: 10 });
+        });
+
+        it('preserves a backwards range', () => {
+            expect(
+                mirrorRange(
+                    normal,
+                    { anchor: 30, head: 25 },
+                    LINES,
+                    TABLE,
+                    true,
+                ),
+            ).toStrictEqual({ anchor: 10, head: 5 });
+        });
+
+        it('still collapses an already-empty selection', () => {
+            // Between tabstops the parent's selection is a caret, and drawing
+            // a zero-width "range" is not the same thing as a caret.
+            expect(
+                mirrorRange(
+                    normal,
+                    { anchor: 25, head: 25 },
+                    LINES,
+                    TABLE,
+                    true,
+                ),
+            ).toStrictEqual({ anchor: 5, head: 5 });
+        });
+
+        it('clamps a preserved range to the table', () => {
+            expect(
+                mirrorRange(
+                    normal,
+                    { anchor: 24, head: 400 },
+                    LINES,
+                    TABLE,
+                    true,
+                ),
+            ).toStrictEqual({ anchor: 4, head: 50 });
+        });
+
+        it('leaves visual mode taking precedence', () => {
+            // The flag must not override linewise expansion: a visual
+            // selection during a session is still a visual selection.
+            expect(
+                mirrorRange(
+                    linewise(3, 3),
+                    { anchor: 37, head: 37 },
+                    LINES,
+                    TABLE,
+                    true,
+                ),
+            ).toStrictEqual({ anchor: 17, head: 33 });
+        });
+    });
 });

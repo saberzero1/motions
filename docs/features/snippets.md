@@ -32,8 +32,23 @@ After expansion, the cursor lands on the first tabstop. Navigate between fields:
 
 **Linked mirrors**: When the same tabstop number appears multiple times in a template, editing one updates all instances simultaneously. `$1 *a$2* *b$2* $0` places a cursor in both `$2` positions, and what you type appears in both. Neovim's own `vim.snippet` shows a single cursor and mirrors the others instead, so the resulting text matches but the cursor count does not.
 
-> [!bug] Tabstops inside a table do not work in Live Preview
-> Obsidian renders a Markdown table as an interactive widget that owns the region, so a tabstop between the pipes sits inside replaced content. The jump is placed correctly, but the next keystroke goes to the table widget instead of the tabstop. Switch to Source mode to use such a snippet — `set tablewidget=raw` is **not** a workaround, because it only hides the widget in CSS and leaves Obsidian's decoration in place. See [[known-limitations#Tabstop placement limitations]].
+> [!bug] Tabstops inside a table need Source mode or `tablewidget=owned`
+> In the default **native** mode Obsidian renders a Markdown table as an interactive widget that owns the region, so a tabstop between the pipes sits inside replaced content. The jump is placed correctly, but the next keystroke goes to the table widget instead of the tabstop. Use **Source mode**, or `set tablewidget=owned` — see [Snippets in a table cell](#snippets-in-a-table-cell). `set tablewidget=raw` is **not** a workaround, because it only hides the widget in CSS and leaves Obsidian's decoration in place; it is also deprecated. See [[known-limitations#Tabstop placement limitations]].
+
+### Snippets in a table cell
+
+With `set tablewidget=owned` the plugin owns the table surface, and snippets work inside a cell: a prefix expands on `Tab`, `Tab` and `Shift+Tab` move between tabstops, and `Escape` ends the session and leaves insert mode in one press. The active tabstop is selected in the cell, as it is anywhere else.
+
+This is specific to `owned`. It does **not** apply to `native`, where Obsidian's per-cell editor owns the keys, nor to the [[neovim-backend|Neovim backend]].
+
+Two conversions Obsidian's own table editor performs are **not** applied yet, so a snippet whose body contains either will damage the row:
+
+| In the body | What happens in a cell                          |
+| ----------- | ----------------------------------------------- |
+| `\|`        | inserted as-is, opening an extra column         |
+| a newline   | cannot be represented; the row does not survive |
+
+A body containing a literal pipe — including a wikilink alias such as `[[${1:page}\|${2:alias}]]` — needs the pipe escaped as `\\\|` in the snippet definition until this is handled automatically.
 
 ## Bundled snippets
 
