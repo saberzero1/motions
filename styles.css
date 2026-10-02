@@ -1874,3 +1874,9 @@ settings:
     font-size: var(--font-smaller);
     white-space: pre;
 }
+
+/* The nested table editor renders the table's text while it is mounted, so the
+   plain rows beneath it would otherwise show through as a duplicate. */
+.cm-editor .vim-motions-table-surface-mounted .vim-motions-table-surface-rows {
+    display: none;
+}

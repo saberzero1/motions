@@ -286,6 +286,11 @@ import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { createTableNavExtension } from './vim/table-nav-controller';
 import { createTableSurface } from './vim/table/surface-field';
 import {
+    createNestedTableHost,
+    getNestedTableStats,
+    type NestedTableStats,
+} from './vim/table/nested-view';
+import {
     describeTableSurfaceBlocker,
     livePreviewOnly,
     resolveTableSurfaceBlocker,
@@ -3414,13 +3419,21 @@ export default class VimMotionsPlugin extends Plugin {
             this.tableSurfaceSlot,
             'tableSurface',
             blocker === null,
-            () => createTableSurface(livePreviewOnly()).extension,
+            () => [
+                createTableSurface(livePreviewOnly()).extension,
+                createNestedTableHost(),
+            ],
         );
     }
 
     /** Redraw count for the owned table surface, for e2e assertions. */
     getTableSurfaceRedrawCount(): number {
         return readTableSurfaceRedrawCount();
+    }
+
+    /** Nested table editor lifecycle counts, for e2e assertions. */
+    getNestedTableStats(): NestedTableStats {
+        return getNestedTableStats();
     }
 
     /**

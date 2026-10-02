@@ -1,7 +1,12 @@
 import { WidgetType } from '@codemirror/view';
 
 const ROOT_CLASS = 'vim-motions-table-surface';
+const ROWS_CLASS = 'vim-motions-table-surface-rows';
 const ROW_CLASS = 'vim-motions-table-surface-row';
+const HOST_CLASS = 'vim-motions-table-surface-host';
+const MOUNTED_CLASS = 'vim-motions-table-surface-mounted';
+
+export const TABLE_SURFACE_ROOT_SELECTOR = `.${ROOT_CLASS}`;
 
 let redrawCount = 0;
 
@@ -20,6 +25,23 @@ export function getTableSurfaceRedrawCount(): number {
 /** @internal — test seam, so one spec's redraws do not leak into the next. */
 export function _resetTableSurfaceRedrawCount(): void {
     redrawCount = 0;
+}
+
+/** The rows container, created on demand so `updateDOM` never assumes one. */
+function rowsContainer(root: HTMLElement): HTMLElement {
+    const existing = root.querySelector<HTMLElement>(`:scope > .${ROWS_CLASS}`);
+    return existing ?? root.createDiv({ cls: ROWS_CLASS });
+}
+
+/** Where the nested editor mounts: a sibling of the rows, never a row. */
+export function nestedHostContainer(root: HTMLElement): HTMLElement {
+    const existing = root.querySelector<HTMLElement>(`:scope > .${HOST_CLASS}`);
+    return existing ?? root.createDiv({ cls: HOST_CLASS });
+}
+
+/** True while a nested editor is mounted, which is what hides the rows. */
+export function setNestedMounted(root: HTMLElement, mounted: boolean): void {
+    root.classList.toggle(MOUNTED_CLASS, mounted);
 }
 
 /**
@@ -52,6 +74,7 @@ export class TableSurfaceWidget extends WidgetType {
     toDOM(): HTMLElement {
         redrawCount++;
         const root = createDiv({ cls: ROOT_CLASS });
+        root.createDiv({ cls: ROWS_CLASS });
         this.paint(root);
         return root;
     }
@@ -61,16 +84,24 @@ export class TableSurfaceWidget extends WidgetType {
         return true;
     }
 
-    /** Reconcile row elements to `lines`, reusing the elements already there. */
+    /**
+     * Reconcile row elements to `lines`, reusing the elements already there.
+     *
+     * Rows live in their own container rather than directly under the root,
+     * because the nested editor mounts as a sibling of that container. Painting
+     * the root's children directly would treat the nested editor's host element
+     * as row *n* and overwrite its `textContent` — destroying the editor.
+     */
     private paint(root: HTMLElement): void {
-        const rows = root.children;
+        const container = rowsContainer(root);
+        const rows = container.children;
         for (let i = 0; i < this.lines.length; i++) {
             const line = this.lines[i] ?? '';
             const existing = rows.item(i);
             if (existing instanceof HTMLElement) {
                 if (existing.textContent !== line) existing.textContent = line;
             } else {
-                const row = root.createDiv({ cls: ROW_CLASS });
+                const row = container.createDiv({ cls: ROW_CLASS });
                 row.textContent = line;
             }
         }
