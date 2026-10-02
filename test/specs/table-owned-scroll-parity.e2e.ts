@@ -16,10 +16,15 @@ import {
  * **`owned` must be no worse than `native`**, which is a comparison rather than
  * an absence of work.
  *
- * 5B deliberately asserts **parity** rather than correctness, because the
- * native behaviour is itself reported broken. Asserting correctness would make
- * this plan responsible for a defect it does not own, and would fail for the
- * wrong reason.
+ * 5A asserts **correctness**: both modes do scroll horizontally once the
+ * element carrying `overflow-x: auto` is the one measured. An earlier version
+ * read `.cm-table-widget`'s `.table-wrapper` descendant and fell back to
+ * `scrollDOM`, neither of which ever scrolls, and so reported zero for both
+ * modes and concluded the feature was absent everywhere. It is not.
+ *
+ * 5B asserts **parity**, and that framing survived the correction: with
+ * `scrolloff=100` every offset is zero in **native** as well, so #167 item 6 is
+ * a pre-existing defect `owned` reproduces rather than introduces.
  */
 
 const WIDE_HEADER = '| c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | c9 | c10 |';
@@ -260,7 +265,12 @@ describe('Owned table horizontal scroll parity (#167 items 5, 6)', function () {
             expect(offset).toBeGreaterThanOrEqual(0);
         }
 
-        // Parity on the reported defect rather than correctness.
+        // Parity, and here it is the right frame: measured, `scrolloff=100`
+        // zeroes horizontal scrolling in **native** too — every offset 0 in
+        // both modes, where the baseline run reaches 623 and a non-zero owned
+        // value. So #167 item 6 is a pre-existing defect that `owned`
+        // reproduces rather than introduces, and Plan E owns the fix.
+        expect(owned.final.scrollOffset).toBe(native.final.scrollOffset);
         expect(owned.final.inViewport).toBe(native.final.inViewport);
     });
 });

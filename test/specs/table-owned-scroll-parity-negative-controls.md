@@ -9,24 +9,42 @@ Covers `test/specs/table-owned-scroll-parity.e2e.ts`. Baseline: **2 passing**.
 These are **bounds, not correctness tests**. Issue #167 items 5 and 6 belong to
 Plan E; what is asserted here is that `owned` is no worse than `native`.
 
-## The measurement that reshaped both scenarios
+## The measurement that reshaped both scenarios — and the one that corrected it
 
-Final readings after 60 `l` presses from row 3 column 1, on the wide fixture:
+**First measurement, wrong.** It read `.cm-table-widget`'s `.table-wrapper`
+descendant for native and fell back to the editor's `scrollDOM`, and reported
+every offset as 0 in both modes. That became a published claim in
+`KNOWN_LIMITATIONS.md` and `docs/features/tables.md` that neither mode scrolls
+horizontally. It was **false**.
 
-| mode     | caret left/right | scroller left/right | `inViewport` | scroll offsets |
-| -------- | ---------------- | ------------------- | ------------ | -------------- |
-| `native` | 1801 / 1801      | 504 / 1797          | **false**    | 0,0,0,0,0,0    |
-| `owned`  | 1648 / 1649      | 1127 / 1785         | **true**     | 0,0,0,0,0,0    |
+**Re-measured** by surveying every candidate container with its computed
+`overflow-x`, `scrollLeft`, `scrollWidth` and `clientWidth`:
 
-Two things follow, and both changed the spec:
+| selector                                 | native                                              | owned                              |
+| ---------------------------------------- | --------------------------------------------------- | ---------------------------------- |
+| `.cm-table-widget`                       | `overflow-x: auto`, **scrollable**, reached **623** | absent                             |
+| `.cm-table-widget .table-wrapper`        | `overflow: visible`, never scrolls                  | absent                             |
+| `.vim-motions-table-nested .cm-scroller` | absent                                              | `overflow-x: auto`, **scrollable** |
+| `.vim-motions-table-surface` / `-rows`   | absent                                              | `overflow: visible`                |
+| editor `scrollDOM`                       | not scrollable                                      | not scrollable                     |
 
-1. **Neither mode scrolls horizontally at all.** Every offset is 0 in both. That
-   _is_ #167 item 5 — horizontal scrolloff absent — reproduced in `native` as
-   well as `owned`, which is the evidence that it is not a regression this plan
-   introduced and genuinely belongs to Plan E.
-2. **`native`'s caret ends outside its scroller** (1801 > 1797) while `owned`'s
-   does not. That is incidental geometry and is deliberately **not** pinned; it
-   would move with window size.
+So the element carrying `overflow-x: auto` in native is the widget **itself**,
+not its wrapper, and only while the table-nav overlay is active
+(`styles.css:16-21`). The first measurement read two elements that never scroll.
+
+**That exposed a real regression.** Owned's scroller is genuinely scrollable and
+sat at `scrollLeft: 0` through 60 `l` presses while native reached 623 — `owned`
+was strictly **worse**. Cause: the parent's vim owns the motion, so the nested
+editor never receives a cursor command of its own and nothing asks it to scroll.
+Fixed by `scrollIntoView: true` on the mirrored selection dispatch in
+`nested-view.ts`.
+
+5A therefore asserts **correctness** now, not parity: both modes reach a
+non-zero offset, the offsets are monotonic, and owned's caret ends visible.
+
+**5B's parity framing survived the correction.** With `scrolloff=100` every
+offset is 0 in **native** as well, so #167 item 6 is pre-existing and `owned`
+reproduces rather than introduces it.
 
 ## Control 1 — the parity assertion was vacuous, and now is not
 

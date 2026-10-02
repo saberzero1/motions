@@ -444,7 +444,7 @@ A **table-nav overlay** activates when `enableTableNav` is on and `tableWidgetMo
 - **Idle cells render as plain text**, not as a formatted table. Only the cursor's own table is affected. This is the main reason `owned` is not the default.
 - **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
 - **Visual block** renders as the enclosing charwise span.
-- **Horizontal scrolling inside a wide table** is no better than `native`: measured, neither mode scrolls horizontally at all, so issue [#167](https://github.com/saberzero1/motions/issues/167) items 5 and 6 are unaddressed in both. The regression bound is asserted rather than the fix.
+- **`scrolloff=100` disables horizontal scrolling inside a table**, in `owned` and `native` alike — issue [#167](https://github.com/saberzero1/motions/issues/167) item 6, pre-existing and reproduced rather than introduced. Ordinary horizontal scrolling (item 5) **does** work in both: the nested editor follows the caret, reaching a non-zero scroll offset where an earlier measurement of this wrongly reported zero by reading an element that never scrolls.
 - **Nine Obsidian widget features are not reproduced**: row buttons, column buttons, the context menu, column resizing, multi-cell selection, copy/paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering.
 - **Snippets** inside the owned surface are untested; the `<Tab>` tabstop key is consumed by the router.
 

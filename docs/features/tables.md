@@ -108,7 +108,7 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 - **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
 - **Visual block** renders as the enclosing charwise span, because a rectangular selection cannot be expressed as one CodeMirror range.
 - **Nine Obsidian widget features** are not reproduced: row and column buttons, the context menu, column resizing, multi-cell selection, copy and paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering.
-- **Horizontal scrolling inside a wide table** is no better than `native` — measured, neither mode scrolls horizontally.
+- **`scrolloff=100` disables horizontal scrolling inside a table**, in `owned` and `native` alike. Ordinary horizontal scrolling works in both — the nested editor follows the caret.
 
 ### When it falls back
 

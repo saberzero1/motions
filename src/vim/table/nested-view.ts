@@ -274,7 +274,13 @@ class NestedTableHost implements PluginValue {
         if (current.anchor === next.anchor && current.head === next.head) {
             return;
         }
-        held.view.dispatch({ selection: next });
+        // `scrollIntoView` is the whole of horizontal scrolling here. The
+        // nested editor's scroller is overflow-x auto and genuinely scrollable,
+        // but nothing moves it: the parent's vim owns the motion, so the child
+        // never sees a cursor command of its own. Measured without this, the
+        // child sat at `scrollLeft: 0` through 60 `l` presses while native
+        // reached 623 — `owned` was strictly worse than `native`.
+        held.view.dispatch({ selection: next, scrollIntoView: true });
     }
 
     /**
