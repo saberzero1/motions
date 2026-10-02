@@ -237,6 +237,71 @@ describe('Table key router (Plan B Step 4)', function () {
         );
     });
 
+    it('leaves insert-mode characters native and forwards them to the parent', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+
+        await browser.keys(['i']);
+        await browser.pause(400);
+        expect(await getVimMode()).toBe('insert');
+
+        await browser.keys(['Q']);
+        await browser.pause(600);
+
+        const doc = await getEditorValue();
+        // Derived from the source rather than hand-written, so the assertion
+        // pins the offset without guessing the cell's trailing spaces: the
+        // whole document must differ from the original by exactly this Q.
+        expect(doc).toBe(TABLE_DOC.replace('| aa', '| Qaa'));
+        expect(await getVimMode()).toBe('insert');
+    });
+
+    it('replays exactly one character on dot-repeat', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+
+        await browser.keys(['i', 'Q']);
+        await browser.pause(600);
+        await browser.keys(['Escape']);
+        await browser.pause(500);
+        expect(await getVimMode()).toBe('normal');
+        const afterInsert = await getEditorValue();
+        expect(afterInsert).toContain('Qaa');
+
+        await browser.keys(['.']);
+        await browser.pause(700);
+        const repeated = await getEditorValue();
+
+        // One more Q, not the whole synced span. The measured defect produced
+        // `| Qaa   Qaa  |` from a single Q, because the parent observed one
+        // region-replacing transaction instead of a keystroke.
+        const count = (repeated.match(/Q/g) ?? []).length;
+        expect(count).toBe(2);
+        expect(repeated).not.toContain('Qaa   Qaa');
+        expect(repeated.split('\n').length).toBe(TABLE_DOC.split('\n').length);
+    });
+
+    it('routes Escape out of insert mode rather than leaving it native', async () => {
+        const before = await enterTable();
+        expectNestedHasFocus(before);
+
+        await browser.keys(['i']);
+        await browser.pause(400);
+        expect(await getVimMode()).toBe('insert');
+
+        await browser.keys(['Escape']);
+        await browser.pause(500);
+        expect(await getVimMode()).toBe('normal');
+
+        // The measured trap: with Escape left native the parent stays in insert
+        // mode and the following u and . are typed in as literal text.
+        await browser.keys(['u']);
+        await browser.pause(600);
+        const doc = await getEditorValue();
+        expect(doc).not.toContain('u|');
+        expect(doc).not.toContain('| u');
+    });
+
     it('routes V into visual mode and Vjd removes two rows', async () => {
         const before = await enterTable();
         expectNestedHasFocus(before);

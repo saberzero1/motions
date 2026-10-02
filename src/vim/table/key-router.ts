@@ -41,10 +41,16 @@ const IGNORED_KEYS = new Set([
  *
  * Character input is **not** routable. `handleKey(adapter, 'X')` returns
  * `undefined` and inserts nothing, focused or not — the fork deliberately
- * leaves insert-mode characters to CodeMirror's native input path. So this
- * router cannot implement insert mode on its own; the nested editor is held
- * read-only meanwhile, so a keystroke that does nothing really does nothing
- * rather than landing in a document the parent never sees.
+ * leaves insert-mode characters to CodeMirror's native input path. So while the
+ * parent is in insert mode, unmodified keys are left native to the nested
+ * editor and reach the parent as document changes through `sync-up.ts`.
+ *
+ * `<Esc>` is the exception that must not be left native, and leaving it so is a
+ * measured trap rather than a theoretical one: the parent never leaves insert
+ * mode, and the `u` and `.` that follow are typed into the document as literal
+ * text, which reads as plausible output rather than as an error. Modifier
+ * combinations are routed too, since `<C-o>`, `<C-r>` and friends are commands
+ * rather than text.
  *
  * Capture phase, because CodeMirror's own handlers are on the same element and
  * must not see the key first. Obsidian's `Keymap` runs earlier still, on
@@ -64,6 +70,10 @@ export function installKeyRouter(
         const vim = getVimApi();
         const adapter = getCmAdapterFromEditorView(parent);
         if (!vim || !adapter) return;
+
+        const modified = event.ctrlKey || event.altKey || event.metaKey;
+        const insertMode = adapter.state?.vim?.insertMode === true;
+        if (insertMode && !modified && event.key !== 'Escape') return;
 
         event.preventDefault();
         routed++;

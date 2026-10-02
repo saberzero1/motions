@@ -8,6 +8,7 @@ import {
 import type { TableRange } from '../table-utils';
 import { runCleanups } from '../../util/cleanup';
 import { getRoutedKeyCount, installKeyRouter } from './key-router';
+import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
 import {
     TABLE_SURFACE_ROOT_SELECTOR,
@@ -256,18 +257,51 @@ class NestedTableHost implements PluginValue {
         held.view.dispatch({ selection: { anchor: offset } });
     }
 
+    /**
+     * Where the nested editor's edits go.
+     *
+     * The table is re-resolved by its start offset on every read rather than
+     * captured, because the range grows and shrinks as the user types and a
+     * captured `to` would be stale by the first keystroke.
+     */
+    private syncUpTarget(held: () => Mounted | null): SyncUpTarget {
+        const tableOf = (): TableRange | null => {
+            const current = held();
+            if (!current) return null;
+            for (const candidate of findRenderableTableRanges(
+                this.parent.state.doc,
+            )) {
+                if (candidate.from === current.from) return candidate;
+            }
+            return null;
+        };
+
+        return {
+            read: () => tableOf()?.lines.join('\n') ?? null,
+            write: (diff: TextDiff, childHead: number) => {
+                const table = tableOf();
+                if (!table) return;
+                this.parent.dispatch({
+                    changes: {
+                        from: table.from + diff.from,
+                        to: table.from + diff.to,
+                        insert: diff.insert,
+                    },
+                    selection: { anchor: table.from + childHead },
+                });
+            },
+        };
+    }
+
     private mount(table: TableRange, text: string, root: HTMLElement): void {
         const host = nestedHostContainer(root);
+        const target = this.syncUpTarget(() => this.current);
         const view = new EditorView({
             state: EditorState.create({
                 doc: text,
                 extensions: [
                     EditorView.editorAttributes.of({ class: NESTED_CLASS }),
-                    // `readOnly`, not `editable: false`, which is not
-                    // interchangeable here: the view must stay focusable or
-                    // the router never receives a key. Read-only keeps text
-                    // out of a document the parent never sees.
-                    EditorState.readOnly.of(true),
+                    syncUpExtension(target),
                 ],
             }),
             parent: host,
