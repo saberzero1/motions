@@ -51,6 +51,18 @@ export function getExternalVimMode(): ExternalVimMode | null {
 }
 
 /**
+ * Whether a backend other than the bundled fork currently owns keys.
+ *
+ * Maintained by the connection lifecycle — set on connect
+ * (`src/rpc/neovim-connection.ts:322,367`) and cleared on teardown (`:647`) —
+ * so host features can branch on key ownership without importing the RPC
+ * subsystem and creating a cycle.
+ */
+export function isExternalBackendActive(): boolean {
+    return currentMode !== null;
+}
+
+/**
  * Precedence for per-mode host rendering: a backend that owns keys wins over
  * whatever the bundled fork's own state says, because the fork is stood down
  * and stays in normal while that backend is connected.

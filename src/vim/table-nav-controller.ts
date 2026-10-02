@@ -34,6 +34,7 @@ import {
     pauseAnimatedCursorForView,
     resumeAnimatedCursorForView,
 } from './animated-cursor/config';
+import { isExternalBackendActive } from './external-mode';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import { getScrolloffMargin } from './scrolloff';
 import {
@@ -997,7 +998,12 @@ class TableNavController implements PluginValue {
                 if (vimState && !isCellVimIdle(vimState)) return;
             }
             e.preventDefault();
-            e.stopImmediatePropagation();
+            // Only destroy the event when the bundled engine owns keys. Under
+            // RPC this listener runs on `document` capture, ahead of the key
+            // delegation listener on the parent `contentDOM`, so stopping it
+            // here means `<Esc>` never reaches `nvim_input` and a Neovim
+            // command awaiting its second character can never be cancelled.
+            if (!isExternalBackendActive()) e.stopImmediatePropagation();
             this.exitCellEditToNav();
         };
 

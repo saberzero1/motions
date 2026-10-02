@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Escape could not cancel a pending Neovim command while a table cell editor was open, stalling the RPC pipeline with no way out.** `TableNavController.installCellEscapeCapture` registered a `document`-capture keydown handler calling `stopImmediatePropagation()`, which destroyed the event before the key-delegation listener on the editor could forward `<Esc>` to `nvim_input`. Any Neovim command awaiting its second character — after `Z`, `d`, `g`, `"`, a count or an operator — therefore could not be cancelled, and RPC API requests stalled indefinitely. Measured: the identical `Z` then Escape sequence recovers in 3 ms with no cell editor open and never recovers with one, across two Escapes. The capture now skips `stopImmediatePropagation()` while a backend other than the bundled fork owns keys, resolved through `isExternalBackendActive()`, which the connection lifecycle already maintains. Behaviour with RPC disconnected is unchanged, so the documented two-step `cell-edit(insert)` → `cell-edit(normal)` → `table-nav` Escape transition still holds for the bundled engine. The underlying stall is normal Neovim behaviour awaiting a command's completion and is **not** table-specific — it reproduces with no table involved — so it is not treated as a defect.
+
+### Tests
+
+- **A 12-scenario characterisation suite for RPC behaviour around table cell editors** (`test/specs/rpc-table-cell-diagnosis.e2e.ts`), crossing key type against table context and probing a fast API (`nvim_get_mode`), a non-fast one (`nvim_win_get_cursor`) and renderer liveness. It exists because the defect was first reported with a mechanism that source refutes: `enqueueInput` does not chain keys on `prepareKeyInput()`, which is `await this.frontmatterFold.sync()` and returns immediately once the mode matches. The suite's decisive control presses the same prefix key with no table involved and reproduces the stall, which is what established that the stall and the unrecoverability are two different things. Acceptance is probed at a 35 s deadline, past the 30 s `REQUEST_TIMEOUT_MS`, so a request left pending cannot satisfy it; negative-control evidence is recorded in `test/specs/rpc-table-cell-diagnosis-negative-controls.md`.
+
+### Documentation
+
+- `KNOWN_LIMITATIONS.md`'s RPC/table-overlay entry claimed the table-nav overlay "needs nothing" under RPC. That measurement covered the overlay only and never covered cell editing; the entry now records the distinction and the Escape fix.
+
 ## [1.4.0] - 2026-09-30
 
 ### Added
