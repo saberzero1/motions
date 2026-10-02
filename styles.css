@@ -1886,3 +1886,26 @@ settings:
 .cm-editor .vim-motions-table-surface-mounted .vim-motions-table-surface-rows {
     display: none;
 }
+
+/* Plan E1.2 — the owned surface is a character grid and Obsidian's editor font
+   is proportional, under which columns do not line up between rows at all.
+   The passive rows and the nested editor MUST keep sharing this block: they
+   render the same table alternately, so any difference shows as a geometry
+   jump when the cursor enters or leaves the table, which
+   `table-typography.e2e.ts` pins to within 1px. A ligature collapses two
+   characters into one advance, and a wrapped row would put one table row on
+   two display lines, which the alignment model cannot represent. */
+.cm-editor .vim-motions-table-surface-rows,
+.cm-editor .vim-motions-table-surface-row,
+.cm-editor .vim-motions-table-nested,
+.cm-editor .vim-motions-table-nested .cm-content,
+.cm-editor .vim-motions-table-nested .cm-line {
+    font-family: var(--font-monospace);
+    font-variant-ligatures: none;
+    font-feature-settings:
+        'liga' 0,
+        'clig' 0,
+        'calt' 0;
+    white-space: pre;
+    tab-size: 4;
+}
