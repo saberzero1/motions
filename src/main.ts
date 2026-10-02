@@ -285,6 +285,7 @@ import { invariant, devAssert } from './util/invariant';
 import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { createTableNavExtension } from './vim/table-nav-controller';
+import { realignTableLines } from './vim/table-utils';
 import { createTableSurface } from './vim/table/surface-field';
 import {
     createNestedTableHost,
@@ -3439,6 +3440,20 @@ export default class VimMotionsPlugin extends Plugin {
      * session can be open in another leaf, and a boolean "a snippet is active
      * somewhere" cannot tell the two apart.
      */
+    /**
+     * The pure table formatter, exposed for conformance testing.
+     *
+     * Asserting this directly is the only way to compare it with Obsidian's
+     * `rebuildTable()`. Driving `:tablerealign` against the document instead
+     * is **vacuous in `native` mode**: Obsidian's widget reformats the table
+     * immediately afterwards, so the document converges on Obsidian's output
+     * whatever this function returned — measured, a deliberately wrong width
+     * model still produced a passing comparison.
+     */
+    formatTableLines(lines: string[]): string[] {
+        return realignTableLines(lines);
+    }
+
     getSnippetSessionReport(): {
         active: boolean;
         field: number;
