@@ -37,6 +37,8 @@ interface Stats {
     cursorLayers: number;
     doc: string | null;
     connected: boolean;
+    focused: boolean;
+    childHead: number;
 }
 
 interface Report {
@@ -72,6 +74,8 @@ async function readReport(): Promise<Report> {
                 cursorLayers: -1,
                 doc: null,
                 connected: false,
+                focused: false,
+                childHead: -1,
             } as Stats,
             parentHead: -1,
             parentGutters: -1,
@@ -363,10 +367,10 @@ describe('Nested table editor lifecycle (Plan B Step 3b)', function () {
 
         expect(report.nested.mounted).toBe(0);
         expect(report.nested.unmounts).toBeGreaterThan(mounted.nested.unmounts);
-        // Three disposers per mount: destroy the view, clear the mounted
-        // class, remove the host element. A silent early return in the
-        // disposer loop would leave this short.
-        expect(report.nested.cleanups).toBe(report.nested.unmounts * 3);
+        // Four disposers per mount: release the key router, destroy the view,
+        // clear the mounted class, remove the host element. A silent early
+        // return in the disposer loop would leave this short.
+        expect(report.nested.cleanups).toBe(report.nested.unmounts * 4);
         // The host element is removed, not merely emptied.
         expect(report.hostElements).toBe(0);
     });

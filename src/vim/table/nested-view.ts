@@ -7,6 +7,7 @@ import {
 } from '@codemirror/view';
 import type { TableRange } from '../table-utils';
 import { runCleanups } from '../../util/cleanup';
+import { getRoutedKeyCount, installKeyRouter } from './key-router';
 import { findRenderableTableRanges } from './renderable-ranges';
 import {
     TABLE_SURFACE_ROOT_SELECTOR,
@@ -34,6 +35,9 @@ export interface NestedTableStats {
     cursorLayers: number;
     doc: string | null;
     connected: boolean;
+    focused: boolean;
+    childHead: number;
+    routed: number;
 }
 
 interface Mounted {
@@ -80,6 +84,9 @@ export function getNestedTableStats(): NestedTableStats {
             : -1,
         doc: first ? first.view.state.doc.toString() : null,
         connected: first ? first.view.dom.isConnected : false,
+        focused: first ? first.view.hasFocus : false,
+        childHead: first ? first.view.state.selection.main.head : -1,
+        routed: getRoutedKeyCount(),
     };
 }
 
@@ -216,6 +223,7 @@ class NestedTableHost implements PluginValue {
                     },
                 });
             }
+            this.syncCaret(held, table);
             return;
         }
 
@@ -227,6 +235,25 @@ class NestedTableHost implements PluginValue {
 
         this.unmount();
         this.mount(table, text, root);
+        if (this.current) this.syncCaret(this.current, table);
+    }
+
+    /**
+     * Put the child's caret where the parent's vim head is.
+     *
+     * The child's document is exactly the parent's slice `[from, to]`, so the
+     * translation is a subtraction. Without it the user's caret and the
+     * position commands act on drift apart, and every command appears to
+     * operate somewhere other than where the cursor is.
+     */
+    private syncCaret(held: Mounted, table: TableRange): void {
+        const head = this.parent.state.selection.main.head;
+        const offset = Math.max(
+            0,
+            Math.min(head - table.from, held.view.state.doc.length),
+        );
+        if (held.view.state.selection.main.head === offset) return;
+        held.view.dispatch({ selection: { anchor: offset } });
     }
 
     private mount(table: TableRange, text: string, root: HTMLElement): void {
@@ -236,12 +263,21 @@ class NestedTableHost implements PluginValue {
                 doc: text,
                 extensions: [
                     EditorView.editorAttributes.of({ class: NESTED_CLASS }),
-                    // Read-only until the key router exists; see the note above.
-                    EditorView.editable.of(false),
+                    // `readOnly`, not `editable: false`, which is not
+                    // interchangeable here: the view must stay focusable or
+                    // the router never receives a key. Read-only keeps text
+                    // out of a document the parent never sees.
+                    EditorState.readOnly.of(true),
                 ],
             }),
             parent: host,
         });
+
+        const releaseRouter = installKeyRouter(view, this.parent);
+        // Focus is the point of the nested editor: a block-replaced range has
+        // no caret of its own. The parent keeps its selection parked where it
+        // is precisely because it is no longer the focused view.
+        view.contentDOM.focus();
 
         setNestedMounted(root, true);
         mounts++;
@@ -250,6 +286,7 @@ class NestedTableHost implements PluginValue {
             view,
             root,
             cleanups: [
+                releaseRouter,
                 () => view.destroy(),
                 () => setNestedMounted(root, false),
                 () => host.remove(),
