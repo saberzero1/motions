@@ -1,4 +1,8 @@
-import { EditorState, type Extension } from '@codemirror/state';
+import {
+    EditorSelection,
+    EditorState,
+    type Extension,
+} from '@codemirror/state';
 import {
     EditorView,
     ViewPlugin,
@@ -15,7 +19,7 @@ import {
     installKeyRouter,
     type SnippetTabHandler,
 } from './key-router';
-import { mirrorRange } from './selection-mirror';
+import { mirrorRanges } from './selection-mirror';
 import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
 import {
@@ -103,6 +107,30 @@ export function getNestedTableStats(): NestedTableStats {
                   first.view.state.selection.main.to,
               )
             : '',
+    };
+}
+
+/**
+ * Every selection range the nested editor currently renders.
+ *
+ * Separate from `getNestedTableStats`'s `selectedText`, which reports only the
+ * main range and so cannot distinguish a mirrored three-row block from a
+ * mirror that kept just `.main`.
+ */
+export function getNestedSelectionReport(): {
+    childTexts: string[];
+    childCount: number;
+    childMain: number;
+} {
+    const first: Mounted | undefined = live.values().next().value;
+    if (!first) return { childTexts: [], childCount: -1, childMain: -1 };
+    const { selection } = first.view.state;
+    return {
+        childTexts: selection.ranges.map((r) =>
+            first.view.state.sliceDoc(r.from, r.to),
+        ),
+        childCount: selection.ranges.length,
+        childMain: selection.mainIndex,
     };
 }
 
@@ -266,9 +294,9 @@ class NestedTableHost implements PluginValue {
      */
     private syncSelection(held: Mounted, table: TableRange): void {
         const doc = this.parent.state.doc;
-        const next = mirrorRange(
+        const mapped = mirrorRanges(
             getCmAdapterFromEditorView(this.parent)?.state?.vim,
-            this.parent.state.selection.main,
+            this.parent.state.selection,
             {
                 start: (line) => doc.line(line + 1).from,
                 end: (line) => doc.line(line + 1).to,
@@ -277,17 +305,34 @@ class NestedTableHost implements PluginValue {
             !!this.parent.state.field(snippetState, false),
         );
 
-        const current = held.view.state.selection.main;
-        if (current.anchor === next.anchor && current.head === next.head) {
-            return;
-        }
+        const current = held.view.state.selection;
+        const unchanged =
+            current.ranges.length === mapped.ranges.length &&
+            current.mainIndex === mapped.mainIndex &&
+            current.ranges.every((r, i) => {
+                const m = mapped.ranges[i];
+                return (
+                    m !== undefined &&
+                    r.anchor === m.anchor &&
+                    r.head === m.head
+                );
+            });
+        if (unchanged) return;
         // `scrollIntoView` is the whole of horizontal scrolling here. The
         // nested editor's scroller is overflow-x auto and genuinely scrollable,
         // but nothing moves it: the parent's vim owns the motion, so the child
         // never sees a cursor command of its own. Measured without this, the
         // child sat at `scrollLeft: 0` through 60 `l` presses while native
         // reached 623 — `owned` was strictly worse than `native`.
-        held.view.dispatch({ selection: next, scrollIntoView: true });
+        held.view.dispatch({
+            selection: EditorSelection.create(
+                mapped.ranges.map((r) =>
+                    EditorSelection.range(r.anchor, r.head),
+                ),
+                mapped.mainIndex,
+            ),
+            scrollIntoView: true,
+        });
     }
 
     /**
@@ -334,6 +379,9 @@ class NestedTableHost implements PluginValue {
                 doc: text,
                 extensions: [
                     EditorView.editorAttributes.of({ class: NESTED_CLASS }),
+                    // Visual block mirrors one range per row; without this
+                    // CodeMirror keeps only the first.
+                    EditorState.allowMultipleSelections.of(true),
                     // Without this a selection is left to the browser's native
                     // highlight, which renders no `.cm-selectionBackground` and
                     // is not themed like the rest of the editor.

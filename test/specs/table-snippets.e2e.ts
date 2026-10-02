@@ -294,16 +294,15 @@ describe('Table snippets (Plan D)', function () {
         expect(undone).not.toContain('[[page|alias]]');
     });
 
-    it('a repeated tabstop updates only the first occurrence (known gap)', async () => {
-        // Linked mirrors: `${1:a}--${1:a}` should make both occurrences follow
-        // the typed text, and outside a table they do. Inside a cell only the
-        // field being edited changes, because the child's edit reaches the
-        // parent as a plain document change through `sync-up`, which is not
-        // the input path CodeMirror propagates a mirror from.
+    it('a repeated tabstop updates every occurrence', async () => {
+        // Linked mirrors: `${1:a}--${1:a}` makes both occurrences follow the
+        // typed text, in a cell as everywhere else.
         //
-        // The in-cell assertion pins a measured GAP, not desired behaviour.
-        // When mirrors are fixed it must be changed to `z--z`; the outside
-        // control beside it is what says which of the two is wrong.
+        // This pinned a GAP until Plan E1.5 mirrored every selection range.
+        // CodeMirror represents linked tabstops as multiple ranges, so the
+        // mirror that previously kept only `.main` gave the child one range
+        // and typing updated one occupancy — measured `z--a`. Flipping this
+        // assertion to `z--z` is the instruction the gap version carried.
         await registerRepeatedSnippet();
 
         await enterCell();
@@ -318,7 +317,7 @@ describe('Table snippets (Plan D)', function () {
         await browser.keys(['z']);
         await browser.pause(800);
         const typed = await report();
-        expect(typed.doc).toBe(TABLE_DOC.replace('| aa', '| z--aaa'));
+        expect(typed.doc).toBe(TABLE_DOC.replace('| aa', '| z--zaa'));
     });
 
     it('control: a repeated tabstop outside a table does mirror', async () => {

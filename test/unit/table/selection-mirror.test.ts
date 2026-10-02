@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     mirrorRange,
+    mirrorRanges,
     type LineOffsets,
 } from '../../../src/vim/table/selection-mirror';
 import type { VimState } from '../../../src/types/vim-api';
@@ -111,6 +112,99 @@ describe('mirrorRange', () => {
         expect(
             mirrorRange(undefined, { anchor: 25, head: 30 }, LINES, TABLE),
         ).toStrictEqual({ anchor: 10, head: 10 });
+    });
+
+    describe('mirrorRanges, for visual block', () => {
+        it('mirrors every range and clamps each', () => {
+            // One range per row is what the parent carries in block mode.
+            expect(
+                mirrorRanges(
+                    charwise,
+                    {
+                        ranges: [
+                            { anchor: 24, head: 26 },
+                            { anchor: 41, head: 43 },
+                            { anchor: 58, head: 400 },
+                        ],
+                        mainIndex: 2,
+                    },
+                    LINES,
+                    TABLE,
+                ),
+            ).toStrictEqual({
+                ranges: [
+                    { anchor: 4, head: 6 },
+                    { anchor: 21, head: 23 },
+                    { anchor: 38, head: 50 },
+                ],
+                mainIndex: 2,
+            });
+        });
+
+        it('delegates a single range to mirrorRange', () => {
+            // Charwise, linewise and caret behaviour must be untouched, so the
+            // one-range case must agree with mirrorRange exactly.
+            const selection = {
+                ranges: [{ anchor: 25, head: 30 }],
+                mainIndex: 0,
+            };
+            expect(mirrorRanges(normal, selection, LINES, TABLE)).toStrictEqual(
+                {
+                    ranges: [
+                        mirrorRange(
+                            normal,
+                            { anchor: 25, head: 30 },
+                            LINES,
+                            TABLE,
+                        ),
+                    ],
+                    mainIndex: 0,
+                },
+            );
+        });
+
+        it('expands a single linewise range through mirrorRange', () => {
+            expect(
+                mirrorRanges(
+                    linewise(3, 4),
+                    { ranges: [{ anchor: 37, head: 37 }], mainIndex: 0 },
+                    LINES,
+                    TABLE,
+                ),
+            ).toStrictEqual({
+                ranges: [{ anchor: 17, head: 50 }],
+                mainIndex: 0,
+            });
+        });
+
+        it('clamps an out-of-bounds mainIndex rather than throwing', () => {
+            // EditorSelection.create rejects a mainIndex past the end.
+            expect(
+                mirrorRanges(
+                    charwise,
+                    {
+                        ranges: [
+                            { anchor: 24, head: 25 },
+                            { anchor: 41, head: 42 },
+                        ],
+                        mainIndex: 9,
+                    },
+                    LINES,
+                    TABLE,
+                ).mainIndex,
+            ).toBe(1);
+        });
+
+        it('survives an empty range list', () => {
+            expect(
+                mirrorRanges(
+                    charwise,
+                    { ranges: [], mainIndex: 0 },
+                    LINES,
+                    TABLE,
+                ).ranges,
+            ).toStrictEqual([{ anchor: 0, head: 0 }]);
+        });
     });
 
     describe('keepNonEmpty, for snippet tabstops', () => {

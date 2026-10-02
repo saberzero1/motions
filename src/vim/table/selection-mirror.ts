@@ -34,14 +34,63 @@ export interface TableBounds {
  *   start, and the range exists only as `vim.sel`'s line numbers. It is
  *   expanded to whole lines here.
  *
- * Visual block is treated as charwise. A rectangular selection cannot be drawn
- * with one CM6 range, and rendering the enclosing span would be a lie about
- * what the operator will act on; the span is at least bounded by the same rows.
+ * Visual **block** no longer comes through here as a single range. The parent
+ * carries one range per row and `mirrorRanges` mirrors all of them, so a
+ * rectangular selection renders as one — this function sees block mode only
+ * when the parent happens to hold a single range, where charwise handling is
+ * also the correct answer.
  *
  * The child's document is exactly the parent's slice, so translation is a
  * subtraction. Results are clamped, because a visual range can extend past the
  * table once a motion leaves it, and an out-of-range selection throws.
  */
+/**
+ * Every parent range in the child's coordinates, plus which one is main.
+ *
+ * Visual block is the case this exists for. The parent really does carry one
+ * range per row — measured, `<C-v>` over three rows yields three ranges
+ * holding exactly the cell texts — and mirroring only `.main` renders a
+ * single-row selection for a multi-row block, which misreports what the
+ * operator will act on.
+ *
+ * Single-range selections are delegated to `mirrorRange`, so charwise,
+ * linewise and caret behaviour are unchanged; only the genuinely multi-range
+ * case takes the new path.
+ */
+export function mirrorRanges(
+    vim: VimState | undefined,
+    selection: { ranges: readonly ChildRange[]; mainIndex: number },
+    lines: LineOffsets,
+    table: TableBounds,
+    keepNonEmpty = false,
+): { ranges: ChildRange[]; mainIndex: number } {
+    const first = selection.ranges[0];
+    if (selection.ranges.length <= 1) {
+        const single = mirrorRange(
+            vim,
+            first ?? { anchor: table.from, head: table.from },
+            lines,
+            table,
+            keepNonEmpty,
+        );
+        return { ranges: [single], mainIndex: 0 };
+    }
+
+    const width = table.to - table.from;
+    const clamp = (offset: number) =>
+        Math.max(0, Math.min(offset - table.from, width));
+    return {
+        ranges: selection.ranges.map((r) => ({
+            anchor: clamp(r.anchor),
+            head: clamp(r.head),
+        })),
+        mainIndex: Math.max(
+            0,
+            Math.min(selection.mainIndex, selection.ranges.length - 1),
+        ),
+    };
+}
+
 export function mirrorRange(
     vim: VimState | undefined,
     parentSelection: ChildRange,

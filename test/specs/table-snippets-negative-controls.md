@@ -143,36 +143,36 @@ and `leaves visual mode taking precedence` assert behaviour the flag does
 **not** change, so a control that broke them would mean the flag was reaching
 further than intended.
 
-## Control 8 — the repeated-tabstop gap is itself falsifiable
+## Control 8 — the repeated-tabstop scenario
 
-A scenario that pins a **known gap** is worth nothing if it cannot fail, so the
-same always-collapse sabotage from control 5 was run against it.
+Originally pinned a **gap**: linked mirrors did not propagate in a cell, and
+the sabotage from control 5 was run against it because a test asserting
+known-broken behaviour is worth nothing if it cannot fail. It reported
+`6 passing | 2 failing` (`Expected: "a" / Received: ""`).
 
-`6 passing | 2 failing` — `shows the active tabstop inside the cell`
-(`Expected: "page" / Received: ""`) and `a repeated tabstop updates only the
-first occurrence` (`Expected: "a" / Received: ""`).
+**Plan E1.5 then closed the gap**, and the scenario was flipped to `z--z` as
+its own comment instructed. CodeMirror represents linked tabstops as multiple
+selection ranges, so mirroring every range — done for visual block — made the
+child hold both occurrences and typing update both. Measured
+`| z--zaa   | 11    |` where the gap version measured `| z--aaa   | 11    |`.
 
-### The gap, measured after the mirror fix
+The gap table below is kept because the _method_ is the point: the behaviour
+was pinned with an explicit flip instruction, so when an unrelated change
+fixed it the suite failed loudly and named the document that had to change,
+rather than silently passing or silently contradicting the docs.
 
-Linked mirrors — a repeated `${1:…}` — do not propagate inside a cell:
+### The reading that had to be re-measured
 
-|                  | after expand                  | after typing `z`                          |
-| ---------------- | ----------------------------- | ----------------------------------------- |
-| in a cell        | `\| a--aaa \|`, selection `a` | `\| z--aaa \|`, **first occurrence only** |
-| outside, control | `a--aplain`, selection `a`    | `z--zplain`, **both**                     |
+The first reading of this case was taken **before** the tabstop-visibility fix
+and showed `az--a` — an _insertion_ beside the field rather than a replacement
+of it, because the field was not selected yet. Diagnosed from that, the defect
+looks like `minimalDiff` over-forwarding and the fix lands in `sync-up.ts`.
+With the field actually selected it was `z--a`, a different defect in a
+different place; and the real fix turned out to be neither, but the selection
+mirror. `minimalDiff` was never touched, as Plan D's MUST NOT requires.
 
-The child's edit reaches the parent as a plain document change through
-`sync-up`, which is not the input path CodeMirror propagates a mirror from.
-
-This had to be **re-measured**. The first reading was taken before the mirror
-fix and showed `az--a` — an _insertion_ beside the field rather than a
-replacement of it — which would have been diagnosed as a `minimalDiff`
-over-forwarding problem and sent the fix at `sync-up.ts`. With the field
-actually selected the behaviour is `z--a`, a different defect in a different
-place. Plan D's D5 explicitly warned that a fixture which can only produce one
-region proves nothing; the subtler version of that trap is a fixture measured
-while an _unrelated_ defect is still present.
-
-`minimalDiff` was therefore left alone, as Plan D's MUST NOT requires: it is
-pinned by 11 unit tests and a dot-repeat negative control, and nothing here
-measured it over-forwarding.
+| Body                   | Result in a cell                                          | Status            |
+| ---------------------- | --------------------------------------------------------- | ----------------- |
+| `a\|b`                 | `\| a\|baa   \| 11    \|` — the pipe opens a third column | open              |
+| `x${1:one}\ny${2:two}` | does not reach a cell as one line                         | open              |
+| `${1:a}--${1:a}`       | updates both occurrences                                  | **fixed by E1.5** |

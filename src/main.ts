@@ -291,6 +291,7 @@ import {
     createNestedTableHost,
     getNestedTableStats,
     type NestedTableStats,
+    getNestedSelectionReport,
 } from './vim/table/nested-view';
 import { suppressNativeCellEditor } from './vim/table/native-cell-suppressor';
 import {
@@ -3426,6 +3427,15 @@ export default class VimMotionsPlugin extends Plugin {
     /** Redraw count for the owned table surface, for e2e assertions. */
     getTableSurfaceRedrawCount(): number {
         return readTableSurfaceRedrawCount();
+    }
+
+    /** Every selection range the nested table editor renders. */
+    getNestedSelectionReport(): {
+        childTexts: string[];
+        childCount: number;
+        childMain: number;
+    } {
+        return getNestedSelectionReport();
     }
 
     /** Nested table editor lifecycle counts, for e2e assertions. */
