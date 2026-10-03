@@ -265,12 +265,22 @@ describe('Owned table horizontal scroll parity (#167 items 5, 6)', function () {
             expect(offset).toBeGreaterThanOrEqual(0);
         }
 
-        // Parity, and here it is the right frame: measured, `scrolloff=100`
-        // zeroes horizontal scrolling in **native** too — every offset 0 in
-        // both modes, where the baseline run reaches 623 and a non-zero owned
-        // value. So #167 item 6 is a pre-existing defect that `owned`
-        // reproduces rather than introduces, and Plan E owns the fix.
-        expect(owned.final.scrollOffset).toBe(native.final.scrollOffset);
-        expect(owned.final.inViewport).toBe(native.final.inViewport);
+        // "At least as good as native", not parity — the same frame as 5A, and
+        // for a measured reason.
+        //
+        // `scrolloff=100` zeroes horizontal scrolling in **native**: #167 item
+        // 6, a pre-existing defect. `owned` used to reproduce it and no longer
+        // does, because the monospace grid sets `white-space: pre` and so the
+        // nested editor does not wrap — measured `owned: 67` against
+        // `native: 0` on a 1274px-wide window. On a wide window the table fits
+        // and both read 0, which is why this only showed on the narrower CI
+        // runners.
+        //
+        // Asserting equality here would pin `owned` to native's defect and
+        // fail the moment `owned` improved, which is exactly what happened.
+        expect(owned.final.scrollOffset).toBeGreaterThanOrEqual(
+            native.final.scrollOffset,
+        );
+        if (native.final.inViewport) expect(owned.final.inViewport).toBe(true);
     });
 });

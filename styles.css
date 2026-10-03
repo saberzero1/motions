@@ -1563,6 +1563,23 @@ settings:
     );
 }
 
+/* Obsidian's per-cell table editor gets our editor extensions, so the
+   cursorline's `Decoration.line` can land on a cell's line and tint it —
+   measured present in CI on all three platforms and absent on one developer
+   machine, so whether the decoration applies is environment-dependent and
+   cannot be relied on either way.
+
+   Neutralising the background is the whole fix. `display: none` would be
+   actively wrong: `buildCursorlineDecorations` puts this class on the real
+   line via `Decoration.line`, so hiding the element hides the cell's text.
+
+   The `line`/`both` modes are a StateField, which receives an `EditorState`
+   and never sees a view, so `classifySurface` cannot withhold them the way it
+   withholds the scrolloff listener. */
+.cm-table-widget .vim-motions-cursorline {
+    background-color: transparent;
+}
+
 /* `cursorlineopt=screenline` draws a measured rectangle over the cursor's
    display row instead of a line decoration, so it needs its own stacking
    context below the text. */

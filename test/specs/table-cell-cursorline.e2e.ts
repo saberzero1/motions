@@ -44,7 +44,10 @@ interface Reading {
     cellDoc: string;
     cellLineCount: number;
     highlightsInWidget: number;
+    /** Of those, how many actually paint a background. */
+    tintedInWidget: number;
     highlightsOutsideWidget: number;
+    tintedOutsideWidget: number;
     layersInWidget: number;
     layersOutsideWidget: number;
 }
@@ -56,10 +59,16 @@ async function read(): Promise<Reading> {
             cellDoc: '',
             cellLineCount: -1,
             highlightsInWidget: -1,
+            tintedInWidget: -1,
             highlightsOutsideWidget: -1,
+            tintedOutsideWidget: -1,
             layersInWidget: -1,
             layersOutsideWidget: -1,
         };
+        const isTransparent = (c: string): boolean =>
+            c === 'transparent' ||
+            c === 'rgba(0, 0, 0, 0)' ||
+            /^rgba\(.*,\s*0\)$/.test(c);
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return { ...blank, error: 'no MarkdownView' };
         const contentEl = (view as unknown as { contentEl: HTMLElement })
@@ -87,8 +96,23 @@ async function read(): Promise<Reading> {
             cellLineCount:
                 cellCm?.dom?.querySelectorAll('.cm-line').length ?? -1,
             highlightsInWidget: highlights.filter(inWidget).length,
+            // What the user actually sees. Whether the decoration APPLIES in a
+            // cell editor is environment-dependent — measured absent on one
+            // developer machine and present in CI on all three platforms — so
+            // an element count is not a property worth asserting. A painted
+            // background is.
+            tintedInWidget: highlights
+                .filter(inWidget)
+                .filter(
+                    (e) => !isTransparent(getComputedStyle(e).backgroundColor),
+                ).length,
             highlightsOutsideWidget: highlights.filter((e) => !inWidget(e))
                 .length,
+            tintedOutsideWidget: highlights
+                .filter((e) => !inWidget(e))
+                .filter(
+                    (e) => !isTransparent(getComputedStyle(e).backgroundColor),
+                ).length,
             layersInWidget: layers.filter(inWidget).length,
             layersOutsideWidget: layers.filter((e) => !inWidget(e)).length,
         };
@@ -150,6 +174,9 @@ describe('Cursorline does not reach table cell editors (Plan G)', function () {
             const outside = await read();
             expect(outside.error).toBeUndefined();
             expect(outside.highlightsOutsideWidget).toBe(1);
+            // Selector validity: the parent's highlight is actually painted, so
+            // "nothing painted in the cell" cannot pass on a dead selector.
+            expect(outside.tintedOutsideWidget).toBe(1);
 
             await park(5, 2);
             const inside = await read();
@@ -159,7 +186,7 @@ describe('Cursorline does not reach table cell editors (Plan G)', function () {
             expect(inside.cellLineCount).toBeGreaterThan(0);
             expect(inside.cellDoc).toBe('aa');
 
-            expect(inside.highlightsInWidget).toBe(0);
+            expect(inside.tintedInWidget).toBe(0);
 
             // Mode-specific parent control: in these modes the parent's own
             // highlight is gone too, because its cursor is inside the
@@ -167,9 +194,61 @@ describe('Cursorline does not reach table cell editors (Plan G)', function () {
             await park(1, 0);
             const left = await read();
             expect(left.highlightsOutsideWidget).toBe(1);
-            expect(left.highlightsInWidget).toBe(0);
+            expect(left.tintedOutsideWidget).toBe(1);
+            expect(left.tintedInWidget).toBe(0);
         });
     }
+
+    it('the suppression rule itself neutralises a cursorline in a cell', async () => {
+        // Tests the CSS rule directly, by injecting a probe element rather
+        // than waiting for the decoration to apply. Whether it applies is
+        // environment-dependent — absent on one developer machine, present in
+        // CI on all three platforms — so without this the suppression is
+        // untestable wherever the decoration happens not to appear, which is
+        // exactly how the defect was declared non-existent in the first place.
+        await openTable('line');
+
+        const probe = (await browser.executeObsidian(() => {
+            const widget = document.querySelector('.cm-table-widget');
+            const content = document.querySelector('.cm-content');
+            if (!widget || !content) return null;
+
+            const make = (host: Element): string => {
+                const el = document.createElement('div');
+                el.className = 'vim-motions-cursorline';
+                el.textContent = 'probe';
+                host.appendChild(el);
+                const bg = getComputedStyle(el).backgroundColor;
+                el.remove();
+                return bg;
+            };
+            const transparent = (c: string): boolean =>
+                c === 'transparent' ||
+                c === 'rgba(0, 0, 0, 0)' ||
+                /^rgba\(.*,\s*0\)$/.test(c);
+
+            const inside = make(widget);
+            const outside = make(content);
+            return {
+                inside,
+                outside,
+                insideTransparent: transparent(inside),
+                outsideTransparent: transparent(outside),
+            };
+        })) as {
+            inside: string;
+            outside: string;
+            insideTransparent: boolean;
+            outsideTransparent: boolean;
+        } | null;
+
+        expect(probe).not.toBeNull();
+        // Inside the widget the rule wins and paints nothing.
+        expect(probe!.insideTransparent).toBe(true);
+        // Outside it the ordinary rule still paints, so the probe is a real
+        // test of specificity rather than of a class nobody styles.
+        expect(probe!.outsideTransparent).toBe(false);
+    });
 
     it('cursorlineopt=screenline: no layer in a cell while the parent keeps its own', async () => {
         await openTable('screenline');
@@ -184,7 +263,7 @@ describe('Cursorline does not reach table cell editors (Plan G)', function () {
         expect(inside.cellEditorActive).toBe(true);
         expect(inside.cellDoc).toBe('aa');
         expect(inside.layersInWidget).toBe(0);
-        expect(inside.highlightsInWidget).toBe(0);
+        expect(inside.tintedInWidget).toBe(0);
 
         // The parent control proper: unlike the line modes, the measured
         // rectangle survives the cursor being in a table, so it can be

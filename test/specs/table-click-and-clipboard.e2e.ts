@@ -175,15 +175,12 @@ async function pointOf(
     return p as { x: number; y: number };
 }
 
-async function clickAt(
-    p: { x: number; y: number },
-    button: 'left' | 'right' = 'left',
-): Promise<void> {
+async function clickAt(p: { x: number; y: number }): Promise<void> {
     await browser
         .action('pointer')
         .move({ x: p.x, y: p.y })
-        .down(button)
-        .up(button)
+        .down('left')
+        .up('left')
         .perform();
     await browser.pause(800);
 }
@@ -263,7 +260,42 @@ describe('Owned table clicks and clipboard (Plan E1.4b)', function () {
 
     it('a right-click opens a context menu', async () => {
         expect((await where()).menus).toBe(0);
-        await clickAt(await pointOf('.vim-motions-table-cell', 'bb'), 'right');
+
+        // A dispatched `contextmenu` rather than WebDriver's right-button
+        // pointer action: on macOS that action produces no `contextmenu` event
+        // at all, so the scenario measured the driver rather than the product
+        // and failed there while passing on Linux. The event is what Obsidian
+        // actually listens for.
+        const dispatched = await browser.executeObsidian(
+            ({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                const host = view?.containerEl.querySelector<HTMLElement>(
+                    '.vim-motions-table-nested',
+                );
+                const cell = Array.from(
+                    host?.querySelectorAll<HTMLElement>(
+                        '.vim-motions-table-cell',
+                    ) ?? [],
+                ).find((c) => (c.textContent ?? '').includes('bb'));
+                if (!cell) return false;
+                const r = cell.getBoundingClientRect();
+                cell.dispatchEvent(
+                    new MouseEvent('contextmenu', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: Math.round(r.left + r.width / 2),
+                        clientY: Math.round(r.top + r.height / 2),
+                        button: 2,
+                    }),
+                );
+                return true;
+            },
+        );
+        expect(dispatched).toBe(true);
+        await browser.pause(800);
+
         expect((await where()).menus).toBeGreaterThan(0);
         await browser.keys(['Escape']);
         await browser.pause(400);
