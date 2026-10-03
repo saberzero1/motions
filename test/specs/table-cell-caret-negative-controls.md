@@ -121,6 +121,58 @@ rule: the CSS targets only the cursor layer, and hiding the selection layer
 instead would render a mirrored visual range invisible while leaving every
 cursor assertion green.
 
+## Control 4 — the `nativeCaretUnavailable` flag removed
+
+Sabotage: drop `{ nativeCaretUnavailable: true }` from the
+`vimCursorFromSource` call in `nested-view.ts`.
+
+```
+✓ draws the vim block cursor in the cell, and only that
+✖ draws a bar cursor in insert mode, and returns to the block
+    Expected: not "none"      // vimCursor
+✓ follows a configured insert shape instead of assuming a bar
+✓ keeps the selection background in visual mode
+3 passing, 1 failing
+```
+
+This is the state the surface shipped in after the mode-following work: insert
+mode drew **nothing at all**, because `measureCursor` leaves a `bar` shape to
+the real browser caret, and `drawSelection()` had suppressed that caret with
+`caret-color: transparent !important` on `.cm-line`.
+
+The shape scenario still passing here is the informative part, not a gap: a
+configured `block` is not `bar`, so the fork drew it with or without the flag.
+The flag matters only for the default shape, which is exactly the case a user
+hits. Two scenarios, two different mechanisms.
+
+## Control 5 — the fork ignores the configured shape
+
+Sabotage: in `measureCursor`, force `shape = 'bar'` whenever
+`nativeCaretUnavailable` is set — i.e. draw a bar rather than what
+`resolveShape` returned.
+
+```
+✖ draws the vim block cursor in the cell, and only that
+    Expected: > 3
+    Received:   2
+✖ draws a bar cursor in insert mode, and returns to the block
+✖ follows a configured insert shape instead of assuming a bar
+    Expected substring: not "cm-cursor-bar"
+    Received string:    "cm-fat-cursor cm-cursor-primary cm-cursor-bar"
+1 passing, 3 failing
+```
+
+This is the control for the shape-fidelity requirement: the fix must change
+only **whether** a cursor is drawn, never which shape. With the configured
+shape discarded, the `insert: 'block'` scenario receives a 2px
+`cm-cursor-bar`, and normal mode breaks too, since the sabotage applies to
+every mode in that view.
+
+Without this control the shape scenario is only circumstantial — a
+hard-coded bar would satisfy the default-shape scenario above, and nothing
+else in the suite distinguishes "respects `cursorShapes`" from "happens to
+match the default".
+
 ## Not controlled
 
 The fork-side `ownsLayer` guard shipped in `@saberzero1/codemirror-vim@6.4.4`

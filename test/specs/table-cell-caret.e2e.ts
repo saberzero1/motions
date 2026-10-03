@@ -8,6 +8,19 @@ import {
 } from '../helpers';
 
 /**
+ * Restated rather than imported: a spec cannot value-import a `src` module
+ * (`tsconfig.test.json` includes only `src` type declarations). Pinned to the source
+ * constant by `test/unit/cursor-shape-defaults.test.ts`.
+ */
+const DEFAULT_SHAPES = {
+    normal: 'block',
+    insert: 'bar',
+    visual: 'block',
+    replace: 'underline',
+    operatorPending: 'underline',
+};
+
+/**
  * The caret inside a cell in `tableWidgetMode: 'owned'` — present, and vim's.
  *
  * Two defects, fixed in two places, and each piece below has a scenario
@@ -59,6 +72,10 @@ interface Shape {
     /** The fork's own cursor, `WxH` or `none`. */
     vimCursor: string;
     vimCursorWidth: number;
+    /** The shape classes the fork put on its cursor element. */
+    vimCursorClasses: string;
+    /** True when the drawn cursor sits inside the nested editor's box. */
+    vimCursorInside: boolean;
     /** True when `drawSelection()`'s caret would also be visible. */
     drawSelVisible: boolean;
     /** True when the real browser caret is suppressed. */
@@ -73,6 +90,8 @@ async function shape(): Promise<Shape> {
             nestedFocused: false,
             vimCursor: 'none',
             vimCursorWidth: 0,
+            vimCursorClasses: '',
+            vimCursorInside: false,
             drawSelVisible: false,
             browserCaretTransparent: false,
             caretInsideCell: false,
@@ -105,6 +124,15 @@ async function shape(): Promise<Shape> {
                 ? `${Math.round(fr.width)}x${Math.round(fr.height)}`
                 : 'none',
             vimCursorWidth: fr ? Math.round(fr.width) : 0,
+            vimCursorClasses: (fat?.className ?? '').toString(),
+            vimCursorInside:
+                fr !== undefined &&
+                fr.width > 0 &&
+                fr.height > 0 &&
+                fr.left >= nr.left &&
+                fr.left <= nr.right &&
+                fr.top >= nr.top &&
+                fr.top <= nr.bottom,
             drawSelVisible:
                 dsLayer !== null &&
                 getComputedStyle(dsLayer).display !== 'none' &&
@@ -174,16 +202,27 @@ describe('Caret inside an owned table cell', function () {
         expect(s.browserCaretTransparent).toBe(true);
     });
 
-    it('switches to the browser caret in insert mode and back', async () => {
+    it('draws a bar cursor in insert mode, and returns to the block', async () => {
         await browser.keys(['i']);
         await browser.pause(900);
         expect(await getVimMode()).toBe('insert');
 
         const ins = await shape();
-        // The fork hides its own block for a bar shape and tints the real
-        // caret instead, so this is one caret rather than none.
-        expect(ins.vimCursor).toBe('none');
-        expect(ins.browserCaretTransparent).toBe(false);
+        // A DRAWN element, not a colour. The previous version of this scenario
+        // asserted `caret-color` was non-transparent on `.cm-content` and
+        // passed while the cell had no visible caret at all: `drawSelection()`
+        // sets `caret-color: transparent !important` on `.cm-line`, which is
+        // where the caret actually paints, so the browser drew nothing. A
+        // colour read is a precondition for a caret, never evidence of one.
+        expect(ins.vimCursor).not.toBe('none');
+        expect(ins.vimCursorInside).toBe(true);
+        // The user's configured insert shape, `bar` by default.
+        expect(DEFAULT_SHAPES.insert).toBe('bar');
+        expect(ins.vimCursorClasses).toContain('cm-cursor-bar');
+        // A bar, so narrow — and distinguishable from the normal-mode block,
+        // which is the whole point of the scenario.
+        expect(ins.vimCursorWidth).toBeLessThan(5);
+        expect(ins.vimCursorWidth).toBeGreaterThan(0);
 
         await browser.keys(['Escape']);
         await browser.pause(900);
@@ -193,7 +232,38 @@ describe('Caret inside an owned table cell', function () {
         // produces no transaction in the child, so the shape would be stale.
         const back = await shape();
         expect(back.vimCursorWidth).toBeGreaterThan(3);
+        expect(back.vimCursorClasses).not.toContain('cm-cursor-bar');
         expect(back.browserCaretTransparent).toBe(true);
+    });
+
+    it('follows a configured insert shape instead of assuming a bar', async () => {
+        // The fix changes only *whether* a cursor is drawn when the resolved
+        // shape is `bar`; the shape itself still comes from the user's own
+        // `cursorShapes`. A hard-coded bar would pass the scenario above and
+        // fail here, which is the only thing separating the two.
+        await setPluginSettingAndReload('cursorShapes', {
+            ...DEFAULT_SHAPES,
+            insert: 'block',
+        });
+        await browser.pause(900);
+
+        await browser.keys(['i']);
+        await browser.pause(900);
+        expect(await getVimMode()).toBe('insert');
+
+        const ins = await shape();
+        expect(ins.vimCursor).not.toBe('none');
+        expect(ins.vimCursorInside).toBe(true);
+        // A block, not the default bar: wide, and without the bar class.
+        expect(ins.vimCursorClasses).not.toContain('cm-cursor-bar');
+        expect(ins.vimCursorWidth).toBeGreaterThan(3);
+
+        await browser.keys(['Escape']);
+        await browser.pause(600);
+        await setPluginSettingAndReload('cursorShapes', {
+            ...DEFAULT_SHAPES,
+        });
+        await browser.pause(600);
     });
 
     it('keeps the selection background in visual mode', async () => {
