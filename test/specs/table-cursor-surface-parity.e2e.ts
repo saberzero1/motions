@@ -51,6 +51,8 @@ interface CursorReading {
     /** Which implementation is rendering it. */
     widgets: number;
     surfaces: number;
+    /** The parent's own cursor offset, to catch an exit that relocates it. */
+    head: number;
 }
 
 async function read(): Promise<CursorReading> {
@@ -61,11 +63,17 @@ async function read(): Promise<CursorReading> {
             tableRendered: false,
             widgets: -1,
             surfaces: -1,
+            head: -1,
         };
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return { ...blank, error: 'no MarkdownView' };
         const cm = (view.editor as unknown as { cm?: unknown }).cm as
-            { dom: HTMLElement; hasFocus: boolean } | undefined;
+            | {
+                  dom: HTMLElement;
+                  hasFocus: boolean;
+                  state: { selection: { main: { head: number } } };
+              }
+            | undefined;
         if (!cm) return { ...blank, error: 'no EditorView' };
 
         const visible = (el: Element): boolean => {
@@ -109,8 +117,27 @@ async function read(): Promise<CursorReading> {
             tableRendered: widgets + surfaces > 0,
             widgets,
             surfaces,
+            head: cm.state.selection.main.head,
         };
     })) as CursorReading;
+}
+
+/** The document offset `park(line, ch)` targets. */
+async function headOf(line: number, ch: number): Promise<number> {
+    return (await browser.executeObsidian(
+        ({ app, obsidian }, l: number, c: number) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const cm = (view?.editor as unknown as { cm?: unknown })?.cm as
+                | { state: { doc: { line: (n: number) => { from: number } } } }
+                | undefined;
+            if (!cm) throw new Error('no EditorView');
+            return cm.state.doc.line(l).from + c;
+        },
+        line,
+        ch,
+    )) as number;
 }
 
 async function park(line: number, ch: number): Promise<void> {
@@ -138,24 +165,35 @@ async function park(line: number, ch: number): Promise<void> {
     await browser.pause(900);
 }
 
-// SKIPPED, deliberately, and not because it is wrong — it **fails**, which is
-// the point. It reproduces three open defects that the existing cursor suite
-// structurally cannot see, recorded in
-// `test/specs/table-cursor-surface-parity-findings.md`:
+// This spec was committed **skipped** because it failed, reproducing three
+// defects the existing cursor suite structurally could not see. All three are
+// now fixed and it runs; the history is worth keeping, because the shape of
+// the mistake recurred four times.
 //
-//   owned  PRESENCE  — the parent cursor is NON-DETERMINISTICALLY absent.
-//                      Two identical focus+dispatch sequences measured `1`
-//                      and `0` fat cursors, which is why four point-in-time
-//                      fixes each appeared to work.
-//   owned  ABSENCE   — blocked on the above; its precondition is presence.
-//   native returns   — the cursor does not come back after the caret leaves
-//                      a table.
+// What it recorded, and what each turned out to be:
 //
-// Un-skip it as each is fixed. It is committed skipped rather than deleted
-// because it is the only guard that exercises the cursor against **both**
-// surfaces and asserts presence, and re-deriving it is how this defect
-// reached a fourth occurrence.
-describe.skip('Cursor guard parity across table surfaces', function () {
+//   owned  PRESENCE  — the parent cursor "non-deterministically" absent: two
+//                      identical sequences measured `1` and `0` cursors.
+//                      Not non-determinism. The owned surface in isolation is
+//                      correct at every step; the `0` was a stale suppression
+//                      override leaking out of the preceding `native` test
+//                      through the fork's `EditorView`-keyed WeakMap, which
+//                      `setPluginSettingAndReload` does not reset.
+//   owned  ABSENCE   — the same leak; its precondition is presence.
+//   native returns   — real. Entering a table activates table-nav, which
+//                      suppresses the cursor, and nav only ever exited from
+//                      its own key handling. Anything that moved the caret
+//                      without a keystroke left nav active with the caret
+//                      outside the table: keys swallowed, cursor suppressed.
+//
+// The `owned` half is therefore a **cross-test contamination guard** as much
+// as a cursor guard, and the two surfaces must keep running in one file and
+// in this order for it to stay one.
+//
+// It also asserts the cursor's position after leaving, not just its presence:
+// nav's normal exit relocates the caret via `placeCursorAround`, which is
+// right for a keypress and would silently undo a picker jump here.
+describe('Cursor guard parity across table surfaces', function () {
     this.timeout(300000);
 
     before(async () => {
@@ -217,10 +255,18 @@ describe.skip('Cursor guard parity across table surfaces', function () {
                 await park(5, 2);
                 expect((await read()).parentCursors.length).toBe(0);
 
+                const expectedHead = await headOf(1, 0);
                 await park(1, 0);
                 const left = await read();
                 expect(left.parentCursors.length).toBe(1);
                 expect(left.parentCursors[0]).not.toBe('0x0');
+                // The caret stays where it was put. Leaving nav mode normally
+                // ends in `placeCursorAround`, which is right for a keypress
+                // and wrong here: this exit was caused by something else
+                // moving the caret — a picker jump, `:42`, a mark — and
+                // snapping it back to the table would undo that. Without this
+                // the scenario passes whether the exit relocates or not.
+                expect(left.head).toBe(expectedHead);
             });
         });
     }
