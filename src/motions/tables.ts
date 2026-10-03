@@ -10,6 +10,14 @@ import type { LeaderRegistry } from '../ui/which-key';
 import { executeCommand } from '../util/commands';
 import { findUnescapedPipes, realignTableLines } from '../vim/table-utils';
 import { canRealignTable } from '../vim/table-operations';
+import {
+    deleteColumn,
+    deleteRow,
+    insertColumn,
+    insertRow,
+    moveColumn,
+    moveRow,
+} from '../vim/table/structural';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -218,12 +226,85 @@ export const tableRealignEx: ExCommandFn = (cm) => {
     realignTable(cm);
 };
 
+/**
+ * The text-based equivalent of each Obsidian table command, by command id.
+ *
+ * Those commands drive Obsidian's private `TableEditor` through the table
+ * widget, which `tableWidgetMode: 'owned'` removes — so in owned mode they are
+ * **inert**. Measured with the cursor in a table: ten of them leave the
+ * document byte-identical in owned while changing it correctly in native.
+ * Only `:tablerealign` worked in both, because it alone was already text-based.
+ *
+ * Rather than register a second set of commands, each falls back here when the
+ * widget is absent, so the same `:tablerowafter`, the same action name and the
+ * same `<leader>` binding work in both modes.
+ */
+const TEXT_FALLBACKS: Record<
+    string,
+    (lines: string[], row: number, col: number) => string[]
+> = {
+    'editor:table-row-before': (l, r) => insertRow(l, r, 'before'),
+    'editor:table-row-after': (l, r) => insertRow(l, r, 'after'),
+    'editor:table-row-up': (l, r) => moveRow(l, r, 'up'),
+    'editor:table-row-down': (l, r) => moveRow(l, r, 'down'),
+    'editor:table-row-delete': (l, r) => deleteRow(l, r),
+    'editor:table-col-before': (l, _r, c) => insertColumn(l, c, 'before'),
+    'editor:table-col-after': (l, _r, c) => insertColumn(l, c, 'after'),
+    'editor:table-col-left': (l, _r, c) => moveColumn(l, c, 'left'),
+    'editor:table-col-right': (l, _r, c) => moveColumn(l, c, 'right'),
+    'editor:table-col-delete': (l, _r, c) => deleteColumn(l, c),
+};
+
+/**
+ * Runs the text fallback for `commandId`, returning whether it applied.
+ *
+ * Deliberately keyed on the **widget's absence** rather than on the setting:
+ * the setting can say `owned` while a per-view gate — Source mode, a blocked
+ * surface — leaves Obsidian's widget in place, and there the native command is
+ * the right one. Asking the DOM answers the question that actually matters.
+ */
+function runTextFallback(cm: CmAdapter, commandId: string): boolean {
+    const fallback = TEXT_FALLBACKS[commandId];
+    if (!fallback) return false;
+    const view = cm.cm6;
+    if (view.dom.querySelector('.cm-table-widget')) return false;
+
+    const cursor = cm.getCursor();
+    const bounds = findTableBounds(cm, cursor.line);
+    if (!bounds) return false;
+
+    const lines: string[] = [];
+    for (let line = bounds.start; line <= bounds.end; line++) {
+        lines.push(cm.getLine(line));
+    }
+    const col = findCellBoundaries(cm.getLine(cursor.line)).filter(
+        (b) => b <= cursor.ch,
+    ).length;
+    const next = fallback(
+        lines,
+        cursor.line - bounds.start,
+        Math.max(0, col - 1),
+    );
+    if (next === lines || next.join('\n') === lines.join('\n')) return true;
+
+    const from = view.state.doc.line(bounds.start + 1).from;
+    const to = view.state.doc.line(bounds.end + 1).to;
+    view.dispatch({ changes: { from, to, insert: next.join('\n') } });
+    return true;
+}
+
 function createTableCommandAction(app: App, commandId: string): ActionFn {
-    return () => executeCommand(app, commandId);
+    return (cm) => {
+        if (runTextFallback(cm, commandId)) return;
+        executeCommand(app, commandId);
+    };
 }
 
 function createTableCommandEx(app: App, commandId: string): ExCommandFn {
-    return () => executeCommand(app, commandId);
+    return (cm) => {
+        if (runTextFallback(cm, commandId)) return;
+        executeCommand(app, commandId);
+    };
 }
 
 const TABLE_COMMANDS: Array<{

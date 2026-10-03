@@ -104,6 +104,7 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 
 ### What is not supported yet
 
+- **Structural commands work, but the nav overlay's single keys do not.** `:tablerowafter`, `:tablecoldelete`, `:tablerealign` and the rest of the `:table*` family — with their `<leader>t` bindings — operate on the table in this mode. The overlay's one-key forms (`o`, `O`, `dd`, `J`, `K`, `H`, `L`, `I`, `A`) are specific to `native`, where the overlay auto-activates inside a table; in `owned` those keys keep their ordinary Vim meanings.
 - **Under the Neovim backend the table is presentational.** It renders, but the cell editor is inert and never focused so Neovim keeps the cursor, the text and the keys. Neovim's own rendering — extmarks, flash labels, diagnostics, folds, signs — does not appear inside the table, and the active cell is not highlighted. See [[neovim-backend#Tables]].
 - **Neither renderer re-aligns a cell's contents.** Both the idle grid and the cursor's editor show the table's source characters exactly, with cells and delimiters marked up for styling and each column's alignment carried as a class. A column marked `---:` is therefore themeable but its text is not moved to the right, because the two renderers must agree glyph-for-glyph — otherwise the grid visibly shifts the moment the cursor enters the table. Neither is an HTML `<table>`, for the same reason.
 - **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
