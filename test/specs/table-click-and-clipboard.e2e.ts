@@ -258,45 +258,73 @@ describe('Owned table clicks and clipboard (Plan E1.4b)', function () {
         expect(after.childHead).toBe(after.parentHead - after.tableFrom);
     });
 
-    it('a right-click opens a context menu', async () => {
-        expect((await where()).menus).toBe(0);
+    it("a right-click in a cell reaches Obsidian's editor menu pipeline", async () => {
+        // Asserts the `editor-menu` workspace event, not a `.menu` element.
+        //
+        // Obsidian's context menu rendering is platform-dependent: measured, a
+        // dispatched `contextmenu` on a cell produces a DOM `.menu` on Linux
+        // and Windows and **none** on macOS. WebDriver's right-button pointer
+        // action produces no `contextmenu` event there at all. Both of those
+        // are properties of the host and the driver, not of this surface.
+        //
+        // What this surface is responsible for is not swallowing the event, and
+        // the workspace event is the portable evidence that it did not.
+        const fired = await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const host = view?.containerEl.querySelector<HTMLElement>(
+                '.vim-motions-table-nested',
+            );
+            const cell = Array.from(
+                host?.querySelectorAll<HTMLElement>(
+                    '.vim-motions-table-cell',
+                ) ?? [],
+            ).find((c) => (c.textContent ?? '').includes('bb'));
+            if (!cell)
+                return {
+                    found: false,
+                    fired: false,
+                    seenBeforeDispatch: false,
+                    prevented: true,
+                };
 
-        // A dispatched `contextmenu` rather than WebDriver's right-button
-        // pointer action: on macOS that action produces no `contextmenu` event
-        // at all, so the scenario measured the driver rather than the product
-        // and failed there while passing on Linux. The event is what Obsidian
-        // actually listens for.
-        const dispatched = await browser.executeObsidian(
-            ({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                const host = view?.containerEl.querySelector<HTMLElement>(
-                    '.vim-motions-table-nested',
-                );
-                const cell = Array.from(
-                    host?.querySelectorAll<HTMLElement>(
-                        '.vim-motions-table-cell',
-                    ) ?? [],
-                ).find((c) => (c.textContent ?? '').includes('bb'));
-                if (!cell) return false;
-                const r = cell.getBoundingClientRect();
-                cell.dispatchEvent(
-                    new MouseEvent('contextmenu', {
-                        bubbles: true,
-                        cancelable: true,
-                        clientX: Math.round(r.left + r.width / 2),
-                        clientY: Math.round(r.top + r.height / 2),
-                        button: 2,
-                    }),
-                );
-                return true;
-            },
-        );
-        expect(dispatched).toBe(true);
-        await browser.pause(800);
+            let seen = false;
+            const ref = app.workspace.on('editor-menu', () => {
+                seen = true;
+            });
+            // Validity check: the listener must not already be firing on its
+            // own, or `seen === true` below would prove nothing.
+            const seenBeforeDispatch = seen;
+            const r = cell.getBoundingClientRect();
+            const ev = new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: Math.round(r.left + r.width / 2),
+                clientY: Math.round(r.top + r.height / 2),
+                button: 2,
+            });
+            cell.dispatchEvent(ev);
+            app.workspace.offref(ref);
+            return {
+                found: true,
+                fired: seen,
+                seenBeforeDispatch,
+                prevented: ev.defaultPrevented,
+            };
+        });
 
-        expect((await where()).menus).toBeGreaterThan(0);
+        expect(fired.found).toBe(true);
+        expect(fired.seenBeforeDispatch).toBe(false);
+        // The product property: the event reaches Obsidian's editor
+        // context-menu pipeline from inside the owned surface.
+        expect(fired.fired).toBe(true);
+        // `defaultPrevented` is deliberately NOT asserted as false: Obsidian
+        // cancels the event precisely in order to show its own menu instead of
+        // the browser's, so true is the correct value where it handles it and
+        // asserting either way adds nothing over the event above. Measured
+        // true on Linux.
+
         await browser.keys(['Escape']);
         await browser.pause(400);
     });
