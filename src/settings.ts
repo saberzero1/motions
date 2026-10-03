@@ -963,7 +963,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     options: {
                                         native: "Use Obsidian's built-in table editor with vim support (recommended)",
                                         raw: 'Deprecated: always show raw Markdown table syntax. It hides the table without showing its source; use source mode instead',
-                                        owned: "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop, Live Preview and the bundled engine only; falls back to native otherwise",
+                                        owned: "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop and Live Preview only; falls back to native with Obsidian's own Vim key bindings on. With the Neovim backend connected the table is presentational: Neovim keeps the cursor and the text, but its own rendering — extmarks, flash labels, diagnostics, folds and signs — does not appear inside the table, and the active cell is not highlighted",
                                     },
                                     disabled: () =>
                                         this.isOverridden('tableWidgetMode'),
@@ -3587,7 +3587,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     )
                     .addOption(
                         'owned',
-                        "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop, Live Preview and the bundled engine only; falls back to native otherwise",
+                        "Experimental: render tables with the plugin's own renderer instead of Obsidian's, with Vim normal, visual and insert mode inside the table. Desktop and Live Preview only; falls back to native with Obsidian's own Vim key bindings on. With the Neovim backend connected the table is presentational: Neovim keeps the cursor and the text, but its own rendering — extmarks, flash labels, diagnostics, folds and signs — does not appear inside the table, and the active cell is not highlighted",
                     )
                     .setValue(this.plugin.settings.tableWidgetMode)
                     .setDisabled(isOverridden('tableWidgetMode'))

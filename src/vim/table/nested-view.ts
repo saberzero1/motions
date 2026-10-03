@@ -14,6 +14,7 @@ import type { TableRange } from '../table-utils';
 import { runCleanups } from '../../util/cleanup';
 import { snippetState } from '../../snippets/autocomplete-types';
 import { getCmAdapterFromEditorView } from '../vim-api';
+import { isExternalBackendActive } from '../external-mode';
 import {
     getRoutedKeyCount,
     installKeyRouter,
@@ -54,6 +55,7 @@ export interface NestedTableStats {
     childHead: number;
     routed: number;
     selectedText: string;
+    routerInstalled: boolean;
 }
 
 interface Mounted {
@@ -61,6 +63,16 @@ interface Mounted {
     view: EditorView;
     root: HTMLElement;
     cleanups: (() => void)[];
+    /**
+     * Whether this mount installed a key router.
+     *
+     * Asserted directly rather than inferred from key behaviour: under RPC the
+     * parent's capture handler calls `preventDefault` and `stopPropagation`
+     * before a child listener would run, so an installed-but-starved router is
+     * behaviourally identical to an absent one and a behavioural control for it
+     * is unfalsifiable.
+     */
+    routerInstalled: boolean;
 }
 
 let mounts = 0;
@@ -109,6 +121,7 @@ export function getNestedTableStats(): NestedTableStats {
                   first.view.state.selection.main.to,
               )
             : '',
+        routerInstalled: first ? first.routerInstalled : false,
     };
 }
 
@@ -311,7 +324,15 @@ class NestedTableHost implements PluginValue {
             // child and driven by neither — `u` and `.` both did nothing.
             // Conditional on the parent actually holding focus, so focus is
             // never pulled from another pane or a modal.
-            if (!held.view.hasFocus && this.parent.hasFocus) {
+            // Never under RPC: there the child is presentational and focus
+            // must stay on the parent, which is where every RPC path
+            // measures. Reclaiming it here would undo that on the first
+            // reconcile after mount.
+            if (
+                !isExternalBackendActive() &&
+                !held.view.hasFocus &&
+                this.parent.hasFocus
+            ) {
                 held.view.contentDOM.focus();
             }
             return;
@@ -468,6 +489,15 @@ class NestedTableHost implements PluginValue {
     private mount(table: TableRange, text: string, root: HTMLElement): void {
         const host = nestedHostContainer(root);
         const target = this.syncUpTarget(() => this.current);
+        // Under the Neovim backend the surface is **presentational**: Neovim
+        // owns text and keys, and `key-delegation.ts` already owns them from
+        // the parent's `contentDOM` by enclosure. A focused, editable child
+        // would compete for both — and worse, a composition begun in it is
+        // yanked to the RPC IME input mid-composition, because the delegation
+        // path focuses that input on any `isComposing`/`keyCode === 229`
+        // event. So the child is made non-competing by construction rather
+        // than by relying on event order, which is accidental here.
+        const presentational = isExternalBackendActive();
         const view = new EditorView({
             state: EditorState.create({
                 doc: text,
@@ -481,22 +511,33 @@ class NestedTableHost implements PluginValue {
                     // highlight, which renders no `.cm-selectionBackground` and
                     // is not themed like the rest of the editor.
                     drawSelection(),
-                    syncUpExtension(target),
-                    this.selectionUpExtension(),
+                    // The selection mirror stays in both modes: it is read-only
+                    // output, and the only thing showing the user where they
+                    // are inside a block-replaced range.
+                    ...(presentational
+                        ? [
+                              EditorView.contentAttributes.of({
+                                  contenteditable: 'false',
+                              }),
+                          ]
+                        : [
+                              syncUpExtension(target),
+                              this.selectionUpExtension(),
+                          ]),
                 ],
             }),
             parent: host,
         });
 
-        const releaseRouter = installKeyRouter(
-            view,
-            this.parent,
-            this.snippetTab,
-        );
-        // Focus is the point of the nested editor: a block-replaced range has
-        // no caret of its own. The parent keeps its selection parked where it
-        // is precisely because it is no longer the focused view.
-        view.contentDOM.focus();
+        const releaseRouter = presentational
+            ? null
+            : installKeyRouter(view, this.parent, this.snippetTab);
+        // Focus is the point of the nested editor under the bundled engine: a
+        // block-replaced range has no caret of its own, and the parent keeps
+        // its selection parked precisely because it is no longer focused.
+        // Under RPC focus must stay on the parent, where every RPC path —
+        // cursor, IME anchoring, float placement, the popup menu — measures.
+        if (!presentational) view.contentDOM.focus();
 
         setNestedMounted(root, true);
         mounts++;
@@ -504,8 +545,9 @@ class NestedTableHost implements PluginValue {
             from: table.from,
             view,
             root,
+            routerInstalled: releaseRouter !== null,
             cleanups: [
-                releaseRouter,
+                ...(releaseRouter ? [releaseRouter] : []),
                 () => view.destroy(),
                 () => setNestedMounted(root, false),
                 () => host.remove(),

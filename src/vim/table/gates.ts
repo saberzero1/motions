@@ -1,7 +1,6 @@
 import { Platform, editorLivePreviewField, type App } from 'obsidian';
 import type { EditorState } from '@codemirror/state';
 import { isBuiltinVimEnabled } from '../../util/vault';
-import { isExternalBackendActive } from '../external-mode';
 import type { ShouldRender } from './surface-field';
 
 /**
@@ -11,8 +10,7 @@ import type { ShouldRender } from './surface-field';
  * reason is kept rather than collapsed to a boolean — a surface that silently
  * falls back reads to users as a bug.
  */
-export type TableSurfaceBlocker =
-    'disabled' | 'builtin-vim' | 'mobile' | 'external-backend' | null;
+export type TableSurfaceBlocker = 'disabled' | 'builtin-vim' | 'mobile' | null;
 
 export function resolveTableSurfaceBlocker(
     app: App,
@@ -25,9 +23,13 @@ export function resolveTableSurfaceBlocker(
     // class appears.
     if (isBuiltinVimEnabled(app)) return 'builtin-vim';
     if (Platform.isMobile) return 'mobile';
-    // Under RPC, Neovim owns text and keys; the surface's own input path is
-    // Plan C's problem, so it stays out of the way until then.
-    if (isExternalBackendActive()) return 'external-backend';
+    // RPC is deliberately **not** a blocker. Under the Neovim backend the
+    // surface renders as a presentational table: the child is inert and never
+    // focused, so Neovim keeps owning keys, IME, floats and the command line.
+    // What Neovim *draws* — extmarks, flash labels, diagnostics, folds — does
+    // not appear inside the table, which is stated in the setting's own
+    // description rather than in a notice, because a notice only fires when a
+    // blocker exists and there is no longer one.
     return null;
 }
 
@@ -40,8 +42,6 @@ export function describeTableSurfaceBlocker(
             return "Vim Motions: owned table rendering needs Obsidian's own Vim key bindings turned off. Using the native table editor.";
         case 'mobile':
             return 'Vim Motions: owned table rendering is desktop-only for now. Using the native table editor.';
-        case 'external-backend':
-            return 'Vim Motions: owned table rendering is unavailable while the Neovim backend is connected. Using the native table editor.';
         case 'disabled':
         case null:
             return null;

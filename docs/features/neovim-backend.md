@@ -209,6 +209,17 @@ These bindings are provided in RPC mode, by Neovim companion mappings or by the 
 
 ![[keybindings#Fold commands]]
 
+## Tables
+
+With **Settings → Vim Motions → Vim features → Table widget mode** set to `owned`, the plugin's own table renderer works while the backend is connected, but the table is **presentational**.
+
+The nested cell editor is `contenteditable=false` and never takes focus, so Neovim keeps owning text, keys, IME composition, floating windows and the command line — nothing about those paths changes inside a table. Two things are given up in exchange:
+
+- **Neovim's own rendering does not appear inside the table.** Extmarks, flash labels, diagnostics, fold state and signs all dispatch to the parent editor, whose copy of the table's range is block-replaced. They remain visible everywhere else in the note.
+- **The active cell is not highlighted.** A block-replaced range cannot host a caret; with the bundled engine it is the focused cell editor that keeps the cursor parked there, and a presentational editor cannot. Neovim's cursor is still authoritative and edits land on the correct row — measured, four `j` into a table puts Neovim on the right line and `x` edits that line in Neovim's buffer.
+
+`native` remains the default and is unaffected.
+
 ## Known limitations
 
 - Which-key is not shown in the Markdown editor; use which-key.nvim instead.
