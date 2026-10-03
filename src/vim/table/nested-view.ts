@@ -14,6 +14,7 @@ import type { TableRange } from '../table-utils';
 import { runCleanups } from '../../util/cleanup';
 import { snippetState } from '../../snippets/autocomplete-types';
 import { getCmAdapterFromEditorView } from '../vim-api';
+import { refreshVimCursors, vimCursorFromSource } from '@replit/codemirror-vim';
 import { isExternalBackendActive } from '../external-mode';
 import {
     getRoutedKeyCount,
@@ -84,12 +85,18 @@ const live = new Set<Mounted>();
 /**
  * What the nested editors contain and whether any exist, for e2e assertions.
  *
- * `gutters` and `cursorLayers` are counted inside the nested view because it is
- * constructed directly rather than through Obsidian, so nothing registered with
- * `registerEditorExtension` should reach it. Zero here is only meaningful
- * alongside the parent's own non-zero counts: a nested editor that failed to
- * mount at all reads zero for both, which is how two earlier surface-gate
- * attempts reported success while doing nothing.
+ * `gutters` is counted inside the nested view because it is constructed
+ * directly rather than through Obsidian, so nothing registered with
+ * `registerEditorExtension` should reach it. Zero there is only meaningful
+ * alongside the parent's own non-zero count: a nested editor that failed to
+ * mount at all also reads zero, which is how two earlier surface-gate attempts
+ * reported success while doing nothing.
+ *
+ * `cursorLayers` is the deliberate exception and should read exactly **one**.
+ * The child is built without the vim extension, so `vimCursorFromSource`
+ * installs the fork's cursor here while reading mode from the parent. Zero is
+ * the defect where a cell's caret was `drawSelection()`'s 1px bar in every
+ * mode; two is the double caret.
  *
  * `connected` exists because every other field here survives the editor being
  * torn out of the document: the view object, its state and its own DOM subtree
@@ -244,6 +251,8 @@ class NestedTableHost implements PluginValue {
     private current: Mounted | null = null;
     /** True while this host is writing the child's selection. */
     private mirroring = false;
+    /** Parent vim mode at the last update, to detect a mode-only change. */
+    private lastMode = '';
     /** Captured at construction: a popout's window must survive teardown. */
     private readonly win: Window;
 
@@ -256,6 +265,23 @@ class NestedTableHost implements PluginValue {
     }
 
     update(update: ViewUpdate): void {
+        // A vim mode change produces no transaction in the child — the keys go
+        // to the parent — so the child's cursor would keep whatever shape it
+        // was measured with and normal would be indistinguishable from insert
+        // inside a cell. Measured: the child's cursor plugin received zero
+        // updates across an `i` and an `<Esc>`.
+        //
+        // This must be a measurement pass, not a reconcile. Forcing a mirrored
+        // selection dispatch instead redraws the cursor correctly and breaks
+        // two other things: the dispatch carries `scrollIntoView`, which moved
+        // the child's scroller under `scrolloff=100`, and the reconcile churned
+        // mounts, which broke remount-on-re-entry. Both were measured as
+        // regressions against a stash of this file.
+        const mode = this.parentModeSignature();
+        if (mode !== this.lastMode) {
+            this.lastMode = mode;
+            refreshVimCursors();
+        }
         if (
             update.docChanged ||
             update.selectionSet ||
@@ -263,6 +289,18 @@ class NestedTableHost implements PluginValue {
         ) {
             this.schedule();
         }
+    }
+
+    /** Everything the cursor's shape depends on, as a comparable string. */
+    private parentModeSignature(): string {
+        const vim = getCmAdapterFromEditorView(this.parent)?.state?.vim;
+        if (!vim) return '';
+        return [
+            vim.insertMode ? 'i' : '',
+            vim.visualMode ? 'v' : '',
+            vim.visualLine ? 'l' : '',
+            vim.visualBlock ? 'b' : '',
+        ].join('');
     }
 
     destroy(): void {
@@ -511,6 +549,25 @@ class NestedTableHost implements PluginValue {
                     // highlight, which renders no `.cm-selectionBackground` and
                     // is not themed like the rest of the editor.
                     drawSelection(),
+                    // The child is deliberately built without the vim
+                    // extension, so one vim state keeps owning commands,
+                    // registers and dot-repeat — which leaves it no vim state
+                    // to draw a cursor from. This draws the fork's cursor here
+                    // while reading mode from the parent, the state that owns
+                    // the keys. Without it the caret in a cell is
+                    // `drawSelection()`'s 1px bar, identical in every mode.
+                    //
+                    // The cast is the `getBundledVimApi()` mismatch: the fork's
+                    // `CodeMirror` and the plugin's `CmAdapter` do not overlap
+                    // structurally, and converging them is a separate change.
+                    vimCursorFromSource(
+                        () =>
+                            getCmAdapterFromEditorView(
+                                this.parent,
+                            ) as unknown as ReturnType<
+                                Parameters<typeof vimCursorFromSource>[0]
+                            >,
+                    ),
                     // The selection mirror stays in both modes: it is read-only
                     // output, and the only thing showing the user where they
                     // are inside a block-replaced range.

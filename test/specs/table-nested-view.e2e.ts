@@ -11,10 +11,9 @@ import {
  * Plan B Step 3b: the nested editor's lifecycle, mounted but not yet wired.
  *
  * Every assertion about the nested editor is paired with one about the parent.
- * A nested editor that failed to mount reads zero gutters and zero cursor
- * layers, which is indistinguishable from a correctly minimal one — the same
- * shape that let two surface-gate attempts report success while installing
- * nothing anywhere.
+ * A nested editor that failed to mount reads zero gutters, which is
+ * indistinguishable from a correctly minimal one — the same shape that let two
+ * surface-gate attempts report success while installing nothing anywhere.
  */
 
 const TABLE_DOC = [
@@ -233,17 +232,26 @@ describe('Nested table editor lifecycle (Plan B Step 3b)', function () {
         expect(report.rowsHidden).toBe(true);
     });
 
-    it('carries none of the parent per-view subsystems', async () => {
+    it('carries no registered per-view subsystem, and exactly one cursor', async () => {
         await enterOwnedTableDoc();
         await selectInsideTable();
 
         const report = await readReport();
 
         expect(report.nested.mounted).toBe(1);
+        // Nothing registered through `registerEditorExtension` reaches the
+        // child, which is constructed directly rather than through Obsidian.
         expect(report.nested.gutters).toBe(0);
-        expect(report.nested.cursorLayers).toBe(0);
+        // The cursor is the exception, and it is deliberate: the child is
+        // built without the vim extension, so `vimCursorFromSource` draws the
+        // fork's cursor here while reading mode from the parent. Exactly one,
+        // not "at least one" — two would be the double-caret regression, and
+        // zero was the state in which a cell's caret was `drawSelection()`'s
+        // 1px bar in every mode. Shape-follows-mode is asserted in
+        // `table-cell-caret.e2e.ts`.
+        expect(report.nested.cursorLayers).toBe(1);
         // The parent control: without these, a nested editor that never
-        // mounted satisfies the two assertions above.
+        // mounted satisfies the gutters assertion above.
         expect(report.parentGutters).toBeGreaterThan(0);
         expect(report.parentCursorLayers).toBeGreaterThan(0);
     });

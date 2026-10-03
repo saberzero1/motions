@@ -86,21 +86,35 @@ async function readCaret(): Promise<Reading> {
         // The owned surface renders its own caret inside the nested editor;
         // the native widget keeps the cursor in a cell editor. Prefer whatever
         // caret is actually on screen, and fall back to the parent's coords.
-        const nestedCaret = cm.dom.querySelector<HTMLElement>(
-            '.vim-motions-table-nested .cm-cursor, .vim-motions-table-nested .cm-cursor-primary',
-        );
-        const cellCaret = cm.dom.querySelector<HTMLElement>(
-            '.cm-table-widget .cm-cursor, .cm-table-widget .cm-cursor-primary',
-        );
-        const caretEl = nestedCaret ?? cellCaret;
+        //
+        // The fork's `.cm-fat-cursor` comes first and a zero-sized candidate is
+        // skipped rather than measured. Both matter: the owned surface hides
+        // `drawSelection()`'s caret in the nested editor, so that element is
+        // still in the DOM and reports **no bounding box** — measuring it read
+        // `left: 0`, put the caret outside the scroller and failed this
+        // scenario with a caret that was on screen the whole time. A hidden
+        // element having no box is the single most expensive measurement trap
+        // on this surface; do not resolve a caret without this guard.
+        const candidates = [
+            '.vim-motions-table-nested .cm-fat-cursor',
+            '.vim-motions-table-nested .cm-cursor-primary',
+            '.vim-motions-table-nested .cm-cursor',
+            '.cm-table-widget .cm-cursor-primary',
+            '.cm-table-widget .cm-cursor',
+        ];
 
         let left = NaN;
         let right = NaN;
-        if (caretEl) {
-            const r = caretEl.getBoundingClientRect();
+        for (const selector of candidates) {
+            const el = cm.dom.querySelector<HTMLElement>(selector);
+            if (!el) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 && r.height === 0) continue;
             left = r.left;
             right = r.right;
-        } else {
+            break;
+        }
+        if (!Number.isFinite(left)) {
             const coords = cm.coordsAtPos(cm.state.selection.main.head);
             if (coords) {
                 left = coords.left;
