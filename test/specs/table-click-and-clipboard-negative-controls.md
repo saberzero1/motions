@@ -76,3 +76,70 @@ the editor. Scoping the query to `.vim-motions-table-nested` fixed it.
 That is the fourth measurement in this plan sequence spoiled by reading the
 wrong element, after `.table-wrapper` for horizontal scroll, the pre-fix
 repeated-tabstop reading, and element-box width for passive/active geometry.
+
+## Entering a table by clicking it (later work)
+
+The scenarios above all call `enterCell()` first, which moves the cursor into
+the table programmatically and mounts the nested editor, and then click inside
+**that** editor — where CodeMirror resolves the position itself and
+`selectionUpExtension` carries it to the parent. So none of them covered
+_entering_ a table, and clicking a table the cursor was not already in did
+nothing at all. Measured with a real pointer event on the passive grid: the
+parent's head stayed at `0` and no editor mounted.
+
+Two scenarios were added for that case, with three controls.
+
+### Control 6 — `TableSurfaceWidget.ignoreEvent` override removed
+
+```
+✖ enters the table when the passive grid is clicked from outside
+    Expected substring: "cc"
+    Received string:    "Line above"
+✖ a click on a passive delimiter lands in a cell
+4 passing, 2 failing
+```
+
+The original defect, and the reason the first implementation of the handler
+was **dead code**. `eventBelongsToEditor` walks from the event target up to
+`contentDOM` and returns false if any view on the way reports `ignoreEvent`,
+which skips every `domEventHandlers` entry. `WidgetType.ignoreEvent()`
+defaults to `true`, so the handler was registered and never called. The
+override returns `true` for everything except `mousedown`, keeping the
+measured key behaviour (a blanket `false` was previously measured to stop every
+key reaching the editor) and changing only the one interaction that needs it.
+
+### Control 7 — `snapOutOfDelimiter` neutered
+
+```
+✖ a click on a passive delimiter lands in a cell
+✖ a click on a delimiter lands in a cell, not on the delimiter
+4 passing, 2 failing
+```
+
+Both surfaces fail together, which is the point of having moved the function
+into `layout-model.ts` and deleted the copy in `nested-view.ts`: two
+implementations that drifted would land the cursor between cells on one
+surface only.
+
+**This control first failed to fire, and the fault was the new scenario.** It
+passed with the snap neutered, because a delimiter span is one character wide
+and its centre hit-tests to the offset _after_ the `|` — already inside the
+next cell, needing no snap. `pointOfPassive` now biases to the span's left
+edge for a delimiter, landing on the delimiter's own offset, which is the
+position that has no cell. Without the control the scenario would have shipped
+looking like coverage of a path it never touched.
+
+### Control 8 — `createTableSurfaceClick()` not registered
+
+```
+✖ enters the table when the passive grid is clicked from outside
+    Expected: 0        // before.mounted
+    Received: -1
+✖ a click on a passive delimiter lands in a cell
+4 passing, 2 failing
+```
+
+A distinct mechanism from control 6 with the same user-visible symptom: there
+the handler is unreachable, here it does not exist. Both are worth holding,
+because the widget override and the extension are in different files and
+either one alone is inert.

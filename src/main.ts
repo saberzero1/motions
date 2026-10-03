@@ -287,6 +287,7 @@ import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { createTableNavExtension } from './vim/table-nav-controller';
 import { realignTableLines } from './vim/table-utils';
 import { createTableSurface } from './vim/table/surface-field';
+import { createTableSurfaceClick } from './vim/table/click-to-place';
 import {
     createNestedTableHost,
     getNestedTableStats,
@@ -3415,6 +3416,7 @@ export default class VimMotionsPlugin extends Plugin {
             blocker === null,
             () => [
                 createTableSurface(livePreviewOnly()).extension,
+                createTableSurfaceClick(),
                 createNestedTableHost(
                     (parent) => suppressNativeCellEditor(this.app, parent),
                     (parent, direction) =>

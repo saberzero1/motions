@@ -185,6 +185,69 @@ async function clickAt(p: { x: number; y: number }): Promise<void> {
     await browser.pause(800);
 }
 
+/**
+ * A point on the **passive** grid, which is what is on screen while the cursor
+ * is outside the table.
+ *
+ * The mirror image of `pointOf`: that one scopes to the nested editor because
+ * the passive rows are `display: none` while it is mounted. Here the nested
+ * editor must be absent, so a zero-sized box means the grid is not actually
+ * rendered and the scenario would otherwise click at (0, 0) and read as the
+ * product ignoring the click.
+ */
+async function pointOfPassive(
+    contains: string,
+    delimiter = false,
+): Promise<{ x: number; y: number }> {
+    const p = (await browser.executeObsidian(
+        ({ app, obsidian }, want: string, wantDelim: boolean) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const rows = view?.containerEl.querySelector<HTMLElement>(
+                '.vim-motions-table-surface-rows',
+            );
+            if (!rows) return null;
+            const sel = wantDelim
+                ? '.vim-motions-table-delim'
+                : '.vim-motions-table-cell';
+            const nodes = Array.from(rows.querySelectorAll<HTMLElement>(sel));
+            const el = nodes.find((n) => (n.textContent ?? '').includes(want));
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 && r.height === 0) return null;
+            return {
+                // A delimiter span is one character wide, so its centre
+                // hit-tests to the offset *after* the `|`, which is already
+                // inside the next cell and needs no snapping. Measured: this
+                // scenario passed with `snapOutOfDelimiter` neutered. Biasing
+                // to the left edge lands on the delimiter's own offset, which
+                // is the position that has no cell.
+                x: wantDelim
+                    ? Math.round(r.left) + 1
+                    : Math.round(r.left + r.width / 2),
+                y: Math.round(r.top + r.height / 2),
+            };
+        },
+        contains,
+        delimiter,
+    )) as { x: number; y: number } | null;
+    expect(p).not.toBeNull();
+    return p as { x: number; y: number };
+}
+
+/** Park the cursor outside the table so the nested editor unmounts. */
+async function leaveTable(): Promise<void> {
+    await browser.executeObsidian(({ app, obsidian }) => {
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        const cm = (view?.editor as unknown as { cm?: unknown })?.cm as
+            { dispatch: (s: unknown) => void } | undefined;
+        if (!cm) throw new Error('no EditorView');
+        cm.dispatch({ selection: { anchor: 0 } });
+    });
+    await browser.pause(900);
+}
+
 async function enterCell(line = 5, ch = 2): Promise<void> {
     await browser.executeObsidian(
         ({ app, obsidian }, target: number, col: number) => {
@@ -225,6 +288,48 @@ describe('Owned table clicks and clipboard (Plan E1.4b)', function () {
         await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
         await browser.pause(800);
         await enterCell();
+    });
+
+    it('enters the table when the passive grid is clicked from outside', async () => {
+        // Deliberately undoes `beforeEach`'s `enterCell()`. Every other
+        // scenario here mounts the nested editor first and then clicks inside
+        // it, where CodeMirror resolves the position itself — so none of them
+        // covered *entering* a table, and clicking one the cursor was not
+        // already in did nothing at all. Measured with a real pointer event:
+        // the parent's head stayed at 0 and no editor mounted.
+        await leaveTable();
+        const before = await where();
+        expect(before.error).toBeUndefined();
+        expect(before.mounted).toBe(0);
+        expect(before.parentHead).toBe(0);
+
+        const p = await pointOfPassive('cc');
+        await clickAt(p);
+
+        const after = await where();
+        // The clicked row, and a real cell rather than a delimiter.
+        expect(after.lineText).toContain('cc');
+        expect(after.onDelimiter).toBe(false);
+        expect(after.cellIndex).toBe(0);
+        // Entering must also hand over: a click that placed the cursor but
+        // left focus on `<body>` renders the table and is dead to the
+        // keyboard, which is the shape of the hand-off defect fixed earlier.
+        expect(after.mounted).toBe(1);
+        expect(after.focused).toBe(true);
+    });
+
+    it('a click on a passive delimiter lands in a cell', async () => {
+        await leaveTable();
+        const p = await pointOfPassive('|', true);
+        await clickAt(p);
+
+        const after = await where();
+        // The shared `snapOutOfDelimiter` applies on this surface too. Without
+        // it the cursor sits between two cells and the next motion or text
+        // object acts from nowhere.
+        expect(after.onDelimiter).toBe(false);
+        expect(after.cellIndex).toBeGreaterThanOrEqual(0);
+        expect(after.mounted).toBe(1);
     });
 
     it('moves the parent cursor to the cell that was clicked', async () => {

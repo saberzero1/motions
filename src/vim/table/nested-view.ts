@@ -25,7 +25,7 @@ import { mirrorRanges } from './selection-mirror';
 import { tableCellDecorations } from './cell-decorations';
 import { syncUpExtension, type SyncUpTarget, type TextDiff } from './sync-up';
 import { findRenderableTableRanges } from './renderable-ranges';
-import { buildTableLayout, cellAt } from './layout-model';
+import { snapOutOfDelimiter } from './layout-model';
 import {
     TABLE_SURFACE_ROOT_SELECTOR,
     nestedHostContainer,
@@ -154,35 +154,6 @@ export function getNestedSelectionReport(): {
         childCount: selection.ranges.length,
         childMain: selection.mainIndex,
     };
-}
-
-/**
- * A child offset moved out of a delimiter and into a cell.
- *
- * A click on a rendered `|` resolves to a position inside the delimiter's own
- * range, which belongs to no cell — the next motion or text object would then
- * act from between two cells. `cellAt` deliberately returns null there rather
- * than guessing, so the choice is made here: prefer the cell that starts
- * immediately after the delimiter, and fall back to the one ending at it for a
- * row's final `|`.
- */
-function snapOutOfDelimiter(table: TableRange, childPos: number): number {
-    const layout = buildTableLayout({
-        from: 0,
-        to: table.lines.join('\n').length,
-        lines: table.lines,
-    });
-    if (!layout || cellAt(layout, childPos)) return childPos;
-
-    for (const row of layout.rows) {
-        if (childPos < row.from || childPos > row.to) continue;
-        const after = row.cells.find((c) => c.from === childPos + 1);
-        if (after) return after.from;
-        const before = row.cells.find((c) => c.to === childPos);
-        if (before) return before.to;
-        return childPos;
-    }
-    return childPos;
 }
 
 /** The table the parent's cursor is in, or null. */
@@ -471,7 +442,7 @@ class NestedTableHost implements PluginValue {
             if (!table) return;
 
             const childHead = update.state.selection.main.head;
-            const snapped = snapOutOfDelimiter(table, childHead);
+            const snapped = snapOutOfDelimiter(table.lines, childHead);
             const parentHead = table.from + snapped;
             if (this.parent.state.selection.main.head === parentHead) return;
             this.parent.dispatch({ selection: { anchor: parentHead } });
