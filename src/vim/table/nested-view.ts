@@ -567,6 +567,16 @@ class NestedTableHost implements PluginValue {
                             ) as unknown as ReturnType<
                                 Parameters<typeof vimCursorFromSource>[0]
                             >,
+                        // `drawSelection()` above installs a theme setting
+                        // `caret-color: transparent !important` on `.cm-line`,
+                        // so this view has no usable browser caret. Measured
+                        // as the single matching rule `.ͼ4 .cm-line`, against
+                        // a main editor whose line inherits the accent — which
+                        // is why insert mode had no visible caret at all here
+                        // while `.cm-content` read the right colour. The fork
+                        // draws its own cursor instead, in the shape the user
+                        // configured.
+                        { nativeCaretUnavailable: true },
                     ),
                     // The selection mirror stays in both modes: it is read-only
                     // output, and the only thing showing the user where they
