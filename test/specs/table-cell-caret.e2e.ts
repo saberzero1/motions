@@ -9,8 +9,8 @@ import {
 /**
  * A caret is visible inside a cell in `tableWidgetMode: 'owned'`.
  *
- * SKIPPED pending a fork release. The fix is in the vim fork, not here:
- * `BlockCursorPlugin.update()` hides every
+ * The fix is in the vim fork, not here, and shipped in
+ * `@saberzero1/codemirror-vim@6.4.4`: `BlockCursorPlugin.update()` hid every
  * `.cm-cursorLayer:not(.cm-vimCursorLayer)` it finds in its own `scrollDOM`,
  * and the nested cell editor is mounted **inside** the parent's `scrollDOM`.
  * So the parent's plugin reached into a different `EditorView` and hid that
@@ -18,13 +18,13 @@ import {
  * also why every probe of it reported `0x0`: a hidden element has no box.
  *
  * The fork now skips layers whose `closest('.cm-editor')` is not its own
- * `view.dom`. Un-skip this once `@saberzero1/codemirror-vim` ships that and
- * the alias range in `package.json` is bumped.
+ * `view.dom`.
  *
- * Verified against a local build of the fork: `display: block`, one child, and
- * a `1x19` caret at `1146,253` — inside the cell, whose box starts at
- * `1127,203`. With the ownership check removed it returns to `display: none`
- * and `0x0`.
+ * Measured: `display: block`, one child, and a `1x19` caret at `1146,253` —
+ * inside the cell, whose box starts at `1127,203`. With the ownership check
+ * removed it returns to `display: none` and `0x0`, which is also why every
+ * probe that measured the caret's geometry saw `0x0`: a hidden element has no
+ * box.
  *
  * The fork's own suite stays green across four partitions: 1622 passing.
  *
@@ -105,7 +105,7 @@ async function read(): Promise<CaretReading> {
     })) as CaretReading;
 }
 
-describe.skip('Caret inside an owned table cell', function () {
+describe('Caret inside an owned table cell', function () {
     this.timeout(240000);
 
     before(async () => {
