@@ -110,8 +110,8 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 - **Under the Neovim backend the table is presentational.** It renders, but the cell editor is inert and never focused so Neovim keeps the cursor, the text and the keys. Neovim's own rendering — extmarks, flash labels, diagnostics, folds, signs — does not appear inside the table, and the active cell is not highlighted. See [[neovim-backend#Tables]].
 - **Neither renderer re-aligns a cell's contents.** Both the idle grid and the cursor's editor show the table's source characters exactly, with cells and delimiters marked up for styling and each column's alignment carried as a class. A column marked `---:` is therefore themeable but its text is not moved to the right, because the two renderers must agree glyph-for-glyph — otherwise the grid visibly shifts the moment the cursor enters the table. Neither is an HTML `<table>`, for the same reason.
 - **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
-- **Some Obsidian widget features** are not reproduced: row and column buttons, the cell and column context menus, column and row drag-to-reorder, sort by column, mouse multi-cell selection, copy and paste of a cell selection, malformed-table handling, click-to-place-cursor, and alignment-aware rendering. Keyboard multi-cell selection **is** supported — `<C-v>` renders a true rectangular selection, one range per row. Column _resizing_ is not in that list — Obsidian's widget does not offer it, so nothing is lost.
-- **`scrolloff=100` disables horizontal scrolling inside a table**, in `owned` and `native` alike. Ordinary horizontal scrolling works in both — the nested editor follows the caret.
+- **Some Obsidian widget features** are not reproduced: row and column buttons, the **column** context menu, column and row drag-to-reorder, sort by column, **mouse** multi-cell selection, and alignment-aware rendering. Four are supported: the **cell** context menu (a right-click reaches Obsidian's editor menu), **keyboard** multi-cell selection (`<C-v>` renders a true rectangular selection, one range per row), **click-to-place-cursor**, and **malformed tables**, which are given defined behaviour — a short row yields fewer cells and a long one is truncated for layout, both leaving the document unchanged. Column _resizing_ is not in that list — Obsidian's widget does not offer it, so nothing is lost.
+- **`scrolloff=100` disables horizontal scrolling inside a table in `native`.** `owned` no longer does: its monospace grid sets `white-space: pre`, so the nested editor does not wrap and still scrolls. Ordinary horizontal scrolling works in both — the nested editor follows the caret.
 - **A snippet body containing a `|` or a newline damages the row.** Snippets otherwise work in a cell in this mode — see [[snippets#Snippets in a table cell]] — but a literal pipe is inserted as-is and opens an extra column, and a newline cannot be represented in a row at all. Obsidian's own table editor converts these to `\|` and `<br>`; this mode does not yet. Escape the pipe in the snippet definition as a workaround.
 - **Only the active tabstop is marked.** The remaining tabstops of an open snippet carry no highlight inside a cell, because that decoration is driven from the parent editor's state and the cell renders its own. The active one is visible as the selection.
 
@@ -119,13 +119,12 @@ With `owned`, the plugin replaces Obsidian's table decoration with its own and m
 
 `owned` is skipped, with a one-time notice, when any of these hold. Each is a deliberate restriction rather than a missing feature:
 
-| Condition                                  | Reason                                                                  |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| Obsidian's own **Vim key bindings** are on | Only the bundled engine has been measured against this surface          |
-| **Mobile**                                 | Desktop only for now                                                    |
-| The **Neovim backend** is connected        | Neovim owns text and keys; this surface's input path is not wired to it |
-| **Source mode** or Reading view            | Replacing table source in a mode meant to show source is a defect       |
-| The setting is not `owned`                 | Opt-in                                                                  |
+| Condition                                  | Reason                                                            |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| Obsidian's own **Vim key bindings** are on | Only the bundled engine has been measured against this surface    |
+| **Mobile**                                 | Desktop only for now                                              |
+| **Source mode** or Reading view            | Replacing table source in a mode meant to show source is a defect |
+| The setting is not `owned`                 | Opt-in                                                            |
 
 ## Table-nav mode
 
