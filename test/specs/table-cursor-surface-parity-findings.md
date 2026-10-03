@@ -199,3 +199,152 @@ is now four-for-four in this plan sequence:
 
 The habit that eventually worked: count the element **unfiltered** first, then
 add one filter clause at a time.
+
+---
+
+## Re-measured later: one of the three "defects" was not one
+
+The three findings above were recorded from the spec's failures. Re-measuring
+each in isolation changes the picture substantially, and the correction is
+worth more than the original reading.
+
+### `owned` PRESENCE / ABSENCE — not a defect, and not non-determinism
+
+Running the `owned` half **alone**, with the `native` half not executed, every
+step is correct:
+
+| step                      | `viewSuppressed` | `overrideCount` | parent cursor layer                  |
+| ------------------------- | ---------------- | --------------- | ------------------------------------ |
+| caret outside the table   | `false`          | 0               | `display: block`, 1 child            |
+| caret inside a cell       | `true`           | 1               | hidden (nested editor draws instead) |
+| caret outside again       | `false`          | 0               | `display: block`, 1 child            |
+| after a further keystroke | `false`          | 0               | `display: block`, 1 child            |
+
+The recorded "two identical sequences measured `1` and `0` fat cursors" was
+not non-determinism. It was **cross-test contamination**: the preceding
+`native` scenario leaves a stale `true` in the fork's suppression override,
+which is a `WeakMap` keyed by `EditorView`. `setPluginSettingAndReload` does
+not recreate the editor and does not reset that map, so `owned` started every
+run already suppressed. The trace is unambiguous — in the combined run the
+`owned` half records **no** `setCursorSuppressedForView` call at all while
+reporting `overrideCount: 1`.
+
+Consequence for the spec: its `owned` half is a contamination guard as much as
+a cursor guard, and the two surfaces must stay in one file, in this order, for
+it to keep that property.
+
+### `native` returns — real, and narrower than recorded
+
+It reproduces only when the caret leaves the table **without a keystroke**.
+Same document, same start and end offsets:
+
+| how the caret left      | `viewSuppressed` | `overrideCount` | cursor  |
+| ----------------------- | ---------------- | --------------- | ------- |
+| `k` `k` `k` (real keys) | `false`          | 0               | present |
+| dispatched selection    | `true`           | 1               | absent  |
+
+Mechanism: entering a table activates table-nav, which suppresses the cursor;
+`TableNavController.update()`'s `s.state === 'nav'` branch returns
+unconditionally and never re-checks whether the caret is still in a table; and
+nav's only exits run from its own key handlers. So a picker jump, `:42`, a
+mark or a harpoon slot leaves nav active with the caret outside the table —
+keys swallowed (a following `j` did not move the head) and the cursor
+suppressed. `table-cell-cursor-guard` cannot compensate, because its `update()`
+early-returns while `isTableNavActive(state)`.
+
+### Fix attempts, and why they are not in the tree
+
+Five attempts, each verified by running both suites:
+
+1. Exit from the `nav` branch directly — the branch fires and `exitTable`
+   aborts, because it dispatches and CM6 rejects a reentrant dispatch from a
+   ViewPlugin `update()`.
+2. Defer with `requestAnimationFrame` — **fixes the target defect** (guard spec
+   4 failing → 1 failing, `owned` contamination gone) but breaks
+   `tables.e2e.ts` `ca| should change cell including trailing pipe`. Bisected
+   to the nav-branch block.
+3. Add `!update.docChanged` — `ca|` still fails.
+4. Add an `isCellVimIdle` guard — `ca|` still fails. Note `isCellVimIdle(null)`
+   returns `true` by design, so the guard passes whenever the adapter is not
+   resolvable; that is a plausible but unconfirmed reason it was ineffective.
+5. Skip the realign on the non-user-initiated exit — `ca|` still fails.
+
+The `ca|` failure is `Position 41 is out of range for changeset of length 37`,
+thrown synchronously inside the test's own callback: a stale-position dispatch
+against the post-change document (`ca|` removes 4 characters from a 41-char
+document). `ca|` ends in insert mode, and the test reports `activeEl: BODY`,
+`cmFocused: false`.
+
+The controller is therefore left unchanged pending a design that cannot land
+mid-operation. Three of the four guard scenarios pass without it.
+
+---
+
+## Resolution
+
+Two changes, in `src/vim/table-nav-controller.ts`. The second one alone was
+tried five times and failed; it only became safe once the first was in place.
+
+### 1. `tryEnter()` resolves the table from the current state
+
+`scheduleEntry()` captured a `TableRange` and its `entryTimer !== null` guard
+stopped any later update replacing the pending candidate, so an edit inside
+the `ENTRY_DEBOUNCE_MS` window left the captured `to` past the end of the
+document. The only validation was `cursorInRange(from, to)`, which still
+passes because the cursor is numerically inside the stale span. The stale
+`tableTo` then reached `tableNavStateField`, where the next document-changing
+transaction maps it and throws from inside a `StateField` update:
+
+```
+Position 41 is out of range for changeset of length 37
+```
+
+This is a **pre-existing** defect, not one introduced by the exit work — but
+it is what made every attempt at the exit fail, because the teardown dispatches
+and that is what mapped the stale range. `tryEnter()` now searches the current
+state, and rejects a range extending past `doc.length`.
+
+### 2. A deferred, fail-closed, non-interactive exit
+
+`update()`'s `nav` branch schedules `abandonNav()` on a frame when a
+**selection-only** transaction leaves the caret outside every table. The frame
+re-validates rather than captures: session still `nav`, the document still the
+same immutable `Text` object, the caret still outside every table, and vim
+quiescent.
+
+`vimQuiescent()` is fail-closed — an unresolvable adapter or vim state answers
+false. `isCellVimIdle` is deliberately **not** reused: it treats a null state
+as idle, which is right for a cell editor still initialising and wrong for a
+decision that dispatches and destroys a cell editor.
+
+`abandonNav()` is a separate routine rather than a placement variant of
+`exitTable`, because the order differs where it matters: `exitTableNav` is
+dispatched **before** `destroyTableCell()`, so no stale range is left in the
+state field when the cell-editor teardown flushes a transaction. It does not
+call `placeCursorAround` or `view.focus()` — the caret is already where
+whatever moved it wanted it, and focus may legitimately have moved too.
+
+### Negative controls
+
+| Control | Sabotage                                         | Result                                     |
+| ------- | ------------------------------------------------ | ------------------------------------------ |
+| E       | `tryEnter` trusts the captured range again       | `ca                                        | ` fails with the position error; parity still 8/8 |
+| F       | `vimQuiescent` returns true on a missing adapter | **did not fire** — both suites still green |
+| G       | no deferred abandon at all                       | parity 4 failing, the original state       |
+| H       | `refreshVimCursors()` removed from `abandonNav`  | **did not fire** — both suites still green |
+
+Control H is why there is no explicit cursor redraw in `abandonNav`. The
+reasoning for adding one was sound and measured in the earlier design — in
+that ordering the layer really was left visible with zero children — but in
+this ordering the `exitTableNav` dispatch and the cell-editor teardown already
+produce the update the fork redraws on. It was removed rather than kept on
+faith. If the teardown is ever reordered so that no transaction follows the
+release, `refreshVimCursors()` is the fix.
+
+Control F is recorded as **unverified** rather than treated as proof the guard
+is unnecessary. The suite never reaches a state where the adapter fails to
+resolve, so no scenario distinguishes the two branches. It is kept because
+`false` is the only coherent answer for a predicate asking whether vim is
+_demonstrably_ quiescent — with no state to read, nothing is demonstrable —
+and because the permissive form is what made attempt 4 ineffective. Anyone
+removing it should expect no test to object.

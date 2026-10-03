@@ -4,7 +4,7 @@ import {
     type PluginValue,
     type ViewUpdate,
 } from '@codemirror/view';
-import { type Extension } from '@codemirror/state';
+import { type EditorState, type Extension } from '@codemirror/state';
 import { type App, Scope, editorInfoField } from 'obsidian';
 import {
     setCursorSuppressedForView,
@@ -56,7 +56,7 @@ function isCellVimIdle(vim: Parameters<typeof isVimIdle>[0]): boolean {
     if (vs.visualMode) return false;
     if (vim.mode === 'normal' || vim.mode == null) {
         if (vim.inputState?.operator) return false;
-        if (vim.surroundState) return false;
+        if (vs['surroundState']) return false;
         if (vim.inputState?.keyBuffer && vim.inputState.keyBuffer.length > 0)
             return false;
         if (vim.expectLiteralNext) return false;
@@ -181,6 +181,27 @@ class TableNavController implements PluginValue {
         }
 
         if (s.state === 'nav') {
+            // Nav's own exits all run from its key handlers, so anything that
+            // moves the caret without a keystroke — a picker jump, `:42`, a
+            // mark, a harpoon slot — used to leave nav active with the caret
+            // outside the table: keys still swallowed, and the vim cursor left
+            // suppressed with an emptied layer, because
+            // `table-cell-cursor-guard` early-returns while nav is active.
+            // Measured, same document and same end offset: leaving with `k`
+            // ended at `overrideCount: 0` with one visible cursor, while a
+            // dispatched move ended at `1` with none, and a following `j` did
+            // not move the head.
+            //
+            // Selection-only: an edit is never a "something moved the caret"
+            // event, and `refreshAfterDocChange` below already owns that case.
+            if (
+                update.selectionSet &&
+                !update.docChanged &&
+                !this.cursorInAnyTable(update.state)
+            ) {
+                this.scheduleAbandon();
+                return;
+            }
             if (update.docChanged) this.refreshAfterDocChange();
             else this.ensureHighlight();
             this.suppressWidgetCursorLayers();
@@ -202,7 +223,129 @@ class TableNavController implements PluginValue {
         if (!this.hasDataRows(active)) return;
         if (!findTableWidgetElement(this.view, active.from)) return;
 
-        this.scheduleEntry(active);
+        this.scheduleEntry();
+    }
+
+    private cursorInAnyTable(state: EditorState): boolean {
+        return findTableRanges(state).some((t) =>
+            cursorInRange(state, t.from, t.to),
+        );
+    }
+
+    /**
+     * Whether vim demonstrably has nothing in flight.
+     *
+     * Fail-closed: an unresolvable adapter or vim state answers **false**.
+     * `isCellVimIdle` is the wrong predicate here precisely because it treats
+     * a null state as idle, which is right for a cell editor still
+     * initialising and wrong for a safety decision that dispatches and tears
+     * down a cell editor.
+     */
+    private vimQuiescent(): boolean {
+        const adapter = getCmAdapterFromEditorView(this.view);
+        const vim = adapter?.state?.vim;
+        if (!adapter || !vim) return false;
+        const vs = vim as unknown as Record<string, unknown>;
+        if (vs['insertMode'] || vs['visualMode']) return false;
+        if (vim.inputState?.operator) return false;
+        const buffered = vim.inputState?.keyBuffer;
+        if (buffered && buffered.length > 0) return false;
+        if (vs['surroundState']) return false;
+        if (vim.expectLiteralNext) return false;
+        // A vim operation still being applied. `ca|` is inside one for the
+        // whole of its change, which is the window the stale-position crash
+        // lived in.
+        if ((adapter as unknown as Record<string, unknown>)['curOp']) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Leave nav mode on a later frame, for a caret the controller did not move.
+     *
+     * Deferred because the teardown dispatches, and CodeMirror rejects a
+     * reentrant dispatch from inside a ViewPlugin `update()` — called directly
+     * it aborts partway, leaving the session in `nav` still holding the
+     * suppression it was trying to release.
+     *
+     * Everything is re-validated in the frame rather than captured, because
+     * that window is exactly where an operator can start. The document is
+     * compared by identity: CodeMirror's `Text` is immutable, so a different
+     * object means the document moved under the pending exit.
+     */
+    private scheduleAbandon(): void {
+        if (this.abandonFrame !== null) return;
+        const doc = this.view.state.doc;
+        this.abandonFrame = window.requestAnimationFrame(() => {
+            this.abandonFrame = null;
+            if (this.session.state !== 'nav') return;
+            if (this.view.state.doc !== doc) return;
+            if (this.cursorInAnyTable(this.view.state)) return;
+            if (!this.vimQuiescent()) return;
+            this.abandonNav();
+        });
+    }
+
+    /**
+     * Tear nav mode down without moving the caret or taking focus.
+     *
+     * Deliberately not a placement variant of `exitTable`: the order differs
+     * where it matters. `exitTableNav` is dispatched **before**
+     * `destroyTableCell()`, because destroying Obsidian's cell editor can
+     * flush a document transaction, and a stale range still held in
+     * `tableNavStateField` would be mapped against it.
+     *
+     * No `placeCursorAround` and no `view.focus()`: the caret is already where
+     * whatever moved it wanted it, and focus may legitimately have gone with
+     * it.
+     */
+    private abandonNav(): void {
+        const s = this.session;
+        if (s.state !== 'nav') return;
+
+        s.state = 'inactive';
+        s.exitTimestamp = Date.now();
+        this.cancelEntry();
+        this.clearRefreshTimer();
+        this.removeHighlight();
+        this.removeNavScope();
+        s.widgetEl?.classList.remove(NAV_MODE_CLASS);
+        setKeyInterceptActive(false);
+
+        this.view.dispatch({ effects: exitTableNav.of(null) });
+
+        const editMode = getEditModeForView(this.view);
+        if (editMode?.tableCell) editMode.destroyTableCell();
+        if (s.hiddenEl) {
+            s.hiddenEl.classList.remove(CELL_HIDDEN_CLASS);
+            s.hiddenEl = null;
+        }
+
+        const wasDirty = s.dirty;
+        s.widgetEl = null;
+        s.dirty = false;
+        this.navKeyHandler?.resetPending();
+
+        if (wasDirty) {
+            const range = this.resolveTableRange();
+            if (range && range.to <= this.view.state.doc.length) {
+                tableRealign(this.view, range);
+            }
+        }
+
+        clearCursorSuppressedForView(this.view);
+        resumeAnimatedCursorForView(this.view);
+        // No explicit cursor redraw here. One was added, on the measured
+        // grounds that clearing the suppression is only a map write and
+        // `restoreCursorLayers` restores `display` without repopulating the
+        // layer — both true. It is not needed in *this* ordering, though: the
+        // `exitTableNav` dispatch above, and the cell-editor teardown after
+        // it, produce the update the fork redraws on. Removing it kept both
+        // suites green, so it is gone rather than kept on faith. If this
+        // teardown is ever reordered so no transaction follows the release,
+        // `refreshVimCursors()` is the fix.
+        this.restoreCursorLayers();
     }
 
     private canActivate(): boolean {
@@ -215,7 +358,10 @@ class TableNavController implements PluginValue {
 
     private scrollLockCleanup: (() => void) | null = null;
 
-    private scheduleEntry(table: TableRange): void {
+    /** Pending deferred `abandonNav()`, so it can be cancelled. */
+    private abandonFrame: number | null = null;
+
+    private scheduleEntry(): void {
         const s = this.session;
         if (s.entryTimer !== null) return;
         s.preEntryScrollTop = this.view.scrollDOM.scrollTop;
@@ -231,7 +377,7 @@ class TableNavController implements PluginValue {
         s.entryTimer = window.setTimeout(() => {
             this.releaseScrollLock();
             s.entryTimer = null;
-            this.tryEnter(table);
+            this.tryEnter();
         }, ENTRY_DEBOUNCE_MS);
     }
 
@@ -251,7 +397,24 @@ class TableNavController implements PluginValue {
         }
     }
 
-    private tryEnter(table: TableRange): void {
+    /**
+     * Enter nav mode, resolving the table from the **current** state.
+     *
+     * The range is deliberately not carried from `scheduleEntry`. That runs
+     * `ENTRY_DEBOUNCE_MS` earlier and its `entryTimer !== null` guard stops a
+     * later update replacing the pending candidate, so an edit inside the
+     * window leaves the captured `to` past the end of the document. Nothing
+     * caught it: the only check here was `cursorInRange(from, to)`, which
+     * still passes because the cursor is numerically inside the stale span.
+     * The stale `tableTo` then reached `tableNavStateField`, where the next
+     * document-changing transaction maps it and throws
+     * `Position 41 is out of range for changeset of length 37` from inside a
+     * StateField update — which takes the field, and the editor, down.
+     *
+     * Reproduced by `ca|` on a 41-character table: the change leaves 37
+     * characters while an entry scheduled before it is still pending.
+     */
+    private tryEnter(): void {
         if (__DEV__) console.debug('[table-nav] tryEnter');
         const s = this.session;
         if (s.state !== 'inactive') return;
@@ -261,7 +424,12 @@ class TableNavController implements PluginValue {
         const editMode = getEditModeForView(this.view);
         if (!editMode?.tableCell) return;
 
-        if (!cursorInRange(this.view.state, table.from, table.to)) return;
+        const table = findTableRanges(this.view.state).find((t) =>
+            cursorInRange(this.view.state, t.from, t.to),
+        );
+        if (!table) return;
+        if (table.to > this.view.state.doc.length) return;
+        if (!this.hasDataRows(table)) return;
 
         const widgetEl = findTableWidgetElement(this.view, table.from);
         if (!widgetEl) return;
@@ -1064,6 +1232,10 @@ class TableNavController implements PluginValue {
     destroy(): void {
         const s = this.session;
         if (__DEV__) console.debug('[table-nav] destroy, state=', s.state);
+        if (this.abandonFrame !== null) {
+            window.cancelAnimationFrame(this.abandonFrame);
+            this.abandonFrame = null;
+        }
         if (s.state !== 'inactive') {
             this.removeHighlight();
             this.removeNavScope();
