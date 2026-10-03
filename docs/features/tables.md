@@ -90,6 +90,8 @@ The `tablenav` setting (on by default) controls whether the **table-nav overlay*
 
 > [!warning]
 > Experimental, and not the default. Enable with `set tablewidget=owned` or **Settings → Vim Motions → General → Table widget in live preview**.
+>
+> `native` stays the default deliberately. The owned surface renders the table's **source** in a monospace grid rather than as a formatted table, the nav overlay's single-key structural commands are `native`-only, and several of Obsidian's widget features have no equivalent — they are listed under [What is not supported yet](#what-is-not-supported-yet).
 
 With `owned`, the plugin replaces Obsidian's table decoration with its own and mounts a nested editor inside it when the cursor enters a table. The nested editor hosts the caret; the **parent editor's vim owns every command**, so there is one vim state, one undo history and one document.
 
