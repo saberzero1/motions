@@ -22,10 +22,31 @@ function isTableCellEditor(view: EditorView): boolean {
     return view.dom.closest('.cm-table-widget') !== null;
 }
 
-function hasVisibleTableWidget(view: EditorView): boolean {
-    const widgets = view.dom.querySelectorAll('.cm-table-widget');
-    for (let i = 0; i < widgets.length; i++) {
-        if ((widgets[i] as HTMLElement).offsetParent !== null) return true;
+/**
+ * Whether a table in this view is rendered by **either** implementation.
+ *
+ * Both are asked, and that is the whole point of this function. It used to
+ * query only `.cm-table-widget` — Obsidian's widget — which
+ * `tableWidgetMode: 'owned'` removes by construction, so the guard below
+ * silently stopped engaging there and the parent's vim cursor kept rendering
+ * at its parked position **inside the block-replaced range**: a cursor drawn
+ * at the edge of the table while the nested editor holds the caret.
+ *
+ * That is the same defect this guard was added for three times over (#127,
+ * #135, #136, #132), re-entering through a condition keyed on the old
+ * implementation's DOM rather than on the question being asked. Any future
+ * surface must be added here too.
+ *
+ * `offsetParent` rather than presence: a widget inside a collapsed fold or an
+ * inactive tab is in the DOM and renders nothing, and suppressing the cursor
+ * for it would hide the caret in a view with no visible table at all.
+ */
+function hasRenderedTable(view: EditorView): boolean {
+    const rendered = view.dom.querySelectorAll(
+        '.cm-table-widget, .vim-motions-table-surface',
+    );
+    for (let i = 0; i < rendered.length; i++) {
+        if ((rendered[i] as HTMLElement).offsetParent !== null) return true;
     }
     return false;
 }
@@ -54,7 +75,7 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
             if (!(update.selectionSet || update.focusChanged)) return;
 
             const inTable =
-                hasVisibleTableWidget(update.view) &&
+                hasRenderedTable(update.view) &&
                 findTableRanges(update.state).some((t) =>
                     cursorInRange(update.state, t.from, t.to),
                 );
