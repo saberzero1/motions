@@ -61,12 +61,30 @@ export function setNestedMounted(root: HTMLElement, mounted: boolean): void {
  *   offset — keeps the DOM but leaves the widget's cached `lines` stale, so the
  *   table renders text the document no longer contains.
  *
- * `ignoreEvent` is deliberately **not** overridden: returning `false` from it
- * was measured to stop every key reaching the editor.
+ * `ignoreEvent` returns true for everything except `mousedown`. Returning
+ * `false` outright was measured to stop every key reaching the editor, so the
+ * exception is kept as narrow as the one interaction that needs it.
  */
 export class TableSurfaceWidget extends WidgetType {
     constructor(readonly lines: readonly string[]) {
         super();
+    }
+
+    /**
+     * Let `mousedown` through, and nothing else.
+     *
+     * `eventBelongsToEditor` walks from the event target up to `contentDOM`
+     * and returns false if any view on the way reports `ignoreEvent`, which
+     * skips every registered `domEventHandlers` entry. With the inherited
+     * `true` the click handler for this grid was therefore never called at
+     * all: measured with a real pointer event, the parent's head stayed at 0
+     * and no nested editor mounted — the handler existed and was dead code.
+     *
+     * Keeping `true` for every other type preserves the measured key
+     * behaviour exactly; only mousedown changes.
+     */
+    override ignoreEvent(event: Event): boolean {
+        return event.type !== 'mousedown';
     }
 
     eq(other: TableSurfaceWidget): boolean {

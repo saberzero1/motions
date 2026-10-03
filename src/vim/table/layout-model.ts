@@ -207,6 +207,43 @@ export function cellAt(
     return null;
 }
 
+/**
+ * A table-relative offset moved out of a delimiter and into a cell.
+ *
+ * A click on a rendered `|` resolves to a position inside the delimiter's own
+ * range, which belongs to no cell — the next motion or text object would then
+ * act from between two cells. `cellAt` deliberately returns null there rather
+ * than guessing, so the choice is made here: prefer the cell that starts
+ * immediately after the delimiter, and fall back to the one ending at it for a
+ * row's final `|`.
+ *
+ * Shared by both surfaces on purpose. The nested editor resolves its own
+ * clicks and the passive grid resolves clicks from outside the table; two
+ * copies that drifted would land the cursor between cells on one surface only,
+ * which is the hardest version of this bug to see.
+ */
+export function snapOutOfDelimiter(
+    lines: readonly string[],
+    pos: number,
+): number {
+    const layout = buildTableLayout({
+        from: 0,
+        to: lines.join('\n').length,
+        lines: [...lines],
+    });
+    if (!layout || cellAt(layout, pos)) return pos;
+
+    for (const row of layout.rows) {
+        if (pos < row.from || pos > row.to) continue;
+        const after = row.cells.find((c) => c.from === pos + 1);
+        if (after) return after.from;
+        const before = row.cells.find((c) => c.to === pos);
+        if (before) return before.to;
+        return pos;
+    }
+    return pos;
+}
+
 function splitCount(line: string): number {
     return Math.max(0, findUnescapedPipes(line).length - 1);
 }
