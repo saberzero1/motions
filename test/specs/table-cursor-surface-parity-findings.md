@@ -112,6 +112,60 @@ this path `drawSuppressed` is `true`. The hole may still be worth closing on
 its own merits, but it is not this defect, and the patch was reverted rather
 than published on an unverified hypothesis.
 
+### Defect 2: found, fixed in the fork, and the mechanism is exact
+
+With the caret in a cell the nested editor **has** a caret and is focused — it
+is forcibly hidden. Measured on the nested editor's own cursor layer:
+`display: none` (inline), with **one** child.
+
+`BlockCursorPlugin.update()` does this:
+
+```ts
+let nativeLayers = this.view.scrollDOM.querySelectorAll(
+  ".cm-cursorLayer:not(.cm-vimCursorLayer)");
+for (...) nativeLayers[i].style.display = "none";
+```
+
+The comment above it reads "Always hide native CM6 cursor layers — the fork
+renders its own cursor for every mode", which is right for its own view and
+wrong here: the nested cell editor is a **separate `EditorView` mounted inside
+the parent's `scrollDOM`**, and it draws its caret with plain
+`drawSelection()`. So the parent's plugin reached across an editor boundary and
+hid another view's caret. Probing confirmed it directly — the parent's own
+query returns two matching layers, one of them `insideNested: true`.
+
+This also explains every `0x0` reading in the section above: a `display: none`
+element has no box, so each probe that measured geometry was measuring the
+consequence rather than the cause.
+
+Fixed in the fork by skipping layers it does not own:
+
+```ts
+ownsLayer(layer) { return layer.closest(".cm-editor") === this.view.dom }
+```
+
+Generic, with no mention of tables — it only asserts "my own view's layers".
+The same guard is applied in `destroy()`, which previously cleared a `display`
+property it had never set on a nested view's layer.
+
+Verified against a local fork build: `display: block`, one child, a `1x19`
+caret at `1146,253` inside a cell whose box starts at `1127,203`. Negative
+control — remove the ownership check — returns it to `display: none` and
+`0x0`. The fork's own suite stays green across four partitions: **1622
+passing, 0 failing**.
+
+`test/specs/table-cell-caret.e2e.ts` holds the regression, skipped until the
+fork ships and the alias range is bumped.
+
+### A claim from the previous pass, withdrawn
+
+That pass suggested `table-nested-view.e2e.ts`'s `cursorLayers === 0`
+assertion was pinning the defect. It is **not**: it counts
+`.cm-vimCursorLayer`, the fork's own layer, which the nested editor
+legitimately does not have because it is built without the vim extension. The
+caret comes from `drawSelection`'s `.cm-cursorLayer`. That assertion is correct
+and unchanged.
+
 ### Still ambiguous, and stated as such
 
 Whether the parent cursor is reliably drawn **outside** a table in `owned`
