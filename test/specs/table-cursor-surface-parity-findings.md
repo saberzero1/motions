@@ -59,31 +59,69 @@ with the absence inside it.
 | 2   | `owned`  | no parent cursor inside the table         | blocked on 1          |
 | 3   | `native` | the cursor returns after the caret leaves | fails                 |
 
-### Defect 1 is a race, and that is the headline
+### Defect 1: instrumented, and the cause is in our predicate
 
-Two probes running the **same** sequence — `setupEditor`, pause, `cm.focus()`,
-dispatch a selection to line 1, pause, count `.cm-fat-cursor` — returned:
+The DOM probing in the first pass was unreliable — five samples, three
+different answers. It was replaced by logging from **inside** the fork's
+`BlockCursorPlugin`, reading `suppressed`, `cursors.length`, `hasFocus` and
+the layer's child count on every `update()` and `drawSel()`. That is the
+measurement to trust, and it says something different from the probes.
 
-```
-probe A   fat: 1      probe B   fat: []
-```
+With the caret parked **inside** a table:
 
-The only difference between them was an extra `executeObsidian` round-trip
-beforehand, i.e. timing. Unfiltered counts, same selector, same position
-outside any table.
+|          | parent                                                       | cell editor                  |
+| -------- | ------------------------------------------------------------ | ---------------------------- |
+| `native` | `suppressed=true n=1 kids=0` — measured, correctly not drawn | `n=1 kids=1` — draws its own |
+| `owned`  | `suppressed=true n=1 kids=0` — same, correct                 | `n=0 kids=0 focus=false`     |
 
-So the parent cursor in `owned` mode is **sometimes drawn and sometimes not**.
-That is the most likely reason this defect has been fixed four times: each fix
-was validated inside one timing window, and a race does not stay fixed.
+Two conclusions.
 
-It also explains the user-visible report — a cursor "displayed next to the
-table widget". The parent's parked selection sits inside the block-replaced
-range, so when the stale cursor does paint, it paints at the table's edge.
+**The historical flakiness is explained, and it was ours.** The instrumented
+tag matched `.cm-table-widget` in `owned` mode, which means Obsidian's cell
+editor and its widget exist **transiently** there before
+`suppressNativeCellEditor` clears them. So the old
+`hasVisibleTableWidget()` predicate was _intermittently_ true in `owned`,
+suppressing the parent's cursor on some frames and not others. That is a
+concrete mechanism for a cursor that comes and goes, and it is in this
+plugin's predicate rather than in the fork. The fix — asking whether
+**either** implementation renders a table — makes it deterministic, and the
+instrumentation confirms `suppressed=true` consistently in `owned`.
 
-A race needs a deliberate fix — most likely ordering between the surface's
-block-replace decoration and the fork's `BlockCursorPlugin` measurement — not
-another point patch. No exception is logged: `console.error` was captured
-across the sequence and came back empty, so the fork's plugin is not crashing.
+**A real defect remains: no caret is drawn in a cell in `owned` mode.** The
+parent is correctly suppressed, and nothing else draws one — the nested editor
+is constructed without the vim extension, so it has no `BlockCursorPlugin` at
+all, and `drawSelection`'s own cursor measured `0x0`. `native` does not have
+this problem because Obsidian's cell editor receives the vim extension and
+draws its own cursor.
+
+That is almost certainly the user-visible half of this report, and
+`table-nested-view.e2e.ts:244` currently asserts `nested.cursorLayers === 0`
+as **correct**, which pins it.
+
+### A fork hypothesis that was tested and rejected
+
+`drawSel()` has a genuine single-shot-recovery hole: `update()` clears the
+layer on focus loss, and a later measure yielding zero cursors cannot restore
+it, because `cursors.length != this.cursors.length` is `0 != 0` and `.some`
+over an empty array is false — so it returns having done nothing, with no
+further measure scheduled.
+
+A bounded retry was implemented in the fork and **changed nothing**. The
+instrumentation shows why: the retry is gated on `!drawSuppressed`, and in
+this path `drawSuppressed` is `true`. The hole may still be worth closing on
+its own merits, but it is not this defect, and the patch was reverted rather
+than published on an unverified hypothesis.
+
+### Still ambiguous, and stated as such
+
+Whether the parent cursor is reliably drawn **outside** a table in `owned`
+mode is unresolved. This spec's DOM query reports none; the fork's own
+`kids` counter reports one. The instrumented tag cannot reliably distinguish
+the parent from Obsidian's transient cell editor — both fail the
+`.cm-table-widget` and nested-class tests once the widget is cleared — so the
+logged lines cannot be attributed with confidence. Resolving it needs a view
+identity the fork can report (a stable id per `EditorView`), not another DOM
+selector.
 
 ### Defect 3 is pre-existing and in `native`
 
