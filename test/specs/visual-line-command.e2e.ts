@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
@@ -315,5 +316,192 @@ describe('Visual-line mode command integration (#137)', function () {
             );
             if (file) await app.vault.delete(file);
         });
+    });
+});
+
+describe('Visual-line selection after the user moves on', function () {
+    const CAPTURE_COMMAND_ID = 'vim-motions-e2e-vl-capture';
+    const ASYNC_HOTKEY_COMMAND_ID = 'vim-motions-e2e-vl-async-hotkey';
+
+    before(async function () {
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await obsidianPage.openFile('Welcome.md');
+        await browser.executeObsidian(
+            ({ app, obsidian }, captureId: string, asyncId: string) => {
+                app.commands.addCommand({
+                    id: captureId,
+                    name: 'Capture selection (visual-line e2e)',
+                    editorCallback: (editor) => {
+                        (
+                            window as unknown as {
+                                __vimMotionsVlCapture?: string | null;
+                            }
+                        ).__vimMotionsVlCapture = editor.getSelection();
+                    },
+                });
+                app.commands.addCommand({
+                    id: asyncId,
+                    name: 'Async replace (visual-line e2e)',
+                    hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'Y' }],
+                    callback: async () => {
+                        const view = app.workspace.getActiveViewOfType(
+                            obsidian.MarkdownView,
+                        );
+                        if (!view) return;
+                        view.editor.getSelection();
+                        await new Promise((resolve) =>
+                            window.setTimeout(resolve, 100),
+                        );
+                        view.editor.replaceSelection('[[hotkey]]');
+                    },
+                });
+            },
+            CAPTURE_COMMAND_ID,
+            ASYNC_HOTKEY_COMMAND_ID,
+        );
+    });
+
+    after(async function () {
+        await browser.executeObsidian(
+            ({ app }, captureId: string, asyncId: string) => {
+                app.commands.removeCommand(captureId);
+                app.commands.removeCommand(asyncId);
+            },
+            CAPTURE_COMMAND_ID,
+            ASYNC_HOTKEY_COMMAND_ID,
+        );
+    });
+
+    afterEach(async function () {
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+    });
+
+    async function selectFirstTwoLines(): Promise<void> {
+        await setupEditor('alpha\nbeta\ngamma\ndelta', { line: 0, ch: 0 });
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['V']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        expect(await getVimMode()).toBe('visual');
+    }
+
+    async function leaveAndMoveToLastLine(): Promise<void> {
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['G']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        expect(await getVimMode()).toBe('normal');
+    }
+
+    async function readEditorSelection(): Promise<{
+        selection: string;
+        somethingSelected: boolean;
+    }> {
+        return (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            if (!view) return { selection: 'no view', somethingSelected: true };
+            return {
+                selection: view.editor.getSelection(),
+                somethingSelected: view.editor.somethingSelected(),
+            };
+        })) as { selection: string; somethingSelected: boolean };
+    }
+
+    async function runCommand(id: string): Promise<void> {
+        await browser.executeObsidian(({ app }, commandId: string) => {
+            app.commands.executeCommandById(commandId);
+        }, id);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+    }
+
+    it('getSelection() is empty after leaving visual-line mode it was read in', async function () {
+        await selectFirstTwoLines();
+
+        expect((await readEditorSelection()).selection).toBe('alpha\nbeta');
+
+        await leaveAndMoveToLastLine();
+
+        expect(await readEditorSelection()).toEqual({
+            selection: '',
+            somethingSelected: false,
+        });
+    });
+
+    it('a command run in visual-line mode does not leave its selection behind', async function () {
+        await selectFirstTwoLines();
+
+        await runCommand(CAPTURE_COMMAND_ID);
+
+        await leaveAndMoveToLastLine();
+
+        expect(await readEditorSelection()).toEqual({
+            selection: '',
+            somethingSelected: false,
+        });
+    });
+
+    it('replaceSelection() after moving on inserts at the cursor, not over the old lines', async function () {
+        await selectFirstTwoLines();
+        await runCommand(CAPTURE_COMMAND_ID);
+        await leaveAndMoveToLastLine();
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            app.workspace
+                .getActiveViewOfType(obsidian.MarkdownView)
+                ?.editor.replaceSelection('X');
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        expect(await getEditorValue()).toBe('alpha\nbeta\ngamma\nXdelta');
+    });
+
+    it('a later command outside visual-line mode is not handed the old lines', async function () {
+        await selectFirstTwoLines();
+        await runCommand(CAPTURE_COMMAND_ID);
+        expect(
+            await browser.executeObsidian(
+                () =>
+                    (
+                        window as unknown as {
+                            __vimMotionsVlCapture?: string | null;
+                        }
+                    ).__vimMotionsVlCapture ?? null,
+            ),
+        ).toBe('alpha\nbeta');
+
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        expect(await getVimMode()).toBe('normal');
+        await runCommand(CAPTURE_COMMAND_ID);
+
+        expect(
+            await browser.executeObsidian(
+                () =>
+                    (
+                        window as unknown as {
+                            __vimMotionsVlCapture?: string | null;
+                        }
+                    ).__vimMotionsVlCapture ?? null,
+            ),
+        ).toBe('');
+    });
+
+    it('an async command bound to a hotkey still replaces the visual-line selection', async function () {
+        await selectFirstTwoLines();
+
+        const { isMacOS } = await obsidianPage.getPlatform();
+        await browser.keys([
+            isMacOS ? Key.Command : Key.Control,
+            Key.Shift,
+            'y',
+        ]);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        expect(await getEditorValue()).toBe('[[hotkey]]\ngamma\ndelta');
     });
 });

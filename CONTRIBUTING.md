@@ -172,6 +172,7 @@ src/
     yank-highlight.ts      # Yank highlight flash effect (mark decorations + YankWidgetHighlight for rendered blocks)
     yank-ring.ts           # Yank-ring paste cycling
     visual-line-command-fix.ts  # Visual line command edge-case fixes
+    visual-exit-tracker.ts      # leftVisualModeThisTask(): whether visual mode was left in the current task — lets :obcommand tell a mapping from visual mode apart from stale marks
     linewise-widget-highlight.ts  # Visual-line highlight for replaced widget blocks
     block-widgets.ts       # blockWidgetSpans(): rendered block widgets with the document lines they replace — mark decorations cannot reach these
     fold-sync.ts               # Fold state synchronization + Neovim-compatible foldopen (annotation-gated unfold) + unfoldEffect range normalizer + propertiesFoldObserver (is-collapsed filter)
