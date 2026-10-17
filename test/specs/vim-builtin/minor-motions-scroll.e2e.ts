@@ -1,13 +1,14 @@
 import { browser, expect } from '@wdio/globals';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
+    PAUSE,
+    dismissNotices,
+    getCursorPos,
+    getEditorValue,
+    sendVimEscape,
     setupEditor,
     vimKeys,
     vimRawKeys,
-    getCursorPos,
-    sendVimEscape,
-    dismissNotices,
-    PAUSE,
 } from '../../helpers';
 
 describe('Normal mode — minor motions & horizontal scroll', function () {
@@ -112,6 +113,10 @@ describe('Normal mode — minor motions & horizontal scroll', function () {
             await browser.pause(PAUSE.EDITOR_SETTLE);
             await sendVimEscape();
             await browser.pause(PAUSE.MODE_SWITCH);
+            // A crash guard that asserts nothing passes if `gF` mangles the
+            // document or navigates away: "did not error" was never checked
+            // either, since nothing here throws.
+            expect(await getEditorValue()).toBe('just some plain text');
         });
     });
 

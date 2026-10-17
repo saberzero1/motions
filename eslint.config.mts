@@ -326,6 +326,10 @@ export default defineConfig(
                         'expectByteExact',
                         'expectGkToVisitEveryLine',
                         'expectMarkdownBufferIdentity',
+                        // Not named `expect*`, but read: it asserts
+                        // `state.connected` false, that the refusal notice
+                        // names 0.12 and the stub path, and `state.pid` null.
+                        'refusesApiLevel',
                     ],
                     // No `additionalTestBlockFunctions` here, unlike the unit
                     // block. `testWithNeovim` is a wrapper that calls `it()`
@@ -356,48 +360,6 @@ export default defineConfig(
             // fixed-sleep is a flakiness concern, not a vacuity one, and
             // rewriting them all belongs to whoever takes on wait strategy.
             'wdio/no-pause': 'off',
-        },
-    },
-
-    {
-        // RATCHET, not an exemption. These 38 tests predate the gate above and
-        // assert nothing it can see; 28 of them delegate to a local
-        // `assertPluginLoaded`, whose whole body proves only that the plugin
-        // did not crash. They are `warn` so the gate ships green and holds
-        // every other spec at `error`, and they are enumerated here rather than
-        // suppressed in place so the debt stays countable.
-        //
-        // Per-file counts when measured: vimrc 14, lua-config 12,
-        // lua-runtime 3, picker-integration 3, vimrc-custom-path 2,
-        // gk-column-drift-issue26 1, rpc-connect-cycle 1, rpc-lifecycle 1,
-        // vim-builtin/minor-motions-scroll 1.
-        //
-        // Clearing one is not mechanical. `'should apply vim.g.mapleader'`
-        // loads `vim.g.mapleader = ","` alongside `vim.opt.scrolloff = 3` and
-        // then only checks the plugin loaded; the assertion it wants is
-        // `scrolloffLines === 3`, which that same file demonstrates three lines
-        // earlier. Each needs that judgement plus a run proving the new
-        // expectation actually holds.
-        //
-        // **Do not add entries here.** A new spec that trips the rule should
-        // assert something instead.
-        files: [
-            'test/specs/vimrc.e2e.ts',
-            'test/specs/vimrc-custom-path.e2e.ts',
-            'test/specs/lua-config.e2e.ts',
-            'test/specs/lua-runtime.e2e.ts',
-            'test/specs/picker-integration.e2e.ts',
-            'test/specs/gk-column-drift-issue26.e2e.ts',
-            'test/specs/rpc-connect-cycle.e2e.ts',
-            'test/specs/rpc-lifecycle.e2e.ts',
-            'test/specs/vim-builtin/minor-motions-scroll.e2e.ts',
-        ],
-        plugins: { vitest },
-        rules: {
-            'vitest/expect-expect': [
-                'warn',
-                { assertFunctionNames: ['expect'] },
-            ],
         },
     },
 );

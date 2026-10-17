@@ -47,6 +47,11 @@ describe('Lua runtime vim.cmd() execution', function () {
             async () => (await getPluginSetting('scrolloffLines')) === 43,
             { timeout: 5000, interval: 200 },
         );
+        // `waitUntil` already throws on timeout, so this scenario did
+        // fail correctly; the explicit assertion makes that visible to
+        // the vacuity gate and survives the wait being given a
+        // non-throwing form later.
+        expect(await getPluginSetting('scrolloffLines')).toBe(43);
     });
 
     it('timer callback executes vim.cmd()', async function () {
@@ -57,6 +62,7 @@ describe('Lua runtime vim.cmd() execution', function () {
             async () => (await getPluginSetting('scrolloffLines')) === 44,
             { timeout: 2000, interval: 200 },
         );
+        expect(await getPluginSetting('scrolloffLines')).toBe(44);
     });
 
     it('user command callback executes vim.cmd()', async function () {
@@ -94,6 +100,7 @@ describe('Lua runtime vim.cmd() execution', function () {
             async () => (await getPluginSetting('scrolloffLines')) === 47,
             { timeout: 2000, interval: 200 },
         );
+        expect(await getPluginSetting('scrolloffLines')).toBe(47);
     });
 
     it('load-time vim.cmd() still works (regression)', async function () {

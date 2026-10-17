@@ -1,4 +1,4 @@
-import { browser } from '@wdio/globals';
+import { browser, expect } from '@wdio/globals';
 import { resolve as resolvePath } from 'node:path';
 import {
     getEditorValue,
@@ -156,5 +156,11 @@ describe('Neovim RPC connect/disconnect cycle', function () {
                 settled: cycles.every((c) => c === 'UD'),
             })}`,
         );
+
+        // `settled` was computed, logged and discarded, so a run where every
+        // cycle failed to connect reported green. The name says "reports",
+        // which was honest, but the scenario still counted as coverage.
+        expect(cycles).toHaveLength(12);
+        expect(cycles.every((c) => c === 'UD')).toBe(true);
     });
 });

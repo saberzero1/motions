@@ -115,6 +115,11 @@ describe('Picker integrations', function () {
                 timeout: 15000,
                 timeoutMsg: 'omnisearch source not registered',
             });
+            // `waitUntil` already throws on timeout, so this scenario did
+            // fail correctly; the explicit assertion makes that visible to
+            // the vacuity gate and survives the wait being given a
+            // non-throwing form later.
+            expect(await hasPickerSource('omnisearch')).toBe(true);
         });
 
         it('should open omnisearch picker via :Picker omnisearch', async function () {
@@ -151,6 +156,7 @@ describe('Picker integrations', function () {
                 timeout: 15000,
                 timeoutMsg: 'tasks source not registered',
             });
+            expect(await hasPickerSource('tasks')).toBe(true);
         });
 
         it('should open tasks picker via :Picker tasks', async function () {
@@ -167,6 +173,7 @@ describe('Picker integrations', function () {
                 timeout: 15000,
                 timeoutMsg: 'dataview source not registered',
             });
+            expect(await hasPickerSource('dataview')).toBe(true);
         });
 
         it('should open dataview picker via :Picker dataview', async function () {
