@@ -22,6 +22,17 @@ note: |
 
     Pairing the crash guard with a real assertion is fine and does not match
     this rule; the rule fires only when nothing else in the block is asserted.
+
+    The `'success'` literal is deliberate and must stay pinned. An audit read it
+    as a blind spot and proposed `toHaveProperty($FLAG, true)` instead; measured,
+    that reports 9 findings and all 9 are false positives. `success` is a naming
+    convention for "the callback reached its end" — a literal the callback wrote
+    unconditionally. Every other flag in this suite carries observed state:
+    `hasOverlay`, `hasLabels`, `overlayGone` and `ready` are each computed from
+    the DOM, so a test asserting them is asserting something real even though the
+    value crosses the boundary in a returned object. Generalising collapses that
+    distinction, because `executeObsidian` cannot return anything but plain data,
+    which makes `toHaveProperty(flag, true)` the normal idiom rather than a smell.
 files:
     - 'test/specs/**/*.e2e.ts'
 rule:

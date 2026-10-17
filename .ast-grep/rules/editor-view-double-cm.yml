@@ -23,6 +23,15 @@ note: |
 
     For the CM5 vim adapter, use `getCmAdapter()` from src/vim/vim-api.ts rather
     than deriving it by hand.
+
+    Deliberately `src/` only. An audit proposed widening this to `test/`, on the
+    grounds that the table specs evade it; they do, but evading a rule that does
+    not apply is not a defect. In a spec, `.cm.cm` is the **sanctioned** way to
+    reach the adapter — `test/helpers.ts`'s `sendVimEscape` resolves it exactly
+    that way in order to call `Vim.handleKey`, and a spec cannot use
+    `getCmAdapter()` instead, because `test/specs/**` cannot value-import a
+    `src/**/*.ts` module (tsconfig.test.json includes only `src/**/*.d.ts`).
+    Widening the scope would report 5 inline occurrences that are all correct.
 files:
     - 'src/**/*.ts'
 ignores:
