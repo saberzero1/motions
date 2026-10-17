@@ -252,13 +252,20 @@ describe('Owned table horizontal scroll parity (#167 items 5, 6)', function () {
         // Native may realign; it must not lose content.
         expect(normalizeTable(native.doc)).toBe(normalizeTable(FIXTURE));
 
-        // Unconditional, because a conditional form was vacuous: measured,
-        // `native.final.inViewport` is FALSE here, so an
-        // `if (native…) expect(owned…)` never ran. Phrased as "owned is no
-        // worse" instead, which is the bound the plan actually asks for and
-        // which executes on every run.
-        const ownedNoWorse = owned.final.inViewport || !native.final.inViewport;
-        expect(ownedNoWorse).toBe(true);
+        // The direct claim, which is what the scenario is named for.
+        //
+        // This was `owned.final.inViewport || !native.final.inViewport`, kept
+        // unconditional to replace an `if (native…)` that never ran. It swapped
+        // one vacuity for another: the same measurement that showed the guard
+        // never fires -- `native.final.inViewport` is FALSE here -- also makes
+        // `!native.final.inViewport` TRUE, so the disjunction short-circuits to
+        // `true` for every possible value of `owned`. The comment recorded the
+        // input that made it constant and did not follow it through.
+        //
+        // Measured in the same run: `owned.final.inViewport` is TRUE, so the
+        // assertion the scenario wanted was available and stronger than "no
+        // worse" -- owned keeps the caret reachable where native does not.
+        expect(owned.final.inViewport).toBe(true);
         // Offsets are readable numbers in both modes, which is what scenario
         // 5B then builds on.
         for (const offset of [...native.offsets, ...owned.offsets]) {
@@ -295,6 +302,13 @@ describe('Owned table horizontal scroll parity (#167 items 5, 6)', function () {
         expect(owned.final.scrollOffset).toBeGreaterThanOrEqual(
             native.final.scrollOffset,
         );
-        if (native.final.inViewport) expect(owned.final.inViewport).toBe(true);
+        // Unconditional here too. This guard does fire under 5B's conditions
+        // -- measured `native.final.inViewport` TRUE at scrolloff=100, unlike
+        // 5A -- so it is not vacuous, but it passes by not executing whenever
+        // native happens to fail, which is the window-width dependency the
+        // note above describes. `owned.final.inViewport` is TRUE in both
+        // scenarios, so asserting it directly removes the dependency without
+        // weakening anything.
+        expect(owned.final.inViewport).toBe(true);
     });
 });
