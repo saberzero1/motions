@@ -72,7 +72,20 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
         update(update: ViewUpdate): void {
             if (isTableCellEditor(update.view)) return;
             if (isTableNavActive(update.state)) return;
-            if (!(update.selectionSet || update.focusChanged)) return;
+            // While suppression is held, re-evaluate on EVERY update. What
+            // releases it — the table ceasing to render — is neither a
+            // selection nor a focus change, and a Live Preview → Source
+            // switch is exactly that case: the parent's head does not move
+            // and the parent never held focus (the nested child did), so this
+            // early return stranded the override permanently and no cursor
+            // was drawn anywhere until the view was recreated. The cheap
+            // guard is kept for the common unsuppressed case.
+            if (
+                !this.cursorInTable &&
+                !(update.selectionSet || update.focusChanged)
+            ) {
+                return;
+            }
 
             const inTable =
                 hasRenderedTable(update.view) &&
