@@ -214,7 +214,7 @@ describe('Cursor suppression after table interaction (#127)', function () {
         expect(normalState.suppressed).toBe(true);
     });
 
-    it('textarea vim overlay mounts an editor when enabled', async function () {
+    it('textarea vim overlay cursor is not suppressed (#127 comment)', async function () {
         const enabled = (await browser.executeObsidian(async ({ app }) => {
             const plugin = (
                 app as unknown as {
@@ -265,17 +265,21 @@ describe('Cursor suppression after table interaction (#127)', function () {
         });
         await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 
-        // What is observable here, asserted unconditionally.
+        // Unconditional, and the #127 claim is asserted again.
         //
-        // This scenario used to wrap its only assertion in `if (hasOverlay)`
-        // and then `if (overlaySuppressed !== null)`, giving four silent-pass
-        // routes -- no overlay, no inner `.cm-editor`, no `cmView.view`, or no
-        // bridge method -- each of which is itself a defect. Measured, route
-        // three fires: `hasOverlay`, `hasEditor` and `hasBridge` are all true
-        // and `cmView.view` is undefined, so the assertion had **never**
-        // executed. A further probe found no `cmView` on the overlay, its
-        // `.cm-editor`, its `.cm-content` or its `.cm-scroller`, so that
-        // accessor cannot resolve this editor at all.
+        // This used to wrap its only assertion in `if (hasOverlay)` and then
+        // `if (overlaySuppressed !== null)`, giving four silent-pass routes --
+        // no overlay, no inner `.cm-editor`, no `cmView.view`, or no bridge
+        // method. Measured, route three fired: the first two and the bridge
+        // were all present while `cmView.view` was undefined, so the assertion
+        // had **never** executed. `cmView` is absent on the overlay and on
+        // every descendant, so that accessor cannot resolve this editor.
+        //
+        // The view is reachable the way the product holds it instead:
+        // `TextareaVimManager.active.editor` is the EmbeddableMarkdownEditor,
+        // whose `.cm` is the CM6 view. Resolving it is asserted below, so a
+        // future refactor that moves the handle fails here rather than
+        // silently skipping the suppression check again.
         const probe = (await browser.executeObsidian(() => {
             const overlay = document.querySelector(
                 '.vim-motions-textarea-overlay',
@@ -297,6 +301,38 @@ describe('Cursor suppression after table interaction (#127)', function () {
         expect(probe.hasOverlay).toBe(true);
         expect(probe.hasEditor).toBe(true);
         expect(probe.hasBridge).toBe(true);
+
+        const overlay = (await browser.executeObsidian(({ app }) => {
+            const plug = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<string, Record<string, unknown>>;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            const mgr = plug?.textareaVimManager as
+                { active?: { editor?: { cm?: unknown } } } | null | undefined;
+            const cm = mgr?.active?.editor?.cm;
+            const cma = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        isCursorSuppressedForView?: (v: unknown) => boolean;
+                    };
+                }
+            ).CodeMirrorAdapter;
+            return {
+                resolved: !!(cm as { state?: unknown } | undefined)?.state,
+                suppressed:
+                    cm && cma?.isCursorSuppressedForView
+                        ? cma.isCursorSuppressedForView(cm)
+                        : null,
+            };
+        })) as { resolved: boolean; suppressed: boolean | null };
+
+        expect(overlay.resolved).toBe(true);
+        // The claim itself: the user must be able to see a cursor in the
+        // overlay, so its view must not carry a suppression override.
+        expect(overlay.suppressed).toBe(false);
 
         // Cleanup
         await browser.executeObsidian(() => {
