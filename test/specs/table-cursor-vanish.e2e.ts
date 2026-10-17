@@ -74,32 +74,28 @@ async function getDebugState(): Promise<Record<string, unknown>> {
     })) as Record<string, unknown>;
 }
 
-async function forceTableCleanup(): Promise<void> {
-    await browser.executeObsidian(({ app, obsidian }) => {
-        const cma = (
-            window as unknown as {
-                CodeMirrorAdapter?: {
-                    setKeyInterceptActive?: (a: boolean) => void;
-                    clearCursorSuppressedForView?: (v: unknown) => void;
-                };
-            }
-        ).CodeMirrorAdapter;
-        if (cma?.setKeyInterceptActive) {
-            cma.setKeyInterceptActive(false);
-        }
+async function getHead(): Promise<number> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         const cm = view?.editor?.cm;
-        if (cm && cma?.clearCursorSuppressedForView) {
-            cma.clearCursorSuppressedForView(cm);
-        }
-        if (cm) {
-            (cm as unknown as { scrollDOM: HTMLElement }).scrollDOM
-                .querySelectorAll('.vim-motions-cursor-layer-hidden')
-                .forEach((el: Element) =>
-                    el.classList.remove('vim-motions-cursor-layer-hidden'),
-                );
-        }
-    });
+        if (!cm) return -1;
+        return cm.state.selection.main.head;
+    })) as number;
+}
+
+/**
+ * Whether a real keystroke still drives the editor.
+ *
+ * The leaked state this file covers does not merely hide a cursor: focus ends
+ * on `<body>` and keys reach nothing, so the editor is dead until the user
+ * clicks. A suppression flag reading `false` while `j` moves nothing would
+ * still be a broken editor, which is why every scenario below ends here.
+ */
+async function keyStillMovesCursor(): Promise<boolean> {
+    const before = await getHead();
+    await browser.keys(['j']);
+    await browser.pause(PAUSE.EDITOR_SETTLE);
+    return (await getHead()) !== before;
 }
 
 describe('Bug 2: Cursor visible after LP→source (#167)', function () {
@@ -109,7 +105,7 @@ describe('Bug 2: Cursor visible after LP→source (#167)', function () {
         await ensureLivePreview();
     });
 
-    it('state is stuck after LP→source from table-nav', async function () {
+    it('releases key intercept and cursor suppression on LP→source', async function () {
         await setupTableDoc();
 
         await browser.keys(['j', 'j']);
@@ -120,25 +116,15 @@ describe('Bug 2: Cursor visible after LP→source (#167)', function () {
 
         const state = await getDebugState();
         const fork = state.fork as Record<string, boolean>;
-
-        expect(fork.keyInterceptActive).toBe(true);
-    });
-
-    it('forceTableCleanup via bridge clears all stuck state', async function () {
-        await forceTableCleanup();
-        await browser.pause(PAUSE.MODE_SWITCH);
-
-        const state = await getDebugState();
-        const fork = state.fork as Record<string, boolean>;
-        const dom = state.dom as Record<string, boolean>;
         const cursor = state.cursorSuppression as Record<string, unknown>;
 
         expect(fork.keyInterceptActive).toBe(false);
+        expect(cursor.viewOverrideCount).toBe(0);
         expect(cursor.viewSuppressed).toBe(false);
-        expect(dom.mainCursorLayerHidden).toBe(false);
+        expect(await keyStillMovesCursor()).toBe(true);
     });
 
-    it('automatic cleanup: keydown safety handler on document', async function () {
+    it('releases without needing a keystroke to trigger the safety handler', async function () {
         await ensureLivePreview();
         await browser.pause(PAUSE.EDITOR_SETTLE);
         await setupTableDoc();
@@ -149,47 +135,17 @@ describe('Bug 2: Cursor visible after LP→source (#167)', function () {
         await ensureSourceMode();
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
-        let state = await getDebugState();
-        let fork = state.fork as Record<string, boolean>;
-        expect(fork.keyInterceptActive).toBe(true);
+        // No focus round-trip and no keystroke before this read. The
+        // `keyInterceptSafetyHandler` in main.ts clears the flag on the next
+        // keydown, so a scenario that pressed a key first could not tell a
+        // transition that releases correctly from one that leaks and is then
+        // papered over. The release must already have happened here.
+        const atRest = await getDebugState();
+        const restFork = atRest.fork as Record<string, boolean>;
+        const restCursor = atRest.cursorSuppression as Record<string, unknown>;
+        expect(restFork.keyInterceptActive).toBe(false);
+        expect(restCursor.viewOverrideCount).toBe(0);
 
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (view) view.editor.focus();
-        });
-        await browser.pause(PAUSE.MODE_SWITCH);
-
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (view) view.editor.focus();
-        });
-        await browser.pause(PAUSE.MODE_SWITCH);
-
-        await browser.keys(['l']);
-        await browser.pause(PAUSE.MODE_SWITCH);
-
-        state = await getDebugState();
-        console.log(
-            '[bug2] auto cleanup state:',
-            JSON.stringify({
-                keyIntercept: (state.fork as Record<string, boolean>)
-                    .keyInterceptActive,
-                viewSuppressed: (
-                    state.cursorSuppression as Record<string, unknown>
-                ).viewSuppressed,
-                mainCursorHidden: (state.dom as Record<string, boolean>)
-                    .mainCursorLayerHidden,
-                hasNavMode: (state.dom as Record<string, boolean>).hasNavMode,
-            }),
-        );
-        fork = state.fork as Record<string, boolean>;
-        const dom = state.dom as Record<string, boolean>;
-        const cursor = state.cursorSuppression as Record<string, unknown>;
-
-        expect(fork.keyInterceptActive).toBe(false);
+        expect(await keyStillMovesCursor()).toBe(true);
     });
 });
