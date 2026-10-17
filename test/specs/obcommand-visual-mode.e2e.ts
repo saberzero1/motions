@@ -1,7 +1,13 @@
 import { browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { setupEditor, getEditorValue, sendVimEscape, PAUSE } from '../helpers';
+import {
+    setupEditor,
+    getEditorValue,
+    sendVimEscape,
+    loadLuaConfig,
+    PAUSE,
+} from '../helpers';
 
 /**
  * Discussion #161: obcommand via vim mapping in visual mode loses selection
@@ -405,6 +411,245 @@ describe('obcommand with a charwise visual selection (#192)', function () {
         // selection did not narrow the range to line 1
         expect(await getEditorValue()).toBe(
             '- alpha beta gamma\n- second line\nthird line',
+        );
+    });
+});
+
+describe('obcommand after a previous visual selection (#200)', function () {
+    const CAPTURE_COMMAND_ID = 'vim-motions-e2e-200-capture-selection';
+
+    before(async function () {
+        await obsidianPage.openFile('Welcome.md');
+        await browser.executeObsidian(({ app }, commandId: string) => {
+            app.commands.addCommand({
+                id: commandId,
+                name: 'Capture selection (#200 e2e)',
+                editorCallback: (editor) => {
+                    (
+                        window as unknown as {
+                            __vimMotions200?: string | null;
+                        }
+                    ).__vimMotions200 = editor.getSelection();
+                },
+            });
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: {
+                            map: (
+                                lhs: string,
+                                rhs: string,
+                                ctx?: string,
+                            ) => void;
+                            defineEx: (
+                                name: string,
+                                short: string,
+                                fn: (cm: unknown) => void,
+                            ) => void;
+                            handleEx: (cm: unknown, input: string) => void;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim?.map('<C-b>', `:obcommand ${commandId}<CR>`, 'normal');
+            Vim?.defineEx('capture200', '', (cm) => {
+                Vim.handleEx(cm, `obcommand ${commandId}`);
+            });
+        }, CAPTURE_COMMAND_ID);
+    });
+
+    after(async function () {
+        await browser.executeObsidian(({ app }, commandId: string) => {
+            app.commands.removeCommand(commandId);
+            const Vim = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        Vim?: { unmap: (lhs: string, ctx?: string) => void };
+                    };
+                }
+            ).CodeMirrorAdapter?.Vim;
+            Vim?.unmap('<C-b>', 'normal');
+        }, CAPTURE_COMMAND_ID);
+    });
+
+    afterEach(async function () {
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+    });
+
+    async function capturedSelection(): Promise<string | null> {
+        return (await browser.executeObsidian(
+            () =>
+                (
+                    window as unknown as {
+                        __vimMotions200?: string | null;
+                    }
+                ).__vimMotions200 ?? null,
+        )) as string | null;
+    }
+
+    async function runInEditor(keys: string[], exInput: string): Promise<void> {
+        const run = (
+            keySeq: string[],
+            input: string | null,
+        ): Promise<unknown> =>
+            browser.executeObsidian(
+                ({ app, obsidian }, seq: string[], ex: string | null) => {
+                    const Vim = (
+                        window as unknown as {
+                            CodeMirrorAdapter?: {
+                                Vim?: {
+                                    handleKey: (
+                                        cm: unknown,
+                                        key: string,
+                                    ) => boolean;
+                                    handleEx: (
+                                        cm: unknown,
+                                        input: string,
+                                    ) => void;
+                                };
+                            };
+                        }
+                    ).CodeMirrorAdapter?.Vim;
+                    if (!Vim) return;
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    if (!view) return;
+                    const cm = (
+                        (view.editor as unknown as Record<string, unknown>)
+                            .cm as Record<string, unknown>
+                    )?.cm;
+                    if (!cm) return;
+                    for (const key of seq) Vim.handleKey(cm, key);
+                    if (ex !== null) Vim.handleEx(cm, ex);
+                },
+                keySeq,
+                input,
+            );
+        await browser.executeObsidian(() => {
+            (
+                window as unknown as { __vimMotions200?: string | null }
+            ).__vimMotions200 = null;
+        });
+        await run(['<Esc>', ...keys], null);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await run([], exInput);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+    }
+
+    it('a normal-mode mapping does not revive the previous visual selection', async function () {
+        await setupEditor('alpha beta gamma\nsecond line here', {
+            line: 0,
+            ch: 6,
+        });
+        await browser.executeObsidian(() => {
+            (
+                window as unknown as { __vimMotions200?: string | null }
+            ).__vimMotions200 = null;
+        });
+
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['v', 'l', 'l', 'l']);
+        await browser.pause(PAUSE.KEY_GAP);
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.KEY_GAP);
+
+        await browser.keys([Key.Control, 'b']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        expect(await capturedSelection()).toBe('');
+    });
+
+    it('editor:toggle-bold from normal mode leaves the previous selection alone', async function () {
+        await setupEditor('alpha beta gamma\nsecond line here', {
+            line: 0,
+            ch: 4,
+        });
+
+        await runInEditor(
+            ['v', 'l', 'l', 'l', 'l', '<Esc>', 'j'],
+            'obcommand editor:toggle-bold',
+        );
+
+        expect((await getEditorValue()).split('\n')[0]).toBe(
+            'alpha beta gamma',
+        );
+    });
+
+    it('an ex alias run from normal mode does not revive it either', async function () {
+        await setupEditor('alpha beta gamma\nsecond line here', {
+            line: 0,
+            ch: 6,
+        });
+
+        await runInEditor(['v', 'l', 'l', 'l', '<Esc>', 'j'], 'capture200');
+
+        expect(await capturedSelection()).toBe('');
+    });
+
+    it('a single-line range does not pick up the previous selection', async function () {
+        await setupEditor('alpha\nbeta\ngamma\ndelta', { line: 0, ch: 0 });
+
+        await runInEditor(
+            ['V', 'j', '<Esc>'],
+            `3obcommand ${CAPTURE_COMMAND_ID}`,
+        );
+
+        expect(await capturedSelection()).toBe('');
+    });
+
+    it("an explicit '<,'> range from normal mode still uses the marks", async function () {
+        await setupEditor('alpha beta gamma\nsecond line here', {
+            line: 0,
+            ch: 6,
+        });
+
+        await runInEditor(
+            ['v', 'l', 'l', 'l', '<Esc>', 'j'],
+            `'<,'>obcommand ${CAPTURE_COMMAND_ID}`,
+        );
+
+        expect(await capturedSelection()).toBe('beta');
+    });
+});
+
+describe('obcommand from a Lua function mapping after a previous visual selection (#200)', function () {
+    before(async function () {
+        await loadLuaConfig(
+            'vim.g.mapleader = " "\n' +
+                'vim.keymap.set("n", "<leader>b", function()\n' +
+                '    vim.cmd(":obcommand editor:toggle-bold")\n' +
+                'end, { desc = "toggle bold" })\n',
+        );
+    });
+
+    afterEach(async function () {
+        await sendVimEscape();
+        await browser.pause(PAUSE.MODE_SWITCH);
+    });
+
+    it('bolds the word under the cursor, not the previous selection', async function () {
+        await setupEditor('alpha beta gamma\ndelta epsilon', {
+            line: 0,
+            ch: 0,
+        });
+        await browser.pause(PAUSE.MODE_SWITCH);
+
+        await browser.keys(['v', 'e']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys([Key.Escape]);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['j']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys([' ', 'b']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        expect(await getEditorValue()).toBe(
+            'alpha beta gamma\n**delta** epsilon',
         );
     });
 });

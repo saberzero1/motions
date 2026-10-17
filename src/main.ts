@@ -172,6 +172,7 @@ import {
     installVisualLineCommandFix,
     visualLineSelectionSyncExtension,
 } from './vim/visual-line-command-fix';
+import { visualExitTrackerExtension } from './vim/visual-exit-tracker';
 import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
 import { createAnimatedCursorExtension } from './vim/animated-cursor/controller';
 import { installEscapeGuard } from './vim/escape-guard';
@@ -2931,6 +2932,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
         this.vimExtensionSlot.push(linewiseWidgetHighlightExtension());
         this.vimExtensionSlot.push(visualLineSelectionSyncExtension());
+        this.vimExtensionSlot.push(visualExitTrackerExtension());
 
         this.initializing = false;
     }

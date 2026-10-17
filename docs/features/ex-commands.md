@@ -103,6 +103,8 @@ vim.keymap.set("v", "<C-n>", ":ob templater-obsidian:create-new-note-from-templa
 
 An explicit line range still selects whole lines — `:1,3ob {command-id}` passes lines 1 to 3.
 
+From normal mode, `:ob` passes no selection, even if you made one earlier: the command sees the cursor, as it would from the command palette. To reuse the last visual selection, type the range — `:'<,'>ob {command-id}`. A single line number such as `:3ob` passes no selection either, so the command never receives lines you did not select.
+
 ## Picker commands
 
 The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)-style search across vault content. The picker uses a terminal-inspired visual presentation with monospace fonts, compact item density, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables for full theme compatibility. All picker commands are available in both editor and non-editor views.

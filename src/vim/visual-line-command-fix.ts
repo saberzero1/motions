@@ -37,58 +37,89 @@ interface VisualLineState {
     cm: NonNullable<ReturnType<typeof getCmAdapter>>;
 }
 
+interface SelSnapshot {
+    sel: VimSel;
+    timer: number | null;
+}
+
 /**
  * Per-EditorView snapshot of the visual-line selection range, set by
  * {@link withExpandedSelection} before it temporarily expands the native CM6
  * selection.  The {@link VisualLineSomethingSelectedPatch} reads this as a
  * last-resort fallback when vim is no longer in visual-line mode AND the
- * inline `lastVisualLineSel` cache was never populated (which happens when
+ * `lastVisualLineSel` cache was never populated (which happens when
  * `getSelection()` was satisfied by the expanded native selection).
  *
- * Cleared on first successful use by `replaceSelection`, or after a 30 s TTL
- * to prevent stale replacements when a modal is cancelled.
+ * Cleared on first successful use by `replaceSelection`, after a 30 s TTL
+ * to prevent stale replacements when a modal is cancelled, or once the user
+ * acts in the editor again.
  */
-const pendingVisualLineSel = new WeakMap<
-    EditorView,
-    { sel: VimSel; timer: number }
->();
+const pendingVisualLineSel = new WeakMap<EditorView, SelSnapshot>();
+const lastVisualLineSel = new WeakMap<EditorView, SelSnapshot>();
 
 /**
  * The TTL timer is stored beside the selection it expires. A single
  * module-scope timer would be cleared by the next view to store a selection,
  * leaving the earlier view's entry with no expiry at all.
  */
-function setPendingSel(editorView: EditorView, sel: VimSel): void {
-    clearPendingSel(editorView);
-    const timer = window.setTimeout(() => {
-        pendingVisualLineSel.delete(editorView);
-    }, 30_000);
-    pendingVisualLineSel.set(editorView, {
+function storeSnapshot(
+    store: WeakMap<EditorView, SelSnapshot>,
+    editorView: EditorView,
+    sel: VimSel,
+    ttl: number | null,
+): void {
+    clearSnapshot(store, editorView);
+    const snapshot: SelSnapshot = {
         sel: {
             anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
             head: { line: sel.head.line, ch: sel.head.ch },
         },
-        timer,
-    });
+        timer: null,
+    };
+    if (ttl !== null) {
+        snapshot.timer = window.setTimeout(() => {
+            if (store.get(editorView) === snapshot) store.delete(editorView);
+        }, ttl);
+    }
+    store.set(editorView, snapshot);
 }
 
-function peekPendingSel(editorView: EditorView): VimSel | null {
-    return pendingVisualLineSel.get(editorView)?.sel ?? null;
+function clearSnapshot(
+    store: WeakMap<EditorView, SelSnapshot>,
+    editorView: EditorView,
+): void {
+    const snapshot = store.get(editorView);
+    if (!snapshot) return;
+    if (snapshot.timer !== null) window.clearTimeout(snapshot.timer);
+    store.delete(editorView);
 }
 
-function clearPendingSel(editorView: EditorView): void {
-    const pending = pendingVisualLineSel.get(editorView);
-    if (!pending) return;
-    window.clearTimeout(pending.timer);
-    pendingVisualLineSel.delete(editorView);
+function discardSnapshots(editorView: EditorView): void {
+    clearSnapshot(pendingVisualLineSel, editorView);
+    clearSnapshot(lastVisualLineSel, editorView);
+}
+
+function peekSnapshot(
+    store: WeakMap<EditorView, SelSnapshot>,
+    editorView: EditorView,
+): VimSel | null {
+    return store.get(editorView)?.sel ?? null;
 }
 
 function consumePendingSel(editorView: EditorView): VimSel | null {
-    const pending = pendingVisualLineSel.get(editorView);
-    if (!pending) return null;
-    window.clearTimeout(pending.timer);
-    pendingVisualLineSel.delete(editorView);
-    return pending.sel;
+    const sel = peekSnapshot(pendingVisualLineSel, editorView);
+    clearSnapshot(pendingVisualLineSel, editorView);
+    return sel;
+}
+
+function sameSel(a: VimSel | null, b: VimSel): boolean {
+    return (
+        a !== null &&
+        a.anchor.line === b.anchor.line &&
+        a.anchor.ch === b.anchor.ch &&
+        a.head.line === b.head.line &&
+        a.head.ch === b.head.ch
+    );
 }
 
 function getActiveVisualLineState(app: App): VisualLineState | null {
@@ -138,13 +169,23 @@ function withExpandedSelection(
     args: unknown[],
 ): unknown {
     const state = getActiveVisualLineState(app);
-    if (!state) return fn.apply(thisArg, args);
+    if (!state) {
+        const view = app.workspace.getActiveViewOfType(MarkdownView);
+        const editorView = view ? getEditorView(view) : null;
+        if (editorView) discardSnapshots(editorView);
+        return fn.apply(thisArg, args);
+    }
 
     // Snapshot BEFORE expanding — async commands (Note Composer, Note Refactor)
     // call getSelection/replaceSelection after their modal closes, by which
     // time the expanded native selection and visual-line vim state are both
     // gone.  The snapshot survives as a last-resort fallback.
-    setPendingSel(state.editorView as unknown as EditorView, state.vim.sel!);
+    storeSnapshot(
+        pendingVisualLineSel,
+        state.editorView as unknown as EditorView,
+        state.vim.sel!,
+        30_000,
+    );
 
     expandSelection(state.editorView, state.vim.sel!);
     try {
@@ -253,7 +294,18 @@ class VisualLineSomethingSelectedPatch {
           }[])
         | null = null;
 
+    private readonly onKeyDown = (): void => {
+        if (this.view.hasFocus) discardSnapshots(this.view);
+    };
+    private readonly onPointerDown = (): void => {
+        discardSnapshots(this.view);
+    };
+    private readonly inputWindow: Window | null;
+
     constructor(private view: import('@codemirror/view').EditorView) {
+        this.inputWindow = view.dom.ownerDocument.defaultView;
+        this.inputWindow?.addEventListener('keydown', this.onKeyDown, true);
+        view.dom.addEventListener('pointerdown', this.onPointerDown, true);
         this.tryPatch();
     }
 
@@ -294,8 +346,6 @@ class VisualLineSomethingSelectedPatch {
         this.original = origSelected;
         this.editorRef = editor;
 
-        let lastVisualLineSel: VimSel | null = null;
-
         const getVisualLineSel = (): VimState | null => {
             const cm = getCmAdapterFromEditorView(editorView);
             const vim = cm?.state?.vim as unknown as VimState | undefined;
@@ -306,9 +356,9 @@ class VisualLineSomethingSelectedPatch {
         editor.somethingSelected = function () {
             if (origSelected()) return true;
             if (getVisualLineSel() !== null) return true;
-            if (lastVisualLineSel !== null && isSelInBounds(lastVisualLineSel))
-                return true;
-            const pending = peekPendingSel(editorView);
+            const last = peekSnapshot(lastVisualLineSel, editorView);
+            if (last && isSelInBounds(last)) return true;
+            const pending = peekSnapshot(pendingVisualLineSel, editorView);
             if (pending && isSelInBounds(pending)) return true;
             return false;
         };
@@ -328,17 +378,19 @@ class VisualLineSomethingSelectedPatch {
             const nativeSel = origGetSel();
             if (nativeSel) return nativeSel;
             const vim = getVisualLineSel();
+            const last = peekSnapshot(lastVisualLineSel, editorView);
             let sel: VimSel | null =
-                vim?.sel ?? lastVisualLineSel ?? peekPendingSel(editorView);
+                vim?.sel ??
+                last ??
+                peekSnapshot(pendingVisualLineSel, editorView);
             if (sel && !isSelInBounds(sel)) {
-                lastVisualLineSel = null;
+                clearSnapshot(lastVisualLineSel, editorView);
                 sel = null;
             }
             if (!sel) return '';
-            lastVisualLineSel = {
-                anchor: { line: sel.anchor.line, ch: sel.anchor.ch },
-                head: { line: sel.head.line, ch: sel.head.ch },
-            };
+            if (!sameSel(last, sel)) {
+                storeSnapshot(lastVisualLineSel, editorView, sel, null);
+            }
             const startLine = Math.min(sel.anchor.line, sel.head.line);
             const endLine = Math.max(sel.anchor.line, sel.head.line);
             const doc = editorView.state.doc;
@@ -351,16 +403,15 @@ class VisualLineSomethingSelectedPatch {
         editor.replaceSelection = function (text: string, origin?: string) {
             const vim = getVisualLineSel();
             let sel: VimSel | null =
-                vim?.sel ?? lastVisualLineSel ?? consumePendingSel(editorView);
-            if (sel && !isSelInBounds(sel)) {
-                lastVisualLineSel = null;
-                sel = null;
-            }
+                vim?.sel ??
+                peekSnapshot(lastVisualLineSel, editorView) ??
+                consumePendingSel(editorView);
+            clearSnapshot(lastVisualLineSel, editorView);
+            if (sel && !isSelInBounds(sel)) sel = null;
             if (!sel) {
                 origReplaceSel(text, origin);
                 return;
             }
-            if (lastVisualLineSel) lastVisualLineSel = null;
             const startLine = Math.min(sel.anchor.line, sel.head.line);
             const endLine = Math.max(sel.anchor.line, sel.head.line);
             const doc = editorView.state.doc;
@@ -421,6 +472,13 @@ class VisualLineSomethingSelectedPatch {
     }
 
     destroy(): void {
+        this.inputWindow?.removeEventListener('keydown', this.onKeyDown, true);
+        this.view.dom.removeEventListener(
+            'pointerdown',
+            this.onPointerDown,
+            true,
+        );
+        discardSnapshots(this.view);
         if (this.editorRef) {
             if (this.original) this.editorRef.somethingSelected = this.original;
             if (this.origGetSelection)
