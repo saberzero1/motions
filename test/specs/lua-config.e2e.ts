@@ -71,6 +71,47 @@ async function assertPluginLoaded(): Promise<void> {
     expect(result).toHaveProperty('pluginLoaded', true);
 }
 
+/**
+ * State the running config left behind.
+ *
+ * `assertPluginLoaded` only proves the plugin did not crash, which is true of
+ * a config that silently did nothing. These are the readings that distinguish
+ * the two: `luaCommandCount` is zero when a file failed to execute, and the
+ * leader registry names the bindings a config actually installed.
+ */
+async function readLuaState(): Promise<{
+    scrolloff: number;
+    cmdCount: number;
+    leaderKey: string;
+    bindKeys: string[];
+}> {
+    return (await browser.executeObsidian(({ app }) => {
+        const p = (
+            app as unknown as {
+                plugins: { plugins: Record<string, Record<string, unknown>> };
+            }
+        ).plugins.plugins['vim-motions'];
+        const st = (p?.settings ?? {}) as Record<string, number>;
+        const reg = p?.leaderRegistry as
+            | {
+                  getLeaderKey?: () => string;
+                  getBindings?: () => { key?: string }[];
+              }
+            | undefined;
+        return {
+            scrolloff: st.scrolloffLines,
+            cmdCount: (p?.luaCommandCount as number) ?? -1,
+            leaderKey: reg?.getLeaderKey?.() ?? '',
+            bindKeys: (reg?.getBindings?.() ?? []).map((b) => b?.key ?? ''),
+        };
+    })) as {
+        scrolloff: number;
+        cmdCount: number;
+        leaderKey: string;
+        bindKeys: string[];
+    };
+}
+
 describe('Lua config support', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -98,21 +139,31 @@ describe('Lua config support', function () {
     it('should apply vim.g.mapleader', async function () {
         await loadLuaConfig('vim.g.mapleader = ","\nvim.opt.scrolloff = 3\n');
         await assertPluginLoaded();
+        const st = await readLuaState();
+        expect(st.leaderKey).toBe(',');
+        // The second line proves execution continued past the first.
+        expect(st.scrolloff).toBe(3);
     });
 
     it('should survive syntax errors gracefully', async function () {
         await loadLuaConfig('if then end\n');
         await assertPluginLoaded();
+        // Surviving means the file did not execute and the plugin did: a
+        // config that silently ran anyway would also leave it loaded.
+        expect((await readLuaState()).cmdCount).toBe(0);
     });
 
     it('should survive runtime errors gracefully', async function () {
         await loadLuaConfig('error("intentional test error")\n');
         await assertPluginLoaded();
+        expect((await readLuaState()).cmdCount).toBe(0);
     });
 
     it('should survive infinite loops via timeout', async function () {
         await loadLuaConfig('while true do end\n');
         await assertPluginLoaded();
+        // Reaching here at all is the timeout working; nothing registered.
+        expect((await readLuaState()).cmdCount).toBe(0);
     });
 
     it('should survive infinite loop in runtime callback', async function () {
@@ -120,6 +171,10 @@ describe('Lua config support', function () {
             'vim.keymap.set("n", "<leader>Z", function() while true do end end)\n',
         );
         await assertPluginLoaded();
+        // The config itself is fine -- only the callback loops -- so the
+        // binding must have registered. A file that failed outright would
+        // also leave the plugin loaded, which is all this checked before.
+        expect((await readLuaState()).bindKeys).toContain('Z');
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,
@@ -441,6 +496,18 @@ describe('Lua config support', function () {
                 '})\n',
         );
         await assertPluginLoaded();
+
+        // The callback sets scrolloff to 32 when the new mode is insert, and
+        // nothing used to enter insert mode -- so the autocmd was registered
+        // and never exercised. Firing it is the whole claim.
+        expect((await readLuaState()).scrolloff).not.toBe(32);
+        await setupEditor('hello', { line: 0, ch: 0 });
+        await vimKeys('i');
+        await browser.waitUntil(
+            async () => (await readLuaState()).scrolloff === 32,
+            { timeout: 3000, interval: 100 },
+        );
+        await sendVimEscape();
     });
 
     it('should support nvim_create_augroup with clear', async function () {
@@ -449,9 +516,15 @@ describe('Lua config support', function () {
                 'vim.api.nvim_create_autocmd("FocusGained", {\n' +
                 '    group = g,\n' +
                 '    callback = function() vim.opt.scrolloff = 33 end\n' +
-                '})\n',
+                '})\n' +
+                'if type(g) == "number" then vim.opt.scrolloff = 34 end\n',
         );
         await assertPluginLoaded();
+        // FocusGained cannot be driven from here, so the callback body is not
+        // the testable part. What is: `nvim_create_augroup` returning a real
+        // numeric id, and an autocmd registering into that group without
+        // throwing -- the line after would not run otherwise.
+        expect((await readLuaState()).scrolloff).toBe(34);
     });
 
     it('should apply vim.obsidian.cursor.set for cursor shapes', async function () {
@@ -597,6 +670,9 @@ describe('Lua config support', function () {
                 'vim.obsidian.leader.set("z", "app:reload", { desc = "Reload" })\n',
         );
         await assertPluginLoaded();
+        // The binding reached the registry. "registers a leader binding" was
+        // previously satisfied by the plugin merely still being loaded.
+        expect((await readLuaState()).bindKeys).toContain('z');
     });
 
     it('should register batch leader bindings via vim.obsidian.leader.add', async function () {
@@ -607,6 +683,7 @@ describe('Lua config support', function () {
                 '})\n',
         );
         await assertPluginLoaded();
+        expect((await readLuaState()).bindKeys).toContain('z');
     });
 
     it('should surround entire line with custom pair via yss', async function () {
@@ -637,27 +714,40 @@ describe('Lua config support', function () {
         expect(await getEditorValue()).toBe('[[hello]] world');
     });
 
-    it('should reject all reserved surround chars gracefully', async function () {
+    it('should accept every formerly reserved surround char', async function () {
+        // Renamed and inverted against a measurement. The scenario asserted
+        // only that the plugin was still loaded while its Lua set scrolloff
+        // to 99 if all 19 characters were *rejected*; measured, scrolloff
+        // stayed at the default and `luaCommandCount` was 19, i.e. all 19
+        // registered. The old name describes behaviour the plugin
+        // deliberately dropped -- AGENTS.md: "Surround pairs are fully
+        // user-definable, built-ins included" -- and the test could not
+        // notice because it read none of its own evidence.
         await loadLuaConfig(
             'local reserved = { "(", ")", "[", "]", "{", "}", "<", ">", "b", "B", "r", "a", "t", "T", "f", "F", \'"\', "\'", "`" }\n' +
-                'local all_rejected = true\n' +
+                'local all_ok = true\n' +
                 'for _, ch in ipairs(reserved) do\n' +
                 '    local ok = pcall(function() vim.obsidian.surround.set(ch, { left = "<<", right = ">>" }) end)\n' +
-                '    if ok then all_rejected = false end\n' +
+                '    if not ok then all_ok = false end\n' +
                 'end\n' +
-                'if all_rejected then vim.opt.scrolloff = 99 end\n',
+                'if all_ok then vim.opt.scrolloff = 99 end\n',
         );
         await assertPluginLoaded();
+        expect((await readLuaState()).scrolloff).toBe(99);
     });
 
-    it('should survive vim.obsidian.surround.set with reserved char gracefully', async function () {
+    it('should accept vim.obsidian.surround.set on the builtin ( pair', async function () {
+        // Same correction as above: the Lua set scrolloff to 42 only if the
+        // call *failed*, and measured it stayed at the default, so `(` was
+        // accepted. Asserted the other way round now.
         await loadLuaConfig(
             'local ok, err = pcall(function()\n' +
                 '    vim.obsidian.surround.set("(", { left = "<<", right = ">>" })\n' +
                 'end)\n' +
-                'if not ok then vim.opt.scrolloff = 42 end\n',
+                'if ok then vim.opt.scrolloff = 43 end\n',
         );
         await assertPluginLoaded();
+        expect((await readLuaState()).scrolloff).toBe(43);
     });
 
     it('should survive vim.obsidian.leader.del without error', async function () {
@@ -667,6 +757,9 @@ describe('Lua config support', function () {
                 'vim.obsidian.leader.del("z")\n',
         );
         await assertPluginLoaded();
+        // Set then deleted: the key must be gone. Nothing checked this, so a
+        // `del` that did nothing passed.
+        expect((await readLuaState()).bindKeys).not.toContain('z');
     });
 
     describe('vim.opt.clipboard via Lua', function () {
