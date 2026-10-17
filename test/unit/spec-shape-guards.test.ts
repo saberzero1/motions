@@ -76,9 +76,25 @@ function pluginMembers(): Set<string> {
     return names;
 }
 
+/**
+ * Members this guard can read a name from.
+ *
+ * `MethodSignature` as well as `PropertySignature`, because a handle declared
+ * `getNestedTableStats(): Stats;` parses as the former. Filtering it out made
+ * the plugin handle invisible in 9 table specs — the guard checked nothing at
+ * all for them, while its own `declaredPluginMembers().length > 50` self-check
+ * still passed, because unrelated `settings`/`saveSettings` property
+ * signatures elsewhere kept the count above the floor.
+ */
+function isNamedTypeMember(
+    member: ts.TypeElement,
+): member is ts.PropertySignature | ts.MethodSignature {
+    return ts.isPropertySignature(member) || ts.isMethodSignature(member);
+}
+
 function membersOfTypeLiteral(node: ts.TypeLiteralNode): string[] {
     return node.members
-        .filter(ts.isPropertySignature)
+        .filter(isNamedTypeMember)
         .map((m) => m.name)
         .filter((n): n is ts.Identifier | ts.StringLiteral =>
             Boolean(n && (ts.isIdentifier(n) || ts.isStringLiteral(n))),
@@ -101,7 +117,7 @@ function membersOfRecordValue(
             statement.name.text === target
         ) {
             return statement.members
-                .filter(ts.isPropertySignature)
+                .filter(isNamedTypeMember)
                 .map((m) => m.name)
                 .filter((n): n is ts.Identifier | ts.StringLiteral =>
                     Boolean(n && (ts.isIdentifier(n) || ts.isStringLiteral(n))),
