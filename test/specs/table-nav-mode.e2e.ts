@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
@@ -120,6 +121,12 @@ async function getHighlightedCell(): Promise<{
         const rowIndex = allRows.indexOf(rowEl);
         return { row: rowIndex, col: cellEl.cellIndex ?? 0 };
     })) as { row: number; col: number } | null;
+}
+
+async function hasModalOpen(): Promise<boolean> {
+    return (await browser.executeObsidian(() => {
+        return document.querySelector('.modal-container') !== null;
+    })) as boolean;
 }
 
 async function hasCellEditor(): Promise<boolean> {
@@ -783,13 +790,31 @@ describe('Table-nav structural commands', function () {
         const lines = value
             .split('\n')
             .filter((line) => line.trimStart().startsWith('|'));
-        expect(lines.length).toBe(5);
+        // Exact rows, not a count. `toBe(5)` held for an insert anywhere in
+        // the table, for a row inserted with the wrong column count, and for
+        // a wholesale rewrite. Obsidian's table editor realigns on commit, so
+        // the expected form is padded.
+        expect(lines).toEqual([
+            '| A   | B   | C   |',
+            '| --- | --- | --- |',
+            '|     |     |     |',
+            '| 1   | 2   | 3   |',
+            '| 4   | 5   | 6   |',
+        ]);
     });
 
     it('O should add row above', async function () {
         this.timeout(20000);
         await setupTableDoc(TABLE_3COL);
         await enterTableNav();
+        // Two `j`s, not one. Measured: from one `j` this scenario produced a
+        // document byte-identical to the `o` scenario above -- both inserted
+        // at pipe index 2 -- so the pair could not distinguish `o` from `O`
+        // however the assertion was phrased, and both tests asserting
+        // `lines.length === 5` was a symptom of that rather than the cause.
+        // From the second data row, `O` inserts above it at index 3.
+        await browser.keys(['j']);
+        await browser.pause(CELL_EDIT_PAUSE);
         await browser.keys(['j']);
         await browser.pause(CELL_EDIT_PAUSE);
         await browser.keys(['O']);
@@ -798,7 +823,13 @@ describe('Table-nav structural commands', function () {
         const lines = value
             .split('\n')
             .filter((line) => line.trimStart().startsWith('|'));
-        expect(lines.length).toBe(5);
+        expect(lines).toEqual([
+            '| A   | B   | C   |',
+            '| --- | --- | --- |',
+            '| 1   | 2   | 3   |',
+            '|     |     |     |',
+            '| 4   | 5   | 6   |',
+        ]);
     });
 
     it('dd should delete current row', async function () {
@@ -815,7 +846,13 @@ describe('Table-nav structural commands', function () {
         const lines = value
             .split('\n')
             .filter((line) => line.trimStart().startsWith('|'));
-        expect(lines.length).toBe(3);
+        // Names the row that went. `toBe(3)` passed equally if `dd` deleted
+        // the wrong data row, the separator, or rewrote the table.
+        expect(lines).toEqual([
+            '| A   | B   | C   |',
+            '| --- | --- | --- |',
+            '| 4   | 5   | 6   |',
+        ]);
     });
 
     it('dd should not delete last data row', async function () {
@@ -830,7 +867,14 @@ describe('Table-nav structural commands', function () {
         const lines = value
             .split('\n')
             .filter((line) => line.trimStart().startsWith('|'));
-        expect(lines.length).toBe(3);
+        // The row must still be there with its content. A count of 3 was also
+        // what a table whose data row had been replaced by a blank one would
+        // report, which is the failure this guard exists to catch.
+        expect(lines).toEqual([
+            '| H1  | H2  |',
+            '| --- | --- |',
+            '| x   | y   |',
+        ]);
     });
 
     it('J should move row down', async function () {
@@ -1117,9 +1161,37 @@ describe('Table-nav edge cases', function () {
         await setupTableDoc(TABLE_3COL);
         await enterTableNav();
         expect(await hasTableNavHighlight()).toBe(true);
+        const before = await getHighlightedCell();
+        expect(before).not.toBeNull();
+
+        // An actual modifier combo. This scenario used to press `j` and
+        // re-check the overlay, which is a plain navigation assertion: it
+        // passes with every modifier combination swallowed, i.e. with #146
+        // fully present, which is the defect the test is named for.
+        const { isMacOS } = await obsidianPage.getPlatform();
+        const mod = isMacOS ? Key.Command : Key.Control;
+        await browser.keys([mod, 'p']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+
+        // Reaching Obsidian's command palette is what "not swallowed" means.
+        expect(await hasModalOpen()).toBe(true);
+
+        // Escape, so the modal's own `close()` runs. `afterTest` force-removes
+        // modal DOM without it, and the surviving Obsidian Scope then eats the
+        // next test's first keystroke.
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        expect(await hasModalOpen()).toBe(false);
+
+        // Nav survived the round trip and still navigates -- the half the
+        // original assertion was reaching for, now checked after the combo
+        // rather than instead of it.
+        expect(await hasTableNavHighlight()).toBe(true);
         await browser.keys(['j']);
         await browser.pause(CELL_EDIT_PAUSE);
-        expect(await hasTableNavHighlight()).toBe(true);
+        const after = await getHighlightedCell();
+        expect(after).not.toBeNull();
+        expect(after?.row).toBeGreaterThan(before?.row ?? 0);
     });
 
     describe('count prefix navigation', function () {
