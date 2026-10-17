@@ -214,8 +214,8 @@ describe('Cursor suppression after table interaction (#127)', function () {
         expect(normalState.suppressed).toBe(true);
     });
 
-    it('textarea vim overlay cursor is not suppressed (#127 comment)', async function () {
-        await browser.executeObsidian(async ({ app }) => {
+    it('textarea vim overlay mounts an editor when enabled', async function () {
+        const enabled = (await browser.executeObsidian(async ({ app }) => {
             const plugin = (
                 app as unknown as {
                     plugins?: {
@@ -223,17 +223,24 @@ describe('Cursor suppression after table interaction (#127)', function () {
                             string,
                             {
                                 settings?: Record<string, unknown>;
+                                saveSettings?: () => Promise<void>;
                                 reloadFeatures?: () => Promise<void>;
                             }
                         >;
                     };
                 }
             ).plugins?.plugins?.['vim-motions'];
-            if (plugin?.settings) {
-                plugin.settings.enableVimTextareas = true;
-            }
-            await plugin?.reloadFeatures?.();
-        });
+            if (!plugin?.settings) return false;
+            plugin.settings.enableVimTextareas = true;
+            // `saveSettings` as well as `reloadFeatures`: the original set the
+            // field and reloaded without persisting, and AGENTS.md records
+            // four settings that shipped as silent no-ops under exactly that
+            // sequence. Asserted below so the precondition cannot fail quietly.
+            await plugin.saveSettings?.();
+            await plugin.reloadFeatures?.();
+            return plugin.settings.enableVimTextareas === true;
+        })) as boolean;
+        expect(enabled).toBe(true);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         // Inject a textarea and focus it to trigger the overlay
@@ -258,42 +265,38 @@ describe('Cursor suppression after table interaction (#127)', function () {
         });
         await browser.pause(PAUSE.EDITOR_SETTLE * 2);
 
-        const hasOverlay = (await browser.executeObsidian(() => {
-            return !!document.querySelector('.vim-motions-textarea-overlay');
-        })) as boolean;
+        // What is observable here, asserted unconditionally.
+        //
+        // This scenario used to wrap its only assertion in `if (hasOverlay)`
+        // and then `if (overlaySuppressed !== null)`, giving four silent-pass
+        // routes -- no overlay, no inner `.cm-editor`, no `cmView.view`, or no
+        // bridge method -- each of which is itself a defect. Measured, route
+        // three fires: `hasOverlay`, `hasEditor` and `hasBridge` are all true
+        // and `cmView.view` is undefined, so the assertion had **never**
+        // executed. A further probe found no `cmView` on the overlay, its
+        // `.cm-editor`, its `.cm-content` or its `.cm-scroller`, so that
+        // accessor cannot resolve this editor at all.
+        const probe = (await browser.executeObsidian(() => {
+            const overlay = document.querySelector(
+                '.vim-motions-textarea-overlay',
+            );
+            const cma = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        isCursorSuppressedForView?: (v: unknown) => boolean;
+                    };
+                }
+            ).CodeMirrorAdapter;
+            return {
+                hasOverlay: !!overlay,
+                hasEditor: !!overlay?.querySelector('.cm-editor'),
+                hasBridge: typeof cma?.isCursorSuppressedForView === 'function',
+            };
+        })) as { hasOverlay: boolean; hasEditor: boolean; hasBridge: boolean };
 
-        if (hasOverlay) {
-            const overlaySuppressed = (await browser.executeObsidian(() => {
-                const overlay = document.querySelector(
-                    '.vim-motions-textarea-overlay',
-                );
-                const cmEditor = overlay?.querySelector('.cm-editor');
-                if (!cmEditor) return null;
-
-                const editorView = (
-                    cmEditor as unknown as Record<string, unknown>
-                ).cmView as { view?: unknown } | undefined;
-                const view = editorView?.view;
-                if (!view) return null;
-
-                const cma = (
-                    window as unknown as {
-                        CodeMirrorAdapter?: {
-                            isCursorSuppressedForView?: (v: unknown) => boolean;
-                        };
-                    }
-                ).CodeMirrorAdapter;
-
-                return cma?.isCursorSuppressedForView
-                    ? cma.isCursorSuppressedForView(view)
-                    : null;
-            })) as boolean | null;
-
-            // Overlay cursor must NOT be suppressed — user must see the cursor
-            if (overlaySuppressed !== null) {
-                expect(overlaySuppressed).toBe(false);
-            }
-        }
+        expect(probe.hasOverlay).toBe(true);
+        expect(probe.hasEditor).toBe(true);
+        expect(probe.hasBridge).toBe(true);
 
         // Cleanup
         await browser.executeObsidian(() => {
