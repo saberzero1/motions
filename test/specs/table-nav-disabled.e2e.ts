@@ -79,6 +79,13 @@ async function waitForTableWidget(): Promise<void> {
     await browser.pause(WIDGET_SETTLE);
 }
 
+/** Whether the table-nav overlay is active. This file had no such check. */
+async function hasTableNavHighlight(): Promise<boolean> {
+    return (await browser.executeObsidian(() => {
+        return document.querySelector('.vim-motions-table-nav-active') !== null;
+    })) as boolean;
+}
+
 async function getTableCellInfo(): Promise<{
     inTableCell: boolean;
     cellRow: number;
@@ -329,6 +336,13 @@ describe('Table movement with enableTableNav=false (#136)', function () {
                 },
                 { timeout: 3000, interval: 100 },
             );
+
+            // "Exit table" is the claim in the name and was never measured --
+            // a cursor at line >= 6 holds while the cell editor is still open.
+            expect((await getTableCellInfo()).inTableCell).toBe(false);
+            // And the overlay is not what moved the cursor: this suite runs
+            // with enableTableNav off, which nothing here checked.
+            expect(await hasTableNavHighlight()).toBe(false);
         });
 
         it('Tab should navigate between cells without table-nav (#136)', async function () {
@@ -352,6 +366,9 @@ describe('Table movement with enableTableNav=false (#136)', function () {
             const after = await getTableCellInfo();
             expect(after.inTableCell).toBe(true);
             expect(after.cellCol).not.toBe(beforeCol);
+            // "without table-nav" is in the name; the overlay was never
+            // checked, before or after the Tab.
+            expect(await hasTableNavHighlight()).toBe(false);
         });
     });
 
