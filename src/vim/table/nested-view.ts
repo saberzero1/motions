@@ -42,6 +42,15 @@ const NESTED_CLASS = 'vim-motions-table-nested';
  */
 export type SuppressNativeCellEditor = (parent: EditorView) => boolean;
 
+/**
+ * Why the nested editor was handed off.
+ *
+ * `caret-left` is the user navigating out; `surface-withdrawn` is the table
+ * ceasing to render under a caret still inside it. They take opposite
+ * decisions about focus, so the cause has to reach `handOff`.
+ */
+export type HandOffReason = 'caret-left' | 'surface-withdrawn';
+
 export interface NestedTableStats {
     mounts: number;
     unmounts: number;
@@ -57,6 +66,15 @@ export interface NestedTableStats {
     routed: number;
     selectedText: string;
     routerInstalled: boolean;
+    /** How many hand-offs gave focus back to the parent. */
+    focusRestores: number;
+    /** What the last hand-off decided from, so a wrong decision is visible. */
+    lastHandOff: {
+        reason: HandOffReason;
+        hasFocus: boolean;
+        focusNowhere: boolean;
+        restored: boolean;
+    } | null;
 }
 
 interface Mounted {
@@ -80,6 +98,8 @@ let mounts = 0;
 let unmounts = 0;
 let cleanups = 0;
 let suppressions = 0;
+let focusRestores = 0;
+let lastHandOff: NestedTableStats['lastHandOff'] = null;
 const live = new Set<Mounted>();
 
 /**
@@ -129,6 +149,8 @@ export function getNestedTableStats(): NestedTableStats {
               )
             : '',
         routerInstalled: first ? first.routerInstalled : false,
+        focusRestores,
+        lastHandOff,
     };
 }
 
@@ -293,7 +315,7 @@ class NestedTableHost implements PluginValue {
     private reconcile(): void {
         const table = activeTable(this.parent.state);
         if (!table) {
-            this.handOff();
+            this.handOff('caret-left');
             return;
         }
 
@@ -349,7 +371,10 @@ class NestedTableHost implements PluginValue {
 
         const root = findSurfaceRoot(this.parent, table);
         if (!root) {
-            this.unmount();
+            // `handOff`, not a bare `unmount`: the surface is gone while the
+            // table is still in the document, and dropping a focused child
+            // here strands focus exactly as the `!table` path above did.
+            this.handOff('surface-withdrawn');
             return;
         }
 
@@ -570,16 +595,10 @@ class NestedTableHost implements PluginValue {
         const releaseRouter = presentational
             ? null
             : installKeyRouter(view, this.parent, this.snippetTab);
-        // Focus is the point of the nested editor under the bundled engine: a
-        // block-replaced range has no caret of its own, and the parent keeps
-        // its selection parked precisely because it is no longer focused.
-        // Under RPC focus must stay on the parent, where every RPC path —
-        // cursor, IME anchoring, float placement, the popup menu — measures.
-        if (!presentational) view.contentDOM.focus();
 
         setNestedMounted(root, true);
         mounts++;
-        this.current = {
+        const held: Mounted = {
             from: table.from,
             view,
             root,
@@ -591,7 +610,16 @@ class NestedTableHost implements PluginValue {
                 () => host.remove(),
             ],
         };
-        live.add(this.current);
+
+        // Focus is the point of the nested editor under the bundled engine: a
+        // block-replaced range has no caret of its own, and the parent keeps
+        // its selection parked precisely because it is no longer focused.
+        // Under RPC focus must stay on the parent, where every RPC path —
+        // cursor, IME anchoring, float placement, the popup menu — measures.
+        if (!presentational) view.contentDOM.focus();
+
+        this.current = held;
+        live.add(held);
     }
 
     /**
@@ -606,12 +634,42 @@ class NestedTableHost implements PluginValue {
      * the view is destroyed or the table is replaced, and focusing the parent
      * there would pull focus away from wherever the user really is.
      */
-    private handOff(): void {
+    private handOff(reason: HandOffReason): void {
         const held = this.current;
         if (!held) return;
-        const hadFocus = held.view.hasFocus;
+        // The two reasons need different signals, and `hasFocus` alone is
+        // only right for one of them.
+        //
+        // `caret-left` — the caret moved out of the table's document range, so
+        // the user navigated away. Follow the child's actual focus: if
+        // something blurred it first, focus went where the user wanted it and
+        // yanking it back into the editor is the bug `table-boundary.e2e.ts`
+        // pins.
+        //
+        // `surface-withdrawn` — the table stopped rendering under a caret that
+        // is still inside it, which is what a Live Preview → Source switch
+        // does. Measured: Obsidian blurs the child *before* detaching it, so
+        // `hasFocus` is already false by the time this runs and cannot be the
+        // signal. Focus landing on nothing is. An `activeElement` that names a
+        // real element — a modal, a sidebar, another pane — is left alone.
+        const doc = held.view.dom.ownerDocument;
+        const focusNowhere =
+            doc.activeElement === null || doc.activeElement === doc.body;
+        const hadFocus =
+            reason === 'caret-left'
+                ? held.view.hasFocus
+                : held.view.hasFocus || focusNowhere;
+        lastHandOff = {
+            reason,
+            hasFocus: held.view.hasFocus,
+            focusNowhere,
+            restored: hadFocus,
+        };
         this.unmount();
-        if (hadFocus) this.parent.contentDOM.focus();
+        if (hadFocus) {
+            focusRestores++;
+            this.parent.contentDOM.focus();
+        }
     }
 
     private unmount(): void {
