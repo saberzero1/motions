@@ -230,6 +230,103 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await browser.pause(400);
     });
 
+    it('ARM I: native table-nav survives modal, tab and split transitions', async () => {
+        // Runs before every owned scenario, deliberately. Switching
+        // `tableWidgetMode` from `owned` back to `native` leaves table-nav
+        // dead until Obsidian restarts -- measured, with the widget
+        // rendered, the caret in the table and `enableTableNav` true -- so a
+        // native scenario placed after an owned one would be measuring that
+        // defect instead of the transitions it names. Recorded in
+        // KNOWN_LIMITATIONS.md.
+        await openTable('native');
+        await browser.keys(['j', 'j', 'j', 'j']);
+        await browser.pause(700);
+
+        // In table-nav the overlay suppresses the caret deliberately and
+        // shows an active-cell highlight instead, so `visibleCursors` is 0
+        // and `keyInterceptActive` is true by design. Reading those two as a
+        // leak is the mistake this scenario exists to stop repeating: the
+        // user-visible thing here is the highlight.
+        const navState = async () =>
+            (await browser.executeObsidian(() => {
+                const d = (
+                    window as unknown as {
+                        CodeMirrorAdapter?: {
+                            getTableDebugState?: () => {
+                                nav: { state?: string } | null;
+                            } | null;
+                        };
+                    }
+                ).CodeMirrorAdapter?.getTableDebugState?.();
+                return {
+                    highlights: document.querySelectorAll(
+                        '.vim-motions-table-nav-active',
+                    ).length,
+                    state: d?.nav?.state ?? null,
+                };
+            })) as { highlights: number; state: string | null };
+
+        // Waited for rather than paused for. Nav entry is debounced, and a
+        // fixed pause that sufficed when this scenario ran alone did not once
+        // two owned-mode scenarios and a mode switch ran before it -- the
+        // state was identical and simply later.
+        await browser.waitUntil(
+            async () => (await navState()).state === 'nav',
+            {
+                timeout: 5000,
+                interval: 150,
+                timeoutMsg: 'table-nav did not activate',
+            },
+        );
+        const entered = await navState();
+        expect(entered.state).toBe('nav');
+        expect(entered.highlights).toBe(1);
+
+        const run = async (id: string) => {
+            await browser.executeObsidian(({ app }, c: string) => {
+                (
+                    app as unknown as {
+                        commands: {
+                            executeCommandById: (i: string) => boolean;
+                        };
+                    }
+                ).commands.executeCommandById(c);
+            }, id);
+            await browser.pause(800);
+        };
+
+        await run('command-palette:open');
+        await browser.keys(['Escape']);
+        await browser.pause(600);
+        // Deliberately no keystroke before reading: `j` navigates or exits in
+        // nav mode, so sampling by pressing mutates what is being measured.
+        expect((await navState()).state).toBe('nav');
+        expect((await navState()).highlights).toBe(1);
+
+        await run('workspace:new-tab');
+        await run('workspace:previous-tab');
+        expect((await navState()).state).toBe('nav');
+        expect((await navState()).highlights).toBe(1);
+
+        await run('workspace:split-vertical');
+        await run('editor:focus-left');
+        const split = await navState();
+        expect(split.state).toBe('nav');
+        // One highlight per pane, both showing the same note.
+        expect(split.highlights).toBe(2);
+
+        // Reload rather than Escape-and-detach. Measured: one Escape exits
+        // nav in a single pane and leaves the other session's cursor
+        // suppression behind, so every later scenario failed on
+        // `viewOverrideCount` 1. And the owned-to-native toggle defect above
+        // means a mode switch cannot be relied on to clear it either, so a
+        // clean slate is the only cleanup that holds.
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await browser.pause(1200);
+        await loadSingleFileWorkspace();
+        await browser.pause(600);
+    });
+
     it('ARM A: owned, entered with real keys, releases everything', async () => {
         await openTable('owned');
         const pre = await sample();
@@ -408,6 +505,14 @@ describe('Table global state leak on LP→Source (#167)', function () {
         expect(s.nested.mounted).toBe(2);
         expect(s.visibleCursors).toBeGreaterThan(0);
         expect(await keyMovesCursor()).toBe(true);
+
+        await browser.executeObsidian(({ app }) => {
+            app.workspace
+                .getLeavesOfType('markdown')
+                .slice(1)
+                .forEach((l) => l.detach());
+        });
+        await browser.pause(400);
     });
 
     it('ARM D: native, entered with real keys, releases everything', async () => {
