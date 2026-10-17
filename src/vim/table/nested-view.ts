@@ -278,7 +278,15 @@ class NestedTableHost implements PluginValue {
         if (
             update.docChanged ||
             update.selectionSet ||
-            update.viewportChanged
+            update.viewportChanged ||
+            // `focusChanged` as well, because reclaiming focus for the child
+            // only happens inside `reconcile`, and nothing scheduled one when
+            // focus alone moved. Measured: blurring the window and refocusing
+            // it left the parent focused and suppressed, the child mounted and
+            // unfocused, and no cursor painted anywhere -- keys worked, so the
+            // editor looked alive and uncursored. `native` recovers from the
+            // same sequence, so this was owned-only.
+            update.focusChanged
         ) {
             this.schedule();
         }
