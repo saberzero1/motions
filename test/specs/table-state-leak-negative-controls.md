@@ -36,12 +36,12 @@ surviving scenarios.
 early return (`if (!(update.selectionSet || update.focusChanged)) return;`),
 dropping the `!this.cursorInTable &&` guard.
 
-| Arm | `cursors` | Result |
-| --- | --- | --- |
-| A (owned, real keys) | 1 → **0** | ✖ fails `visibleCursors > 0` |
-| B (owned, park) | 1 → **0** | ✖ fails |
-| C (control, never entered) | 1 | ✓ holds |
-| D (native) | 1 | ✓ holds |
+| Arm                        | `cursors` | Result                       |
+| -------------------------- | --------- | ---------------------------- |
+| A (owned, real keys)       | 1 → **0** | ✖ fails `visibleCursors > 0` |
+| B (owned, park)            | 1 → **0** | ✖ fails                      |
+| C (control, never entered) | 1         | ✓ holds                      |
+| D (native)                 | 1         | ✓ holds                      |
 
 `2 passing / 2 failing`.
 
@@ -62,15 +62,15 @@ the implementation it defended no longer exists.
 **Sabotage**: `src/vim/table/nested-view.ts`, collapse the reason branch in
 `handOff()` to `const hadFocus = held.view.hasFocus;`.
 
-| Arm | `handOff.restored` | `active` | `moved` | Result |
-| --- | --- | --- | --- | --- |
-| A | true → **false** | DIV → **BODY** | true → **false** | ✖ |
-| B | true → **false** | DIV → **BODY** | true → **false** | ✖ |
-| C | false | DIV | true | ✓ holds |
-| D | false | DIV | true | ✓ holds |
+| Arm | `handOff.restored` | `active`       | `moved`          | Result  |
+| --- | ------------------ | -------------- | ---------------- | ------- |
+| A   | true → **false**   | DIV → **BODY** | true → **false** | ✖       |
+| B   | true → **false**   | DIV → **BODY** | true → **false** | ✖       |
+| C   | false              | DIV            | true             | ✓ holds |
+| D   | false              | DIV            | true             | ✓ holds |
 
 `2 passing / 2 failing`. All 6 tests in `table-boundary.e2e.ts` stayed green
-under the sabotage, which is expected: the sabotage *is* the pre-fix behaviour
+under the sabotage, which is expected: the sabotage _is_ the pre-fix behaviour
 that spec was written against.
 
 Note `handOff.hasFocus` is **false** on arms A and B both before and after the
@@ -84,14 +84,14 @@ fix: the signal `hasFocus` was supposed to carry is already gone by the time
 `if (!s.widgetEl?.isConnected) { this.scheduleAbandon('widget-gone'); return; }`
 block from `update()`.
 
-| Field | ARM D before | ARM D sabotaged |
-| --- | --- | --- |
-| `overrideCount` | 0 | **1** |
-| `suppressed` | false | **true** |
-| `keyIntercept` | false | **true** |
-| `active` | DIV | **BODY** |
-| `cursors` | 1 | **0** |
-| `moved` | true | **false** |
+| Field           | ARM D before | ARM D sabotaged |
+| --------------- | ------------ | --------------- |
+| `overrideCount` | 0            | **1**           |
+| `suppressed`    | false        | **true**        |
+| `keyIntercept`  | false        | **true**        |
+| `active`        | DIV          | **BODY**        |
+| `cursors`       | 1            | **0**           |
+| `moved`         | true         | **false**       |
 
 `3 passing / 1 failing` — arms A, B and C unaffected, which is correct: the nav
 overlay is `native`-only. Both `table-cursor-vanish.e2e.ts` scenarios also
@@ -135,12 +135,12 @@ decisions.
 Full table suite after the fixes: **38 spec files, 299 tests, 0 failures**, in
 four batches of ≤10 `--spec` invocations.
 
-| Batch | Specs | Tests |
-| --- | --- | --- |
-| 1 | 10 (4 × `rpc-table-*`, block-mirror, boundary, cell-bridge, cell-caret, cell-cursorline, cell-decorations) | 58 |
-| 2 | 10 (cell-scrolloff, cell-vim-mode, click-and-clipboard, cursor-source-mode, cursor-suppression, cursor-surface-parity, cursor-vanish, debug-state, escaped-pipes, ime) | 75 |
-| 3 | 10 (key-router, nav-disabled, nav-hotkeys, nav-mode, nav-scroll, nested-view, owned-scroll-parity, owned-surface, passive-grid, raw-deprecation) | 98 |
-| 4 | 8 (realign-conformance, realign-guard, tables, snippets, state-leak, structural-owned, surface-gate, typography) | 68 |
+| Batch | Specs                                                                                                                                                                  | Tests |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1     | 10 (4 × `rpc-table-*`, block-mirror, boundary, cell-bridge, cell-caret, cell-cursorline, cell-decorations)                                                             | 58    |
+| 2     | 10 (cell-scrolloff, cell-vim-mode, click-and-clipboard, cursor-source-mode, cursor-suppression, cursor-surface-parity, cursor-vanish, debug-state, escaped-pipes, ime) | 75    |
+| 3     | 10 (key-router, nav-disabled, nav-hotkeys, nav-mode, nav-scroll, nested-view, owned-scroll-parity, owned-surface, passive-grid, raw-deprecation)                       | 98    |
+| 4     | 8 (realign-conformance, realign-guard, tables, snippets, state-leak, structural-owned, surface-gate, typography)                                                       | 68    |
 
 Batch 3 carries all 45 live `table-nav-mode` tests, which exercise the
 controller changed by fix 3.
