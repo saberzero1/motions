@@ -76,6 +76,49 @@ async function assertPluginLoaded(): Promise<void> {
     expect(result).toHaveProperty('pluginLoaded', true);
 }
 
+/**
+ * What the loaded vimrc actually registered.
+ *
+ * `assertPluginLoaded` proves only that the plugin did not crash, which a
+ * vimrc that parsed into nothing also satisfies. These are the sets the
+ * loader fills -- `vimrcMapKeys`, `vimrcExmapNames`, `vimrcSurroundTriggers`
+ * -- so a directive that silently failed to register is visible.
+ */
+async function readVimrcState(): Promise<{
+    vimrcLoaded: boolean;
+    exmaps: string[];
+    mapKeys: string[];
+    surround: string[];
+    textwidth: number;
+    clipboard: string;
+}> {
+    return (await browser.executeObsidian(({ app }) => {
+        const p = (
+            app as unknown as {
+                plugins: { plugins: Record<string, Record<string, unknown>> };
+            }
+        ).plugins.plugins['vim-motions'];
+        const st = (p?.settings ?? {}) as Record<string, unknown>;
+        const arr = (v: unknown) =>
+            v instanceof Set ? [...(v as Set<string>)] : [];
+        return {
+            vimrcLoaded: p?.vimrcLoaded === true,
+            exmaps: arr(p?.vimrcExmapNames),
+            mapKeys: arr(p?.vimrcMapKeys),
+            surround: arr(p?.vimrcSurroundTriggers),
+            textwidth: (st.textwidth as number) ?? -1,
+            clipboard: (st.clipboard as string) ?? '',
+        };
+    })) as {
+        vimrcLoaded: boolean;
+        exmaps: string[];
+        mapKeys: string[];
+        surround: string[];
+        textwidth: number;
+        clipboard: string;
+    };
+}
+
 async function getEasyMotionLabelCount(): Promise<number> {
     return (await browser.executeObsidian(
         () =>
@@ -152,6 +195,11 @@ describe('Vimrc support (Phase 2)', function () {
             '"Test vimrc with exmap\nexmap saveFile obcommand editor:save-file\nnmap <C-s> :saveFile\n',
         );
         await assertPluginLoaded();
+        const st = await readVimrcState();
+        // The directives reached the loader. "handles exmap and obcommand"
+        // was previously satisfied by the plugin merely still being loaded.
+        expect(st.exmaps).toContain('saveFile');
+        expect(st.mapKeys).toContain('<C-s>');
         // Note: exmap + obcommand integration is verified in Phase 2 tests (line 394+)
     });
 
@@ -200,16 +248,25 @@ describe('Vimrc support (Phase 2)', function () {
             'set clipboard=unnamed\nset tabstop=2\nset textwidth=100\nset shiftwidth=2\nset expandtab\n',
         );
         await assertPluginLoaded();
+        const setState = await readVimrcState();
+        expect(setState.textwidth).toBe(100);
+        expect(setState.clipboard).toBe('unnamed');
     });
 
     it('should handle set noexpandtab (boolean false)', async function () {
         await loadVimrc('set noexpandtab\n');
         await assertPluginLoaded();
+        // A boolean-false `set` must still parse as a loaded vimrc rather
+        // than aborting the file.
+        expect((await readVimrcState()).vimrcLoaded).toBe(true);
     });
 
     it('should survive unknown set options without crashing', async function () {
         await loadVimrc('set unknownoption=foo\nset clipboard=unnamed\n');
         await assertPluginLoaded();
+        // Surviving means parsing continued past the unknown option: the
+        // line after it applied. Plugin-still-loaded held either way.
+        expect((await readVimrcState()).clipboard).toBe('unnamed');
     });
 
     it('EasyMotion should work with default leader key (backslash)', async function () {
@@ -288,6 +345,10 @@ describe('Vimrc support (Phase 2)', function () {
         await obsidianPage.openFile('Welcome.md');
         await browser.pause(500);
         await assertPluginLoaded();
+        // No file means nothing registered, which is the actual claim.
+        const none = await readVimrcState();
+        expect(none.exmaps).toEqual([]);
+        expect(none.mapKeys).toEqual([]);
     });
 });
 
@@ -419,8 +480,19 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers the back and forward exmaps and their mappings', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.exmaps).toEqual(
+                expect.arrayContaining(['back', 'forward']),
+            );
+            expect(st.mapKeys).toEqual(
+                expect.arrayContaining(['<C-o>', '<C-i>']),
+            );
         });
     });
 
@@ -431,8 +503,14 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers an inline obcommand mapping', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.mapKeys).toContain('<C-w>h');
         });
     });
 
@@ -443,8 +521,16 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers the chord mappings that follow unmap <Space>', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.mapKeys).toEqual(
+                expect.arrayContaining(['<Space>j', '<Space>k']),
+            );
         });
     });
 
@@ -459,8 +545,15 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers a leader mapping onto an exmap', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.exmaps).toContain('saveFile');
+            expect(st.mapKeys).toContain(',w');
         });
     });
 
@@ -779,8 +872,19 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers every fold exmap and mapping', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.exmaps).toEqual(
+                expect.arrayContaining(['togglefold', 'unfoldall', 'foldall']),
+            );
+            expect(st.mapKeys).toEqual(
+                expect.arrayContaining(['zo', 'zc', 'za', 'zR', 'zM']),
+            );
         });
     });
 
@@ -796,8 +900,17 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers the tab-emulation exmaps and mappings', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.exmaps).toEqual(
+                expect.arrayContaining(['tabnext', 'tabprev']),
+            );
+            expect(st.mapKeys).toEqual(expect.arrayContaining(['gt', 'gT']));
         });
     });
 
@@ -824,8 +937,20 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
             );
         });
 
-        it('should load without errors', async function () {
+        it('registers every directive in the README config', async function () {
             await assertPluginLoaded();
+            // Renamed off the shared 'should load without errors' title
+            // seven scenarios used, and asserting what this vimrc
+            // registered. The title was accurate and empty: a vimrc that
+            // parsed into nothing also loads without errors.
+            const st = await readVimrcState();
+            expect(st.clipboard).toBe('unnamed');
+            expect(st.exmaps).toEqual(
+                expect.arrayContaining(['back', 'forward']),
+            );
+            expect(st.mapKeys).toEqual(
+                expect.arrayContaining(['j', 'k', 'H', 'L', '<C-o>', '<C-i>']),
+            );
         });
 
         it('H should move to first non-blank character', async function () {
@@ -1111,11 +1236,15 @@ describe('Vimrc compatibility (obsidian-vimrc-support README examples)', functio
         it('surroundmap should parse without crashing', async function () {
             await loadVimrc('surroundmap l [[ ]]\n');
             await assertPluginLoaded();
+            expect((await readVimrcState()).surround).toContain('l');
         });
 
         it('surroundunmap should parse without crashing', async function () {
             await loadVimrc('surroundmap l [[ ]]\nsurroundunmap l\n');
             await assertPluginLoaded();
+            // Registered then removed: the trigger must be gone, or the
+            // unregister pass leaked it past the file that asked for it.
+            expect((await readVimrcState()).surround).not.toContain('l');
         });
 
         it('surroundmap should wrap with the mapped delimiters', async function () {
