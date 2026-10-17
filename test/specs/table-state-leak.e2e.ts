@@ -217,6 +217,19 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await setPluginSettingAndReload('tableWidgetMode', 'native');
     });
 
+    beforeEach(async () => {
+        // ARM F opens a tab; without this the next scenario starts with two
+        // surfaces mounted and fails its own precondition. Measured while
+        // writing the transition probe this spec grew out of.
+        await browser.executeObsidian(({ app }) => {
+            app.workspace
+                .getLeavesOfType('markdown')
+                .slice(1)
+                .forEach((l) => l.detach());
+        });
+        await browser.pause(400);
+    });
+
     it('ARM A: owned, entered with real keys, releases everything', async () => {
         await openTable('owned');
         const pre = await sample();
@@ -272,6 +285,68 @@ describe('Table global state leak on LP→Source (#167)', function () {
 
         expect(await isSourceMode()).toBe(true);
         await expectNoLeak('ARM C control');
+    });
+
+    it('ARM E: a modal open/close leaves the entered table intact', async () => {
+        await openTable('owned');
+        await browser.keys(['j', 'j', 'j', 'j']);
+        await browser.pause(700);
+        expect((await sample()).nested.mounted).toBe(1);
+
+        const opened = (await browser.executeObsidian(({ app }) => {
+            return (
+                app as unknown as {
+                    commands: { executeCommandById: (i: string) => boolean };
+                }
+            ).commands.executeCommandById('command-palette:open');
+        })) as boolean;
+        expect(opened).toBe(true);
+        await browser.pause(600);
+        await browser.keys(['Escape']);
+        await browser.pause(600);
+
+        // The caret is still inside the table, so the parent staying
+        // suppressed is correct here -- what must survive is the nested view,
+        // its painted caret, and the keys.
+        const s = await sample();
+        expect(s.nested.mounted).toBe(1);
+        expect(s.viewOverrideCount).toBe(1);
+        expect(s.visibleCursors).toBeGreaterThan(0);
+        expect(s.activeTag).not.toBe('BODY');
+        expect(await keyMovesCursor()).toBe(true);
+    });
+
+    it('ARM F: a tab switch away and back leaves the entered table intact', async () => {
+        await openTable('owned');
+        await browser.keys(['j', 'j', 'j', 'j']);
+        await browser.pause(700);
+        expect((await sample()).nested.mounted).toBe(1);
+
+        await browser.executeObsidian(({ app }) => {
+            const c = (
+                app as unknown as {
+                    commands: { executeCommandById: (i: string) => boolean };
+                }
+            ).commands;
+            c.executeCommandById('workspace:new-tab');
+        });
+        await browser.pause(800);
+        await browser.executeObsidian(({ app }) => {
+            const c = (
+                app as unknown as {
+                    commands: { executeCommandById: (i: string) => boolean };
+                }
+            ).commands;
+            c.executeCommandById('workspace:previous-tab');
+        });
+        await browser.pause(800);
+
+        const s = await sample();
+        expect(s.nested.mounted).toBe(1);
+        expect(s.viewOverrideCount).toBe(1);
+        expect(s.visibleCursors).toBeGreaterThan(0);
+        expect(s.activeTag).not.toBe('BODY');
+        expect(await keyMovesCursor()).toBe(true);
     });
 
     it('ARM D: native, entered with real keys, releases everything', async () => {
