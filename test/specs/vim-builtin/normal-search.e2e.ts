@@ -48,9 +48,11 @@ describe('Normal mode — search and find (Tier 1)', function () {
         }
     } else {
         it('suite "normal-search" exists in test-definitions', function () {
-            throw new Error(
-                'Suite "normal-search" not found in SUITES — was it renamed in test-definitions.ts?',
-            );
+            // Reached only when the lookup above missed, so this fails by
+            // construction. An assertion rather than a bare throw: the gate
+            // cannot see a throw, and this prints the suite names that DO
+            // exist, which is what answers "was it renamed?".
+            expect(SUITES.map((s) => s.name)).toContain('normal-search');
         });
     }
 
