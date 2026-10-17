@@ -278,15 +278,75 @@ export default defineConfig(
     },
 
     {
-        // The e2e suite is Mocha, not Vitest, and eslint-plugin-mocha has no
-        // `expect-expect` equivalent — Mocha delegates assertions to any
-        // library that throws. What is worth gating here is the WDIO-specific
-        // failure that silently passes: an async browser assertion that is
-        // built but never awaited.
+        // The e2e suite is Mocha, not Vitest, but `@vitest/eslint-plugin`'s
+        // `expect-expect` is purely syntactic — it walks `it()` bodies looking
+        // for a recognised assertion name and never touches the runner — so it
+        // applies here. The earlier note in this slot said otherwise and was
+        // reasoning about `eslint-plugin-mocha`, which genuinely has no
+        // equivalent; the conclusion drawn from it left this suite with no
+        // vacuity gate at all, which is how a test asserting nothing survived.
+        //
+        // Measured when first enabled: 108 findings, and the triage is the
+        // reason `assertFunctionNames` below is an allowlist of inspected
+        // helpers rather than a wildcard.
         files: ['test/specs/**/*.e2e.ts'],
         ...wdio.configs['flat/recommended'],
+        plugins: {
+            ...(wdio.configs['flat/recommended'].plugins as Record<
+                string,
+                unknown
+            >),
+            vitest,
+        },
         rules: {
             ...(wdio.configs['flat/recommended'].rules as Linter.RulesRecord),
+            // Every name here was read before being added. Each calls
+            // `expect` on state it observed from the product — a cursor line,
+            // a fold state, an rpc-versus-fork snapshot pair, raw buffer
+            // bytes — so a test delegating to one is asserting something real.
+            //
+            // `assertPluginLoaded` is deliberately **absent**, though it is
+            // named like a member of this list and would clear 28 findings.
+            // Its whole body is `expect(result).toHaveProperty('pluginLoaded',
+            // true)` over `'vim-motions' in app.plugins.plugins`, i.e. it
+            // proves the plugin did not crash and nothing about the feature
+            // under test. Adding it would convert 28 detectable problems into
+            // undetectable ones, which is the one move the negative-control
+            // skill forbids outright.
+            'vitest/expect-expect': [
+                'error',
+                {
+                    assertFunctionNames: [
+                        'expect',
+                        'expectCursorLine',
+                        'expectParity',
+                        'expectOperatorParity',
+                        'expectFoldedAt',
+                        'expectBytes',
+                        'expectByteExact',
+                        'expectGkToVisitEveryLine',
+                        'expectMarkdownBufferIdentity',
+                    ],
+                    // No `additionalTestBlockFunctions` here, unlike the unit
+                    // block. `testWithNeovim` is a wrapper that calls `it()`
+                    // itself and asserts inside `test/neovim/wrapper.ts`;
+                    // declaring it a test block makes the rule inspect the
+                    // call's own object literal, find no `expect`, and report
+                    // 29 findings against the one Tier 1 format that is
+                    // golden-enforced. Measured: 67 findings without it, 96
+                    // with.
+                },
+            ],
+            'vitest/no-conditional-expect': 'error',
+            // `maxArgs: 1`, unlike the unit block's 2: the e2e suite's
+            // `expect` comes from `@wdio/globals` and throws "Expect takes at
+            // most one argument" at runtime for the message form, which
+            // TypeScript accepts. That failure reports against every
+            // assertion in the file and names none of them.
+            'vitest/valid-expect': [
+                'error',
+                { alwaysAwait: false, maxArgs: 1 },
+            ],
             // Ships 'off' in the plugin's own recommended set. An async browser
             // assertion that is constructed but never awaited resolves to a
             // pending Promise, which is truthy and never throws — the test
@@ -296,6 +356,48 @@ export default defineConfig(
             // fixed-sleep is a flakiness concern, not a vacuity one, and
             // rewriting them all belongs to whoever takes on wait strategy.
             'wdio/no-pause': 'off',
+        },
+    },
+
+    {
+        // RATCHET, not an exemption. These 38 tests predate the gate above and
+        // assert nothing it can see; 28 of them delegate to a local
+        // `assertPluginLoaded`, whose whole body proves only that the plugin
+        // did not crash. They are `warn` so the gate ships green and holds
+        // every other spec at `error`, and they are enumerated here rather than
+        // suppressed in place so the debt stays countable.
+        //
+        // Per-file counts when measured: vimrc 14, lua-config 12,
+        // lua-runtime 3, picker-integration 3, vimrc-custom-path 2,
+        // gk-column-drift-issue26 1, rpc-connect-cycle 1, rpc-lifecycle 1,
+        // vim-builtin/minor-motions-scroll 1.
+        //
+        // Clearing one is not mechanical. `'should apply vim.g.mapleader'`
+        // loads `vim.g.mapleader = ","` alongside `vim.opt.scrolloff = 3` and
+        // then only checks the plugin loaded; the assertion it wants is
+        // `scrolloffLines === 3`, which that same file demonstrates three lines
+        // earlier. Each needs that judgement plus a run proving the new
+        // expectation actually holds.
+        //
+        // **Do not add entries here.** A new spec that trips the rule should
+        // assert something instead.
+        files: [
+            'test/specs/vimrc.e2e.ts',
+            'test/specs/vimrc-custom-path.e2e.ts',
+            'test/specs/lua-config.e2e.ts',
+            'test/specs/lua-runtime.e2e.ts',
+            'test/specs/picker-integration.e2e.ts',
+            'test/specs/gk-column-drift-issue26.e2e.ts',
+            'test/specs/rpc-connect-cycle.e2e.ts',
+            'test/specs/rpc-lifecycle.e2e.ts',
+            'test/specs/vim-builtin/minor-motions-scroll.e2e.ts',
+        ],
+        plugins: { vitest },
+        rules: {
+            'vitest/expect-expect': [
+                'warn',
+                { assertFunctionNames: ['expect'] },
+            ],
         },
     },
 );
