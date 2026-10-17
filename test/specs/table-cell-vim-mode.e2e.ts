@@ -824,6 +824,12 @@ describe('Table mode combinations', function () {
             },
             { timeout: 3000, interval: 100 },
         );
+
+        // Re-checked AFTER the key, which is the half that was missing.
+        // The pre-key check alone passes if the keystroke *activates* the
+        // overlay and the overlay then performs the navigation -- the exact
+        // thing "without nav overlay" denies.
+        expect(await hasTableNavHighlight()).toBe(false);
     });
 
     it('native + enableTableNav=false: cross-cell l should work without nav overlay', async function () {
@@ -850,6 +856,12 @@ describe('Table mode combinations', function () {
             },
             { timeout: 3000, interval: 100 },
         );
+
+        // Re-checked AFTER the key, which is the half that was missing.
+        // The pre-key check alone passes if the keystroke *activates* the
+        // overlay and the overlay then performs the navigation -- the exact
+        // thing "without nav overlay" denies.
+        expect(await hasTableNavHighlight()).toBe(false);
     });
 
     it('raw mode: table widget should be hidden', async function () {
