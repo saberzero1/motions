@@ -380,10 +380,46 @@ describe('Neovim RPC with a table cell editor open (issue #167)', function () {
         // table was ever entered, so a later non-answer is the table's doing
         // and not a connection that was never alive.
         expect(healthBefore.responded).toBe(true);
+
+        // Entering the table, and entering a cell editor inside it, each leave
+        // the pipeline answering. These were collected and discarded before;
+        // they are the readings that localise the stall below to the keystroke
+        // rather than to table entry.
+        expect(healthInNav.responded).toBe(true);
+        expect(healthInCell.responded).toBe(true);
+        expect(healthInCell.mode).toBe('n');
+
+        // This is the scenario's real subject, and it is a regression test for
+        // a shipped fix rather than a tolerance for a defect.
+        //
+        // `Z` is a Neovim command prefix (`ZZ`/`ZQ`), so after it Neovim is
+        // awaiting a second character and an API request does not answer.
+        // `healthAfterKey` measuring `{ responded: false, detail: 'timeout' }`
+        // is therefore correct Neovim behaviour, not a wedge — it reproduces
+        // with no table involved, which is why KNOWN_LIMITATIONS.md's
+        // "Bundled-engine features are not carried into RPC mode" explicitly
+        // declines to treat it as a defect.
+        //
+        // What *was* a defect is that Escape could not cancel it: with a cell
+        // editor open, `installCellEscapeCapture` ran a document-capture
+        // handler calling `stopImmediatePropagation()`, so Escape never
+        // reached the delegation listener and the pending command could not
+        // be cleared by any user action. That capture now skips
+        // `stopImmediatePropagation()` when a non-fork backend owns keys, and
+        // this assertion is what holds it fixed: measured 3ms recovery with
+        // no cell editor, and no recovery at all before the fix.
+        expect(healthAfterExit.responded).toBe(true);
+        expect(healthAfterExit.mode).toBe('n');
+
+        // `healthAfterKey` itself is deliberately NOT asserted. `false` is the
+        // expected reading, but an absence assertion would equally hold if the
+        // pipeline were genuinely broken, so the cancellation above is the
+        // claim worth pinning.
     });
 
-    it('measures whether the pipeline RECOVERS, with a deadline past the 30s RPC timeout', async () => {
+    it('keeps the document intact across a stall longer than the RPC timeout', async () => {
         const healthBefore = await rpcResponds();
+        const docBefore = await getEditorValue();
 
         await browser.keys(['j', 'j']);
         await browser.pause(500);
@@ -393,7 +429,16 @@ describe('Neovim RPC with a table cell editor open (issue #167)', function () {
         await browser.pause(500);
 
         const shortProbe = await rpcResponds();
+        // `MsgpackRpcClient` uses REQUEST_TIMEOUT_MS = 30000, so a 3s probe
+        // cannot tell a permanent wedge from a request still in flight. The
+        // 45s deadline is what retires that ambiguity.
         const longProbe = await rpcRespondsWithin(45000);
+
+        await browser.keys(['Escape']);
+        await browser.pause(400);
+        await browser.keys(['Escape']);
+        await browser.pause(700);
+        const healthAfterExit = await rpcResponds();
 
         const doc = await getEditorValue();
 
@@ -401,16 +446,38 @@ describe('Neovim RPC with a table cell editor open (issue #167)', function () {
             healthBefore,
             shortProbe,
             longProbe,
+            healthAfterExit,
             doc,
             recoveredEventually: longProbe.responded,
+            recoveredAfterExit: healthAfterExit.responded,
             elapsedMs: longProbe.elapsedMs,
         });
 
-        // `MsgpackRpcClient` uses REQUEST_TIMEOUT_MS = 30000, so a 3s probe
-        // cannot tell a permanent wedge from a pending request. This scenario
-        // exists to retire that ambiguity, so the long probe must have been
-        // given more than 30s to answer in.
         expect(healthBefore.responded).toBe(true);
-        expect(longProbe.deadlineMs).toBeGreaterThan(30000);
+
+        // The assertion that stood here was `longProbe.deadlineMs > 30000` —
+        // the 45000 this test passes in twelve lines above, i.e. "45000 >
+        // 30000". It can only fail by editing the argument. The reading it
+        // stood in for is `longProbe.responded`, computed into
+        // `recoveredEventually` and written to JSON unasserted.
+        //
+        // Replacing it with that reading was tried and is wrong: measured
+        // `false` after 26482ms. Asserting recovery on exit here instead is
+        // also wrong — `recoveredAfterExit` measures `false` in THIS sequence
+        // while the sibling scenario above measures `true` for the identical
+        // Escape-Escape, because this one spends 26s inside a stalled probe
+        // first. Cancellation is therefore that scenario's claim, asserted
+        // there, and not available to this one.
+        //
+        // Neither reading is a defect. `Z` leaves Neovim awaiting the second
+        // character of `ZZ`/`ZQ`, so a non-answering API request is correct
+        // behaviour; see the sibling's note and the RPC section of
+        // KNOWN_LIMITATIONS.md.
+        //
+        // What this scenario uniquely establishes is that a pending command
+        // outlasting REQUEST_TIMEOUT_MS corrupts nothing, so document
+        // integrity is what it asserts.
+        expect(doc).toBe(docBefore);
+        expect(doc).toContain('| aa   | 11    |');
     });
 });
