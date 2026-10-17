@@ -349,6 +349,67 @@ describe('Table global state leak on LP→Source (#167)', function () {
         expect(await keyMovesCursor()).toBe(true);
     });
 
+    it('ARM G: a window blur and refocus restores the in-cell caret', async () => {
+        await openTable('owned');
+        await browser.keys(['j', 'j', 'j', 'j']);
+        await browser.pause(700);
+        expect((await sample()).nested.mounted).toBe(1);
+
+        await browser.executeObsidian(() => {
+            (document.activeElement as HTMLElement | null)?.blur();
+            window.dispatchEvent(new Event('blur'));
+        });
+        await browser.pause(700);
+
+        await browser.executeObsidian(({ app, obsidian }) => {
+            window.dispatchEvent(new Event('focus'));
+            app.workspace
+                .getActiveViewOfType(obsidian.MarkdownView)
+                ?.editor.focus();
+        });
+        await browser.pause(700);
+
+        // Measured before the `focusChanged` schedule: the parent came back
+        // focused and suppressed, the child stayed mounted and unfocused, and
+        // nothing painted -- keys worked, so the editor looked alive and
+        // uncursored. `native` recovered from the same sequence.
+        const s = await sample();
+        expect(s.nested.mounted).toBe(1);
+        expect(s.visibleCursors).toBeGreaterThan(0);
+        expect(await keyMovesCursor()).toBe(true);
+    });
+
+    it('ARM H: a pane split keeps a caret painted in the owned surface', async () => {
+        await openTable('owned');
+        await browser.keys(['j', 'j', 'j', 'j']);
+        await browser.pause(700);
+        expect((await sample()).nested.mounted).toBe(1);
+
+        await browser.executeObsidian(({ app }) => {
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (i: string) => boolean };
+                }
+            ).commands.executeCommandById('workspace:split-vertical');
+        });
+        await browser.pause(800);
+        await browser.executeObsidian(({ app }) => {
+            (
+                app as unknown as {
+                    commands: { executeCommandById: (i: string) => boolean };
+                }
+            ).commands.executeCommandById('editor:focus-left');
+        });
+        await browser.pause(800);
+
+        // Two panes on one note mount two surfaces, so two overrides is
+        // correct here; what must hold is that something still paints.
+        const s = await sample();
+        expect(s.nested.mounted).toBe(2);
+        expect(s.visibleCursors).toBeGreaterThan(0);
+        expect(await keyMovesCursor()).toBe(true);
+    });
+
     it('ARM D: native, entered with real keys, releases everything', async () => {
         await openTable('native');
         const pre = await sample();
