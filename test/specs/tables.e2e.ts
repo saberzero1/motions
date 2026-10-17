@@ -4,6 +4,8 @@ import {
     getEditorValue,
     getSelection,
     getRegisterContent,
+    handleEx,
+    setupEditor,
     vimKeys,
     sendVimEscape,
 } from '../helpers';
@@ -48,7 +50,9 @@ describe('Table navigation (]|/[| and ]c/[c)', function () {
                 return { line: cursor.line, ch: cursor.ch };
             })) as { line: number; ch: number };
             expect(pos.line).toBe(0);
-            expect(pos.ch).toBeGreaterThan(3);
+            // ch 6 is the `B` cell in `| A | B | C |` (| 0, A 2, | 4, B 6).
+            // `> 3` also passed for the delimiter at 4 and the space at 5.
+            expect(pos.ch).toBe(6);
         });
 
         it(']| at last cell should wrap to next row', async function () {
@@ -117,7 +121,9 @@ describe('Table navigation (]|/[| and ]c/[c)', function () {
                 return { line: cursor.line, ch: cursor.ch };
             })) as { line: number; ch: number };
             expect(pos.line).toBe(0);
-            expect(pos.ch).toBeLessThan(5);
+            // Back to the `A` cell at ch 2. `< 5` also passed for ch 0-4,
+            // including the row's leading delimiter.
+            expect(pos.ch).toBe(2);
         });
 
         it(']| outside a table should no-op', async function () {
@@ -170,7 +176,8 @@ describe('Table navigation (]|/[| and ]c/[c)', function () {
                 return { line: cursor.line, ch: cursor.ch };
             })) as { line: number; ch: number };
             expect(pos.line).toBe(0);
-            expect(pos.ch).toBeGreaterThan(3);
+            // The `B` cell, as for `]|` above.
+            expect(pos.ch).toBe(6);
         });
 
         it(']c at last cell should wrap to next row', async function () {
@@ -239,7 +246,8 @@ describe('Table navigation (]|/[| and ]c/[c)', function () {
                 return { line: cursor.line, ch: cursor.ch };
             })) as { line: number; ch: number };
             expect(pos.line).toBe(0);
-            expect(pos.ch).toBeLessThan(5);
+            // The `A` cell, as for `[|` above.
+            expect(pos.ch).toBe(2);
         });
 
         it('[c outside a table should no-op', async function () {
@@ -292,7 +300,10 @@ describe('Table navigation (]|/[| and ]c/[c)', function () {
                 return { line: cursor.line, ch: cursor.ch };
             })) as { line: number; ch: number };
             expect(pos.line).toBe(2);
-            expect(pos.ch).toBeGreaterThanOrEqual(4);
+            // "Same column" is the claim in the name and was never checked:
+            // the cursor started at ch 6 and must still be at ch 6, one data
+            // row down past the separator. `>= 4` never compared the two.
+            expect(pos.ch).toBe(6);
         });
 
         it('[r should move to the same column in the previous row', async function () {
@@ -328,7 +339,8 @@ describe('Table navigation (]|/[| and ]c/[c)', function () {
                 return { line: cursor.line, ch: cursor.ch };
             })) as { line: number; ch: number };
             expect(pos.line).toBe(0);
-            expect(pos.ch).toBeGreaterThanOrEqual(4);
+            // Same column as the ch 6 the cursor started on, one row up.
+            expect(pos.ch).toBe(6);
         });
 
         it(']r should skip separator rows', async function () {
@@ -769,37 +781,25 @@ describe('Table realignment (:tablerealign)', function () {
     });
 
     it('should be no-op outside a table', async function () {
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view) return;
-            view.editor.setValue('Not a table');
-            view.editor.setCursor(0, 2);
-            view.editor.focus();
-        });
-        await browser.pause(300);
+        // `setupEditor` throws with context when there is no MarkdownView;
+        // the inline form this replaces opened with `if (!view) return`.
+        await setupEditor('Not a table', { line: 0, ch: 2 });
         const valueBefore = await getEditorValue();
-        await browser.executeObsidian(({ app, obsidian }) => {
-            const Vim = (
-                window as unknown as Record<string, unknown> & {
-                    CodeMirrorAdapter?: {
-                        Vim?: {
-                            handleEx: (cm: unknown, input: string) => void;
-                        };
-                    };
-                }
-            ).CodeMirrorAdapter?.Vim;
-            const view = app.workspace.getActiveViewOfType(
-                obsidian.MarkdownView,
-            );
-            if (!view || !Vim) return;
-            const cm = (view.editor as unknown as Record<string, unknown>)
-                .cm as Record<string, unknown>;
-            const adapter = cm?.cm;
-            if (!adapter) return;
-            Vim.handleEx(adapter, 'tablerealign');
-        });
+
+        // Driven through the `handleEx` helper rather than a raw
+        // `Vim.handleEx` behind two further silent early returns -- a missing
+        // `Vim` and a missing CM5 adapter both used to skip the dispatch and
+        // fall through to the assertion below.
+        //
+        // That assertion is an absence: the document did not change. An
+        // un-dispatched command satisfies it for free, so it cannot tell "the
+        // guard refused to realign outside a table" from "nothing ran at
+        // all". `unknownCommand` is what separates them -- the fork sets it
+        // when it emits `Not an editor command` -- so a fabricated command
+        // name now fails here instead of passing.
+        const ex = await handleEx('tablerealign');
+        expect(ex.unknownCommand).toBe(false);
+
         await browser.pause(300);
         expect(await getEditorValue()).toBe(valueBefore);
     });
