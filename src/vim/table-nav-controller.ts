@@ -78,6 +78,14 @@ export interface TableNavSettings {
     tableWidgetMode: string;
 }
 
+/**
+ * Why a deferred `abandonNav()` was scheduled.
+ *
+ * The two causes have disjoint validity conditions and must not share one, so
+ * the reason has to survive to the frame that acts on it.
+ */
+type AbandonReason = 'caret-left' | 'widget-gone';
+
 interface TableNavSession {
     state: 'inactive' | 'nav' | 'edit';
     activeRow: number;
@@ -194,12 +202,24 @@ class TableNavController implements PluginValue {
             //
             // Selection-only: an edit is never a "something moved the caret"
             // event, and `refreshAfterDocChange` below already owns that case.
+            // Entry requires a rendered widget (`findTableWidgetElement`
+            // below); nothing required one to *stay*. `cursorInAnyTable` is
+            // keyed on the table's document range, and in Source mode that
+            // range is still a table, so a Live Preview → Source switch left
+            // this session in `nav` holding both the global key intercept and
+            // the parent's cursor suppression: keys swallowed, no cursor
+            // drawn, editor dead until the view was recreated. The widget is
+            // what nav actually drives, so losing it is the signal.
+            if (!s.widgetEl?.isConnected) {
+                this.scheduleAbandon('widget-gone');
+                return;
+            }
             if (
                 update.selectionSet &&
                 !update.docChanged &&
                 !this.cursorInAnyTable(update.state)
             ) {
-                this.scheduleAbandon();
+                this.scheduleAbandon('caret-left');
                 return;
             }
             if (update.docChanged) this.refreshAfterDocChange();
@@ -274,15 +294,30 @@ class TableNavController implements PluginValue {
      * compared by identity: CodeMirror's `Text` is immutable, so a different
      * object means the document moved under the pending exit.
      */
-    private scheduleAbandon(): void {
+    private scheduleAbandon(reason: AbandonReason): void {
         if (this.abandonFrame !== null) return;
         const doc = this.view.state.doc;
         this.abandonFrame = window.requestAnimationFrame(() => {
             this.abandonFrame = null;
             if (this.session.state !== 'nav') return;
             if (this.view.state.doc !== doc) return;
-            if (this.cursorInAnyTable(this.view.state)) return;
-            if (!this.vimQuiescent()) return;
+            // Re-validate only the reason that scheduled this. Checking both
+            // is what made the leak unreachable: a `widget-gone` exit was
+            // blocked by the caret still being inside the table's document
+            // range, which it always is in Source mode.
+            if (reason === 'caret-left') {
+                if (this.cursorInAnyTable(this.view.state)) return;
+                if (!this.vimQuiescent()) return;
+            } else {
+                if (this.session.widgetEl?.isConnected) return;
+                // No quiescence gate on this path, deliberately. That gate
+                // protects `destroyTableCell()` from running inside a vim
+                // change, but a disconnected widget means there is no cell
+                // editor left to protect — and declining to release here
+                // would hold global key interception for a surface that no
+                // longer exists, which is strictly worse than the teardown it
+                // guards against. `abandonNav` null-checks every DOM handle.
+            }
             this.abandonNav();
         });
     }
@@ -346,6 +381,18 @@ class TableNavController implements PluginValue {
         // teardown is ever reordered so no transaction follows the release,
         // `refreshVimCursors()` is the fix.
         this.restoreCursorLayers();
+
+        // Reclaim focus only when it is *orphaned*. The docstring above is
+        // right that focus may legitimately have followed whatever moved the
+        // caret — a picker, a modal, another pane — and `activeElement` names
+        // it in every such case. `<body>` is the one value that means nothing
+        // holds focus at all, and that is what a Live Preview → Source switch
+        // produces: Obsidian destroys its own cell editor and hands focus
+        // back to no one, leaving the editor accepting no keys.
+        const doc = this.view.dom.ownerDocument;
+        if (doc.activeElement === null || doc.activeElement === doc.body) {
+            this.view.contentDOM.focus();
+        }
     }
 
     private canActivate(): boolean {
