@@ -84,6 +84,11 @@ describe('gk column drift regression (#26)', function () {
             if (pos.line === lastLine) break;
         }
 
+        // The loop throws on a skip, so this scenario did fail correctly;
+        // asserting the destination makes that visible and also pins that the
+        // walk reached the end rather than stopping early.
+        expect(prevLine).toBe(lastLine);
+
         for (let line = 0; line <= lastLine; line++) {
             if (!visited.has(line)) {
                 throw new Error(

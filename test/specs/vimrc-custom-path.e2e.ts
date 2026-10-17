@@ -75,9 +75,13 @@ describe('Custom vimrc path (issue #34)', function () {
             await waitForVimrcLoaded();
         });
 
-        it('plugin should load with custom vimrc path', async function () {
-            await assertPluginLoaded();
-        });
+        // Removed: 'plugin should load with custom vimrc path', which asserted
+        // only `assertPluginLoaded()`. Measured, nothing distinguishes a
+        // loaded custom path from an ignored one in plugin state --
+        // `vimrcLoaded` is true, `vimrcPath` is '' and `vimrcMapKeys` is empty
+        // for BOTH this describe and the non-existent-path one below. The two
+        // scenarios that follow already prove the custom vimrc was read, by
+        // exercising the `j` and `k` mappings it defines.
 
         it('j mapping from custom vimrc should move cursor down', async function () {
             await setupEditor('line one\nline two\nline three', {
@@ -127,6 +131,16 @@ describe('Custom vimrc path (issue #34)', function () {
 
         it('plugin should still be loaded', async function () {
             await assertPluginLoaded();
+            // "does not crash" means the editor still works. A loaded plugin
+            // holds equally with vim wedged, and no plugin-state field
+            // distinguishes a missing vimrc from a loaded one -- measured,
+            // `vimrcLoaded` is true either way.
+            await setupEditor('line one\nline two\nline three', {
+                line: 0,
+                ch: 0,
+            });
+            await vimKeys('j');
+            expect((await getCursorPos()).line).toBe(1);
         });
     });
 
