@@ -61,12 +61,14 @@ Jump between document structures. Works with counts (e.g., `3]h` jumps 3 heading
 
 Navigate Markdown table cells without leaving Vim mode.
 
-| Keybinding    | Description                         |
-| ------------- | ----------------------------------- |
-| `]\|` or `]c` | Move to the next table cell         |
-| `[\|` or `[c` | Move to the previous table cell     |
-| `]r`          | Move to same column in next row     |
-| `[r`          | Move to same column in previous row |
+| Keybinding    | Description                                                                   |
+| ------------- | ----------------------------------------------------------------------------- |
+| `]\|` or `]c` | Move to the next table cell                                                   |
+| `[\|` or `[c` | Move to the previous table cell                                               |
+| `]r`          | Move to same column in next row                                               |
+| `[r`          | Move to same column in previous row                                           |
+| `<Tab>`       | In insert mode in a revealed table: next cell, adding a row from the last one |
+| `<S-Tab>`     | In insert mode in a revealed table: previous cell                             |
 
 ## Table text objects
 
