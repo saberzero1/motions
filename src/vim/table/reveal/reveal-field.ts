@@ -77,6 +77,27 @@ export const revealField = StateField.define<RevealState>({
     },
 });
 
+/** The part of an `EditorView` the extender needs: whether IME is composing. */
+interface ComposingSource {
+    readonly composing: boolean;
+}
+
+const viewOfState = new WeakMap<EditorState, ComposingSource>();
+
+/**
+ * Records which view a state belongs to, so the extender — which receives a
+ * transaction and no view — can ask whether an IME composition is live.
+ *
+ * Called by the surface's view plugin on construction and on every update, so
+ * every transaction's `startState` is the latest state recorded for its view.
+ */
+export function noteRevealView(
+    state: EditorState,
+    view: ComposingSource,
+): void {
+    viewOfState.set(state, view);
+}
+
 /** Whether `pos` lies in a table this plugin has revealed. */
 export function isRevealedAt(state: EditorState, pos: number): boolean {
     const value = state.field(revealField, false);
@@ -129,7 +150,13 @@ function revealExtender(): Extension {
         // measured as a corrupted row: the leading pipe deleted and the
         // preedit left behind beside the commit. The marks still map with
         // the edit, and the first ordinary transaction resyncs them.
-        if (tr.isUserEvent('input.type.compose')) return null;
+        //
+        // Asked of the live view, not of the user event. The vim adapter
+        // labels every change it dispatches `input.type.compose`, for undo
+        // grouping, so keying on the label skipped every vim edit too: a
+        // realign replaced the whole table, removed every highlight, and
+        // Obsidian built a widget that took the caret into a cell editor.
+        if (viewOfState.get(tr.startState)?.composing) return null;
 
         const external = tr.effects.some((e) => e.is(channel.filter));
         const requested = tr.effects.some((e) => e.is(requestReveal));
