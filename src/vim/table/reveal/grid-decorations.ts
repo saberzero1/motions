@@ -1,3 +1,4 @@
+import { editorLivePreviewField } from 'obsidian';
 import { syntaxTree } from '@codemirror/language';
 import {
     RangeSetBuilder,
@@ -91,6 +92,11 @@ function buildDecorations(view: EditorView): DecorationSet {
     const doc = state.doc;
     const head = state.selection.main.head;
     const ranges: { from: number; to: number; value: Decoration }[] = [];
+    // Source mode shows a table as plain Markdown, and stays that way. The
+    // highlights are deliberately kept there (so returning to Live Preview
+    // needs no special case), so their lines still get the class that stops
+    // the highlight drawing a search ring — and nothing else.
+    const livePreview = state.field(editorLivePreviewField, false) === true;
 
     for (const table of reveal.tables) {
         if (table.to < view.viewport.from || table.from > view.viewport.to) {
@@ -110,10 +116,13 @@ function buildDecorations(view: EditorView): DecorationSet {
             ranges.push({
                 from: line.from,
                 to: line.from,
-                value: rowSet.has(line.number) ? ROW_LINE[kind] : PLAIN_LINE,
+                value:
+                    livePreview && rowSet.has(line.number)
+                        ? ROW_LINE[kind]
+                        : PLAIN_LINE,
             });
         });
-        if (rows.length === 0) continue;
+        if (!livePreview || rows.length === 0) continue;
 
         const layout = buildTableLayout({
             from: table.from,
@@ -183,6 +192,8 @@ export function revealGridDecorations(): Extension {
                     update.viewportChanged ||
                     update.startState.field(revealField, false) !==
                         update.state.field(revealField, false) ||
+                    update.startState.field(editorLivePreviewField, false) !==
+                        update.state.field(editorLivePreviewField, false) ||
                     syntaxTree(update.startState) !== syntaxTree(update.state)
                 ) {
                     this.decorations = buildDecorations(update.view);

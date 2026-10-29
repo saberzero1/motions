@@ -583,9 +583,38 @@ describe('Table reveal surface (tableWidgetMode: reveal)', function () {
         await vimKeys('j', 'j', 'j', 'j');
         await ensureSourceMode();
         await browser.pause(300);
+        // Source mode shows plain Markdown: no grid, and the highlight that is
+        // kept there for the way back draws no search ring.
+        const source = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const cm = (
+                view?.editor as unknown as { cm?: { contentDOM: HTMLElement } }
+            )?.cm;
+            if (!cm) return null;
+            const marks = Array.from(
+                cm.contentDOM.querySelectorAll(
+                    'span.obsidian-search-match-highlight',
+                ),
+            ) as HTMLElement[];
+            return {
+                gridRows: cm.contentDOM.querySelectorAll(
+                    '.vim-motions-reveal-row',
+                ).length,
+                marks: marks.length,
+                rings: [
+                    ...new Set(marks.map((m) => getComputedStyle(m).boxShadow)),
+                ],
+            };
+        })) as { gridRows: number; marks: number; rings: string[] } | null;
         await ensureLivePreview();
         await browser.pause(400);
         const p = await probe();
+        expect(source).not.toBeNull();
+        expect(source!.gridRows).toBe(0);
+        expect(source!.marks).toBe(4);
+        expect(source!.rings).toEqual(['none']);
         expect(p.widgets).toBe(0);
         expect(p.tableCell).toBe(false);
         await vimKeys('x');
