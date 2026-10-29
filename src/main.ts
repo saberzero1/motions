@@ -438,6 +438,9 @@ export default class VimMotionsPlugin extends Plugin {
     private toggleInProgress = false;
     private toggleChain: Promise<void> = Promise.resolve();
     private vimrcLoading = false;
+    // The latest `reload-configuration` run, which the command starts
+    // without awaiting.
+    private configReload: Promise<void> = Promise.resolve();
     private vimrcMaps: VimrcLoadResult['maps'] = [];
     vimrcOverrides: Map<string, string> = new Map();
     private configOverrides: Record<string, unknown> = {};
@@ -745,6 +748,16 @@ export default class VimMotionsPlugin extends Plugin {
         ((key: string, value: unknown, directive?: string) => void) | null =
         null;
     private vimRef: import('./types/vim-api').VimApi | null = null;
+
+    /**
+     * Settles when the latest `reload-configuration` run has finished. The
+     * command does not await its reload, so a spec that pauses for a fixed
+     * time and then reads the result can read the old configuration on a
+     * slow runner.
+     */
+    async configReloadSettledForTest(): Promise<void> {
+        await this.configReload;
+    }
 
     isAnyViewComposingForTest(): boolean {
         return isAnyViewComposing();
@@ -1844,7 +1857,7 @@ export default class VimMotionsPlugin extends Plugin {
             name: 'Reload configuration',
             callback: () => {
                 if (!ensureVimEnabled()) return;
-                void this.reloadAllConfigs();
+                this.configReload = this.reloadAllConfigs();
             },
         });
         this.addCommand({
