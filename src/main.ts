@@ -293,6 +293,7 @@ import {
 } from './vim/table/gates';
 import { createTableReveal } from './vim/table/reveal/surface';
 import { withTableCellTab } from './vim/normal-tab';
+import type { TableColumnInfo } from './vim/table/reveal/column-status';
 import {
     getHighlightChannel,
     highlightChannelFailed,
@@ -428,6 +429,7 @@ export default class VimMotionsPlugin extends Plugin {
 
     private tableRevealBlockerNotified: TableSurfaceBlocker = null;
     private tableRevealUnavailableNotified = false;
+    private tableColumnStatusEl: HTMLElement | null = null;
     private rawDeprecationNotified = false;
     private snippetCompletionSlot: Extension[] = [];
     private snippetTabSlot: Extension[] = [];
@@ -3446,8 +3448,32 @@ export default class VimMotionsPlugin extends Plugin {
                         );
                     },
                     autoRealign: () => this.settings.tableAutoRealign,
+                    columnStatus: (info) => this.renderTableColumnStatus(info),
                 }),
         );
+    }
+
+    /**
+     * Shows the caret's column in a revealed table in the status bar, and
+     * warns when its row has a different number of cells from the header.
+     */
+    private renderTableColumnStatus(info: TableColumnInfo | null): void {
+        if (!info) {
+            this.tableColumnStatusEl?.hide();
+            return;
+        }
+        if (!this.tableColumnStatusEl) {
+            this.tableColumnStatusEl = this.addStatusBarItem();
+            this.tableColumnStatusEl.addClass('vim-motions-table-column');
+        }
+        const el = this.tableColumnStatusEl;
+        const mismatch = info.rowCells !== info.columns;
+        let text = `Col ${info.column}/${info.columns}`;
+        if (info.header) text += ` · ${info.header}`;
+        if (mismatch) text += ` · row has ${info.rowCells} cells`;
+        el.setText(text);
+        el.toggleClass('is-mismatched', mismatch);
+        el.show();
     }
 
     /**

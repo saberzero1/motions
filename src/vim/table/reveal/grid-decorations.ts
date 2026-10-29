@@ -28,6 +28,7 @@ const REVEALED_LINE_CLASS = 'vim-motions-revealed-line';
 const CELL_CLASS = 'vim-motions-reveal-cell';
 const DELIM_CLASS = 'vim-motions-reveal-delim';
 const ACTIVE_CLASS = 'is-active-cell';
+const ACTIVE_COLUMN_CLASS = 'is-active-column';
 
 const ROW_LINE = {
     header: Decoration.line({
@@ -46,13 +47,18 @@ const DELIM_MARK = Decoration.mark({ class: DELIM_CLASS });
 
 const cellMarks = new Map<string, Decoration>();
 
-function cellMark(alignment: Alignment, active: boolean): Decoration {
-    const key = `${alignment}:${active}`;
+function cellMark(
+    alignment: Alignment,
+    active: boolean,
+    activeColumn: boolean,
+): Decoration {
+    const key = `${alignment}:${active}:${activeColumn}`;
     let mark = cellMarks.get(key);
     if (!mark) {
-        mark = Decoration.mark({
-            class: `${CELL_CLASS} is-align-${alignment}${active ? ` ${ACTIVE_CLASS}` : ''}`,
-        });
+        const classes = [CELL_CLASS, `is-align-${alignment}`];
+        if (activeColumn) classes.push(ACTIVE_COLUMN_CLASS);
+        if (active) classes.push(ACTIVE_CLASS);
+        mark = Decoration.mark({ class: classes.join(' ') });
         cellMarks.set(key, mark);
     }
     return mark;
@@ -150,6 +156,7 @@ function buildDecorations(view: EditorView): DecorationSet {
                     value: cellMark(
                         layout.alignments[cell.column] ?? 'none',
                         cell === active,
+                        active !== null && cell.column === active.column,
                     ),
                 });
             }
@@ -173,7 +180,8 @@ function buildDecorations(view: EditorView): DecorationSet {
  *
  * Rows get a line class by kind, so the stylesheet can set the monospace font
  * that makes padded columns line up; delimiters and cells get marks carrying
- * each column's alignment; and the cell holding the caret is marked active.
+ * each column's alignment; and the cell holding the caret is marked active,
+ * with every cell of its column marked as the active column.
  * Only rows Obsidian's parser confirms are styled — see `isTableRowLine`.
  */
 export function revealGridDecorations(): Extension {

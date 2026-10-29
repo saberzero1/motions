@@ -17,6 +17,7 @@ import {
     insertRow,
     moveColumn,
     moveRow,
+    setColumnAlignment,
 } from '../vim/table/structural';
 import { isRevealedAt } from '../vim/table/reveal/reveal-field';
 
@@ -255,6 +256,12 @@ const TEXT_FALLBACKS: Record<
     'editor:table-col-left': (l, _r, c) => moveColumn(l, c, 'left'),
     'editor:table-col-right': (l, _r, c) => moveColumn(l, c, 'right'),
     'editor:table-col-delete': (l, _r, c) => deleteColumn(l, c),
+    'editor:table-col-align-left': (l, _r, c) =>
+        setColumnAlignment(l, c, 'left'),
+    'editor:table-col-align-center': (l, _r, c) =>
+        setColumnAlignment(l, c, 'center'),
+    'editor:table-col-align-right': (l, _r, c) =>
+        setColumnAlignment(l, c, 'right'),
 };
 
 /**
@@ -410,6 +417,7 @@ const TABLE_COMMANDS: Array<{
         commandId: 'editor:table-col-align-left',
         exName: 'tablealignleft',
         exShort: 'tablealignl',
+        leaderKey: 'tal',
         leaderDesc: 'Table: align left',
     },
     {
@@ -417,6 +425,7 @@ const TABLE_COMMANDS: Array<{
         commandId: 'editor:table-col-align-center',
         exName: 'tablealigncenter',
         exShort: 'tablealignc',
+        leaderKey: 'tac',
         leaderDesc: 'Table: align center',
     },
     {
@@ -424,6 +433,7 @@ const TABLE_COMMANDS: Array<{
         commandId: 'editor:table-col-align-right',
         exName: 'tablealignright',
         exShort: 'tablealignr',
+        leaderKey: 'tar',
         leaderDesc: 'Table: align right',
     },
     {

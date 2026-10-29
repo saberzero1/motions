@@ -21,6 +21,11 @@ import { getCmAdapterFromEditorView } from './vim-api';
  * A synthetic `compositionstart` cannot even produce the state, because
  * CodeMirror sets `composing` to 0 there and the getter tests `> 0`, so a
  * scenario for it would have asserted nothing.
+ *
+ * The bundled-only adapter lookup is enough. Under Obsidian's own Vim key
+ * bindings none of those entry points is registered — measured,
+ * `:tablerealign` there reports "Not an editor command" — so the guard has
+ * nothing to refuse, and `getAnyVimAdapter` would change nothing observable.
  */
 export function canRealignTable(view: EditorView): boolean {
     return getCmAdapterFromEditorView(view)?.state?.vim?.insertMode !== true;

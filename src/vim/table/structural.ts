@@ -183,3 +183,30 @@ export function moveColumn(
         return copy;
     });
 }
+
+const ALIGNMENT_MARKER: Record<'left' | 'center' | 'right', string> = {
+    left: ':---',
+    center: ':---:',
+    right: '---:',
+};
+
+/**
+ * Set a column's alignment by rewriting its separator cell, as Obsidian's
+ * `editor:table-col-align-*` commands do, then realign so the content moves
+ * to match.
+ */
+export function setColumnAlignment(
+    lines: string[],
+    col: number,
+    alignment: 'left' | 'center' | 'right',
+): string[] {
+    const columns = columnCount(lines);
+    if (col < 0 || col >= columns || separatorIndex(lines) < 0) return lines;
+    return mapColumns(lines, (cells, isSeparator) => {
+        if (!isSeparator) return cells;
+        const copy = [...cells];
+        while (copy.length < columns) copy.push('---');
+        copy[col] = ALIGNMENT_MARKER[alignment];
+        return copy;
+    });
+}

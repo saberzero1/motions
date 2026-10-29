@@ -6,6 +6,7 @@ import {
     insertRow,
     moveColumn,
     moveRow,
+    setColumnAlignment,
 } from '../../../src/vim/table/structural';
 
 /**
@@ -187,6 +188,31 @@ describe('alignment survives a column operation', () => {
         expect(insertColumn(aligned, 0, 'before')[1]).toBe(
             '| --- | :-- | --: | :-: |',
         );
+    });
+});
+
+describe('setColumnAlignment', () => {
+    it('rewrites the separator cell and places the content to match', () => {
+        expect(setColumnAlignment(TABLE, 1, 'right')).toStrictEqual([
+            '| h1  |  h2 |',
+            '| --- | --: |',
+            '| aa  |  bb |',
+            '| cc  |  dd |',
+        ]);
+        expect(setColumnAlignment(TABLE, 0, 'center')[1]).toBe('| :-: | --- |');
+        expect(setColumnAlignment(TABLE, 0, 'left')[1]).toBe('| :-- | --- |');
+    });
+
+    it('replaces an existing alignment rather than adding to it', () => {
+        const right = setColumnAlignment(TABLE, 1, 'right');
+        expect(setColumnAlignment(right, 1, 'left')[1]).toBe('| --- | :-- |');
+    });
+
+    it('leaves a table without a separator, or a missing column, alone', () => {
+        const junk = ['| a | b |', '| c | d |'];
+        expect(setColumnAlignment(junk, 0, 'right')).toBe(junk);
+        expect(setColumnAlignment(TABLE, 2, 'right')).toBe(TABLE);
+        expect(setColumnAlignment(TABLE, -1, 'right')).toBe(TABLE);
     });
 });
 

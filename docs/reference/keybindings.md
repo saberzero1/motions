@@ -96,6 +96,9 @@ Manage table structure using the `<leader>t` prefix.
 | `<leader>tL`  | Move column right       |
 | `<leader>tH`  | Move column left        |
 | `<leader>tdc` | Delete column           |
+| `<leader>tal` | Align column left       |
+| `<leader>tac` | Align column centre     |
+| `<leader>tar` | Align column right      |
 | `<leader>tr`  | Realign table columns   |
 
 ## Embedded table navigation
