@@ -173,9 +173,27 @@ export function realignTableLines(lines: string[]): string[] {
             );
             return `| ${cells.join(' | ')} |`;
         }
-        const cells = colWidths.map((w, col) => (row[col] ?? '').padEnd(w));
+        const cells = colWidths.map((w, col) =>
+            padCell(row[col] ?? '', w, alignments[col] ?? 'none'),
+        );
         return `| ${cells.join(' | ')} |`;
     });
+}
+
+/**
+ * Place a cell's content within its column the way Obsidian's
+ * `TableEditor.getTableString()` does: right-aligned content against the
+ * right edge, centred content with the odd space after it, and anything else
+ * against the left. Width is UTF-16 length, as Obsidian measures it.
+ */
+function padCell(text: string, width: number, align: Alignment): string {
+    const room = Math.max(0, width - text.length);
+    if (align === 'right') return ' '.repeat(room) + text;
+    if (align === 'center') {
+        const before = Math.floor(room / 2);
+        return ' '.repeat(before) + text + ' '.repeat(room - before);
+    }
+    return text + ' '.repeat(room);
 }
 
 /**

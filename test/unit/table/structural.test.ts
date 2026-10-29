@@ -177,9 +177,9 @@ describe('alignment survives a column operation', () => {
 
     it('keeps each column with its own marker when a column moves', () => {
         expect(moveColumn(aligned, 0, 'right')).toStrictEqual([
-            '| h2  | h1  | h3  |',
+            '|  h2 | h1  | h3  |',
             '| --: | :-- | :-: |',
-            '| bb  | aa  | cc  |',
+            '|  bb | aa  | cc  |',
         ]);
     });
 

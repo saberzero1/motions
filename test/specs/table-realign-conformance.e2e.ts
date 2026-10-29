@@ -44,6 +44,23 @@ const SPECIMENS: [string, string][] = [
     ['mixed scripts', '\u65e5a\ud83d\ude00'],
 ];
 
+/** Deliberately misaligned tables whose separators set every alignment. */
+const ALIGNED_TABLES: [string, string[]][] = [
+    [
+        'left, right, centre and unmarked columns',
+        [
+            '|Item|Qty|Note|Free|',
+            '|:--|--:|:-:|---|',
+            '|apple|3|ok|z|',
+            '|kiwi|12|fine|zz|',
+        ],
+    ],
+    [
+        'centred columns with odd and even slack',
+        ['|a|bb|', '|:-:|:-:|', '|ccc|d|', '|ee|ffff|'],
+    ],
+];
+
 /** Obsidian's own formatted text for the table under the cursor. */
 async function oracle(): Promise<string | null> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
@@ -89,6 +106,28 @@ describe('Table realign conformance (Plan E1.1)', function () {
     after(async () => {
         await setPluginSettingAndReload('tableWidgetMode', 'native');
     });
+
+    // Every specimen above sits in a `|---|---|` table, so none of them
+    // exercised the separator's colons. Obsidian places a right-aligned
+    // cell's content at the right edge and centres a centred one, while
+    // `realignTableLines` left-aligned every cell; switching a table between
+    // `native` and `reveal` then rewrote those columns back and forth.
+    for (const [name, lines] of ALIGNED_TABLES) {
+        it(`matches Obsidian's formatter for ${name}`, async () => {
+            await setupEditor(lines.join('\n') + '\n', { line: 0, ch: 0 });
+            await browser.pause(700);
+
+            const expected = await oracle();
+            expect(expected).not.toBeNull();
+            expect(expected).not.toBe(lines.join('\n'));
+
+            const actual = await ours(lines);
+            expect(actual).not.toBeNull();
+            expect((actual as string[]).join('\n')).toBe(
+                (expected as string).trimEnd(),
+            );
+        });
+    }
 
     for (const [name, specimen] of SPECIMENS) {
         it(`matches Obsidian's formatter for ${name}`, async () => {

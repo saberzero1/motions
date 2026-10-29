@@ -80,13 +80,27 @@ describe('realignTableLines width model', () => {
         ]);
     });
 
-    it('keeps alignment markers from the separator row', () => {
+    it('places content by the separator row, as Obsidian does', () => {
+        // Right-aligned against the right edge, centred with the odd space
+        // after it. The e2e conformance spec checks these rules against
+        // Obsidian's live formatter.
         expect(
             realignTableLines(['|a|b|c|', '|:-|-:|:-:|', '|d|e|f|']),
         ).toStrictEqual([
-            '| a   | b   | c   |',
+            '| a   |   b |  c  |',
             '| :-- | --: | :-: |',
-            '| d   | e   | f   |',
+            '| d   |   e |  f  |',
+        ]);
+    });
+
+    it('puts the odd space of a centred cell after its content', () => {
+        expect(
+            realignTableLines(['|a|bb|', '|:-:|:-:|', '|ccc|d|', '|ee|ffff|']),
+        ).toStrictEqual([
+            '|  a  |  bb  |',
+            '| :-: | :--: |',
+            '| ccc |  d   |',
+            '| ee  | ffff |',
         ]);
     });
 });
