@@ -1,5 +1,7 @@
 # Findings — the table cursor guard, and why it keeps regressing
 
+> [!note] The `owned` table surface was removed before release, superseded by `tableWidgetMode: reveal`. The spec now runs `SURFACES = ['native', 'reveal']`, where `reveal` expects the parent's cursor **inside** the table — it is the only one there. Blinding the cursor guard to the reveal fails that half with `1` expected and `0` received. The findings below are the record of the owned investigation.
+
 Companion to `test/specs/table-cursor-surface-parity.e2e.ts`, which is
 committed **skipped** because it fails. It fails on open defects, not on
 mistakes in itself.

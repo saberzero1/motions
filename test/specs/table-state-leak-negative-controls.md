@@ -1,5 +1,29 @@
 # Negative controls: `table-state-leak.e2e.ts`
 
+## Under `reveal`
+
+The `owned` table surface was removed before release, superseded by `tableWidgetMode: reveal`. Its arms here — A, B, C, E, F, G and H — were
+converted to `reveal` rather than deleted, because they drive exactly the
+transitions a revealed table must also survive: Live Preview to Source, a
+modal, a tab switch, a window blur and a pane split. Inside a revealed table
+nothing is suppressed, so those arms now also require `viewOverrideCount` 0
+and no cell editor. Converting them found a defect: the Source switch showed
+the reveal grid in Source mode, fixed in its own commit.
+
+ARM J is new. The owned surface left table-nav dead after a switch back to
+`native`; switching from `reveal` does not, and ARM J pins that. Its control:
+leaving the reveal slot installed after the switch fails it with nav state
+`"inactive"` against `"nav"`. Making teardown skip withdrawing the highlights
+does **not** fail it, because the scenario's `setupEditor` replaces the whole
+document and the stale highlights with it — that property is covered by
+`table-reveal.e2e.ts`'s mode-switch scenario instead.
+
+The controls below were measured under the owned surface; the fixes they
+defend — the nav session's widget-gone abandon, the cursor guard's
+re-evaluation, and the hand-off that distinguished a surface withdrawn from a
+caret leaving — are the first two still in place, the third removed with the
+nested editor.
+
 Defends three independent fixes for the global state leak recorded in
 `table-global-state-leak-findings.md`. Each fix was reverted on its own and the
 spec re-run; all values below were observed, and every sabotage was restored

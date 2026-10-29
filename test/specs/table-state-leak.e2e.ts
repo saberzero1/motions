@@ -46,28 +46,14 @@ const TABLE_DOC = [
     'Line below',
 ].join('\n');
 
-interface NestedStats {
-    mounted: number;
-    focused: boolean;
-    routerInstalled: boolean;
-    focusRestores: number;
-    lastHandOff: {
-        reason: string;
-        hasFocus: boolean;
-        focusNowhere: boolean;
-        restored: boolean;
-    } | null;
-}
-
-interface LeakPlugin {
-    getNestedTableStats(): NestedStats;
-}
-
 interface Sample {
     error?: string;
-    ownedSurfaces: number;
+    /** Rows of a table revealed as editor lines, in the active editor. */
+    revealedRows: number;
+    /** Obsidian's table widgets, in the active editor. */
     nativeWidgets: number;
-    nested: NestedStats;
+    /** Whether Obsidian opened a cell editor of its own. */
+    tableCell: boolean;
     parentHead: number;
     activeTag: string;
     visibleCursors: number;
@@ -79,15 +65,9 @@ interface Sample {
 async function sample(): Promise<Sample> {
     return (await browser.executeObsidian(({ app, obsidian }) => {
         const empty: Sample = {
-            ownedSurfaces: -1,
+            revealedRows: -1,
             nativeWidgets: -1,
-            nested: {
-                mounted: -1,
-                focused: false,
-                routerInstalled: false,
-                focusRestores: -1,
-                lastHandOff: null,
-            },
+            tableCell: false,
             parentHead: -1,
             activeTag: '',
             visibleCursors: -1,
@@ -95,12 +75,6 @@ async function sample(): Promise<Sample> {
             viewSuppressed: null,
             keyInterceptActive: null,
         };
-        const plugin = (
-            app as unknown as {
-                plugins: { plugins: Record<string, LeakPlugin> };
-            }
-        ).plugins.plugins['vim-motions'];
-        if (!plugin) return { ...empty, error: 'no plugin' };
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
         if (!view) return { ...empty, error: 'no MarkdownView' };
         const cm = view.editor?.cm;
@@ -124,11 +98,12 @@ async function sample(): Promise<Sample> {
 
         const active = document.activeElement as HTMLElement | null;
         return {
-            ownedSurfaces: document.querySelectorAll(
-                '.vim-motions-table-surface',
-            ).length,
-            nativeWidgets: document.querySelectorAll('.cm-table-widget').length,
-            nested: plugin.getNestedTableStats(),
+            revealedRows: cm.dom.querySelectorAll('.vim-motions-reveal-row')
+                .length,
+            nativeWidgets: cm.dom.querySelectorAll('.cm-table-widget').length,
+            tableCell: !!(
+                view as unknown as { editMode?: { tableCell?: unknown } }
+            ).editMode?.tableCell,
             parentHead: cm.state.selection.main.head,
             activeTag: active?.tagName ?? '',
             // Real paint rather than a flag: suppression reading `false` while
@@ -162,7 +137,7 @@ async function switchToSourceUnsettled(): Promise<void> {
     if (!result.ok) throw new Error(result.error);
 }
 
-async function openTable(mode: 'owned' | 'native'): Promise<void> {
+async function openTable(mode: 'reveal' | 'native'): Promise<void> {
     await setPluginSettingAndReload('tableWidgetMode', mode);
     await ensureLivePreview();
     await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
@@ -192,8 +167,6 @@ async function expectNoLeak(label: string): Promise<void> {
                 active: s.activeTag,
                 cursors: s.visibleCursors,
                 moved,
-                handOff: s.nested.lastHandOff,
-                restores: s.nested.focusRestores,
             }),
     );
 
@@ -327,31 +300,38 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await browser.pause(600);
     });
 
-    it('ARM A: owned, entered with real keys, releases everything', async () => {
-        await openTable('owned');
-        const pre = await sample();
-        expect(pre.error).toBeUndefined();
-        expect(pre.ownedSurfaces).toBeGreaterThan(0);
-        expect(pre.nativeWidgets).toBe(0);
-
+    /** Enter the table with real keys and check it is revealed, not edited by Obsidian. */
+    async function enterRevealed(): Promise<void> {
         await browser.keys(['j', 'j', 'j', 'j']);
         await browser.pause(700);
         const inside = await sample();
-        expect(inside.nested.mounted).toBe(1);
-        expect(inside.nested.focused).toBe(true);
-        expect(inside.nested.routerInstalled).toBe(true);
+        expect(inside.revealedRows).toBe(4);
+        expect(inside.nativeWidgets).toBe(0);
+        expect(inside.tableCell).toBe(false);
+        // Nothing is suppressed inside a revealed table: the caret is the
+        // parent's own and is the only one.
+        expect(inside.viewOverrideCount).toBe(0);
+    }
+
+    it('ARM A: reveal, entered with real keys, releases everything', async () => {
+        await openTable('reveal');
+        const pre = await sample();
+        expect(pre.error).toBeUndefined();
+        expect(pre.nativeWidgets).toBeGreaterThan(0);
+        expect(pre.revealedRows).toBe(0);
+
+        await enterRevealed();
 
         await switchToSourceUnsettled();
         await browser.pause(400);
 
         expect(await isSourceMode()).toBe(true);
-        expect((await sample()).nested.mounted).toBe(0);
         await expectNoLeak('ARM A');
     });
 
-    it('ARM B: owned, entered by selection dispatch, releases everything', async () => {
-        await openTable('owned');
-        expect((await sample()).ownedSurfaces).toBeGreaterThan(0);
+    it('ARM B: reveal, entered by selection dispatch, releases everything', async () => {
+        await openTable('reveal');
+        expect((await sample()).nativeWidgets).toBeGreaterThan(0);
 
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
@@ -364,18 +344,18 @@ describe('Table global state leak on LP→Source (#167)', function () {
             });
         });
         await browser.pause(700);
-        expect((await sample()).nested.mounted).toBe(1);
+        expect((await sample()).revealedRows).toBe(4);
 
         await switchToSourceUnsettled();
         await browser.pause(400);
         await expectNoLeak('ARM B');
     });
 
-    it('ARM C (control): owned, table never entered, stays healthy', async () => {
-        await openTable('owned');
+    it('ARM C (control): reveal, table never entered, stays healthy', async () => {
+        await openTable('reveal');
         const pre = await sample();
-        expect(pre.ownedSurfaces).toBeGreaterThan(0);
-        expect(pre.nested.mounted).toBe(0);
+        expect(pre.nativeWidgets).toBeGreaterThan(0);
+        expect(pre.revealedRows).toBe(0);
 
         await switchToSourceUnsettled();
         await browser.pause(400);
@@ -384,11 +364,9 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await expectNoLeak('ARM C control');
     });
 
-    it('ARM E: a modal open/close leaves the entered table intact', async () => {
-        await openTable('owned');
-        await browser.keys(['j', 'j', 'j', 'j']);
-        await browser.pause(700);
-        expect((await sample()).nested.mounted).toBe(1);
+    it('ARM E: a modal open/close leaves the revealed table intact', async () => {
+        await openTable('reveal');
+        await enterRevealed();
 
         const opened = (await browser.executeObsidian(({ app }) => {
             return (
@@ -402,22 +380,18 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await browser.keys(['Escape']);
         await browser.pause(600);
 
-        // The caret is still inside the table, so the parent staying
-        // suppressed is correct here -- what must survive is the nested view,
-        // its painted caret, and the keys.
         const s = await sample();
-        expect(s.nested.mounted).toBe(1);
-        expect(s.viewOverrideCount).toBe(1);
+        expect(s.revealedRows).toBe(4);
+        expect(s.tableCell).toBe(false);
+        expect(s.viewOverrideCount).toBe(0);
         expect(s.visibleCursors).toBeGreaterThan(0);
         expect(s.activeTag).not.toBe('BODY');
         expect(await keyMovesCursor()).toBe(true);
     });
 
-    it('ARM F: a tab switch away and back leaves the entered table intact', async () => {
-        await openTable('owned');
-        await browser.keys(['j', 'j', 'j', 'j']);
-        await browser.pause(700);
-        expect((await sample()).nested.mounted).toBe(1);
+    it('ARM F: a tab switch away and back leaves the revealed table intact', async () => {
+        await openTable('reveal');
+        await enterRevealed();
 
         await browser.executeObsidian(({ app }) => {
             const c = (
@@ -439,18 +413,17 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await browser.pause(800);
 
         const s = await sample();
-        expect(s.nested.mounted).toBe(1);
-        expect(s.viewOverrideCount).toBe(1);
+        expect(s.revealedRows).toBe(4);
+        expect(s.tableCell).toBe(false);
+        expect(s.viewOverrideCount).toBe(0);
         expect(s.visibleCursors).toBeGreaterThan(0);
         expect(s.activeTag).not.toBe('BODY');
         expect(await keyMovesCursor()).toBe(true);
     });
 
-    it('ARM G: a window blur and refocus restores the in-cell caret', async () => {
-        await openTable('owned');
-        await browser.keys(['j', 'j', 'j', 'j']);
-        await browser.pause(700);
-        expect((await sample()).nested.mounted).toBe(1);
+    it('ARM G: a window blur and refocus keeps the caret painted in the revealed table', async () => {
+        await openTable('reveal');
+        await enterRevealed();
 
         await browser.executeObsidian(() => {
             (document.activeElement as HTMLElement | null)?.blur();
@@ -466,21 +439,15 @@ describe('Table global state leak on LP→Source (#167)', function () {
         });
         await browser.pause(700);
 
-        // Measured before the `focusChanged` schedule: the parent came back
-        // focused and suppressed, the child stayed mounted and unfocused, and
-        // nothing painted -- keys worked, so the editor looked alive and
-        // uncursored. `native` recovered from the same sequence.
         const s = await sample();
-        expect(s.nested.mounted).toBe(1);
+        expect(s.revealedRows).toBe(4);
         expect(s.visibleCursors).toBeGreaterThan(0);
         expect(await keyMovesCursor()).toBe(true);
     });
 
-    it('ARM H: a pane split keeps a caret painted in the owned surface', async () => {
-        await openTable('owned');
-        await browser.keys(['j', 'j', 'j', 'j']);
-        await browser.pause(700);
-        expect((await sample()).nested.mounted).toBe(1);
+    it('ARM H: a pane split keeps the caret painted in the revealed table', async () => {
+        await openTable('reveal');
+        await enterRevealed();
 
         await browser.executeObsidian(({ app }) => {
             (
@@ -499,10 +466,11 @@ describe('Table global state leak on LP→Source (#167)', function () {
         });
         await browser.pause(800);
 
-        // Two panes on one note mount two surfaces, so two overrides is
-        // correct here; what must hold is that something still paints.
+        // Read from the focused pane. Each pane is its own editor state, so
+        // what the other one reveals is its own business.
         const s = await sample();
-        expect(s.nested.mounted).toBe(2);
+        expect(s.revealedRows).toBe(4);
+        expect(s.tableCell).toBe(false);
         expect(s.visibleCursors).toBeGreaterThan(0);
         expect(await keyMovesCursor()).toBe(true);
 
@@ -519,7 +487,7 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await openTable('native');
         const pre = await sample();
         expect(pre.nativeWidgets).toBeGreaterThan(0);
-        expect(pre.ownedSurfaces).toBe(0);
+        expect(pre.revealedRows).toBe(0);
 
         await browser.keys(['j', 'j', 'j', 'j']);
         await browser.pause(700);
@@ -527,5 +495,46 @@ describe('Table global state leak on LP→Source (#167)', function () {
         await switchToSourceUnsettled();
         await browser.pause(400);
         await expectNoLeak('ARM D');
+    });
+
+    it('ARM J: switching from reveal to native leaves table-nav working', async () => {
+        // The removed `owned` surface left table-nav dead after a switch back
+        // to `native`, until Obsidian restarted (recorded in KNOWN_LIMITATIONS
+        // and never diagnosed to a line). This measures whether `reveal` does
+        // the same, since it is now the only surface a user switches away
+        // from.
+        await openTable('reveal');
+        await enterRevealed();
+
+        await openTable('native');
+        await browser.keys(['j', 'j', 'j', 'j']);
+        let state: string | null = null;
+        await browser
+            .waitUntil(
+                async () => {
+                    state = (await browser.executeObsidian(() => {
+                        const d = (
+                            window as unknown as {
+                                CodeMirrorAdapter?: {
+                                    getTableDebugState?: () => {
+                                        nav: { state?: string } | null;
+                                    } | null;
+                                };
+                            }
+                        ).CodeMirrorAdapter?.getTableDebugState?.();
+                        return d?.nav?.state ?? null;
+                    })) as string | null;
+                    return state === 'nav';
+                },
+                { timeout: 5000, interval: 150 },
+            )
+            .catch(() => undefined);
+        expect(state).toBe('nav');
+        expect((await sample()).nativeWidgets).toBeGreaterThan(0);
+
+        await browser.reloadObsidian({ vault: 'test-vault' });
+        await browser.pause(1200);
+        await loadSingleFileWorkspace();
+        await browser.pause(600);
     });
 });

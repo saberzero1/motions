@@ -1,5 +1,7 @@
 # Finding: entering a table leaks global editor state across an LP→Source switch
 
+> [!note] The `owned` table surface was removed before release, superseded by `tableWidgetMode: reveal`. This investigation measured it and `native`; `table-state-leak.e2e.ts` now runs its owned arms against `reveal`. Kept as the record of how the leak was found.
+
 **Status**: reproduced, 4/4 runs, deterministic. Affects `tableWidgetMode: 'native'` — the
 shipped default (`src/settings.ts:340`) — as well as `owned`.
 

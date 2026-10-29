@@ -31,12 +31,12 @@ The mechanism, and the spike that established it, are in
 
 ### RPC
 
-| #   | Sabotage                       | Scenario                                              | Observed                                                                                                                                                                               |
-| --- | ------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E1  | Extender returns `null` always | R1 reveals the table Neovim moves into                | `widgets` expected `0`, received `1`                                                                                                                                                   |
-| E1  | same                           | R2 x edits the row Neovim is on                       | CM6 row expected `" cc   \| dd   \|"`, received `" cc  \| dd  \|"` — Obsidian's widget reformatted CM6 while Neovim kept the source, the divergence `rpc-table-owned.e2e.ts` documents |
-| E1  | same                           | R3 hands the table back when Neovim leaves            | failed at the entry precondition, `widgets` expected `0`, received `1`                                                                                                                 |
-| E1  | same                           | R4 renders Neovim's extmark inside the revealed table | `widgets` expected `0`, received `1`                                                                                                                                                   |
+| #   | Sabotage                       | Scenario                                              | Observed                                                                                                                                                                                                       |
+| --- | ------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | Extender returns `null` always | R1 reveals the table Neovim moves into                | `widgets` expected `0`, received `1`                                                                                                                                                                           |
+| E1  | same                           | R2 x edits the row Neovim is on                       | CM6 row expected `" cc   \| dd   \|"`, received `" cc  \| dd  \|"` — Obsidian's widget reformatted CM6 while Neovim kept the source, the CM6/Neovim divergence the removed owned surface's RPC spec documented |
+| E1  | same                           | R3 hands the table back when Neovim leaves            | failed at the entry precondition, `widgets` expected `0`, received `1`                                                                                                                                         |
+| E1  | same                           | R4 renders Neovim's extmark inside the revealed table | `widgets` expected `0`, received `1`                                                                                                                                                                           |
 
 ### A control that found a defect
 
@@ -82,13 +82,15 @@ control and that the label opens the note.
 
 ## Unit
 
-| #   | Sabotage                                         | Case                                               | Observed                                                                                                   |
-| --- | ------------------------------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| U1  | Finder requires a leading pipe                   | keeps a row whose leading pipe was deleted         | `expected null to match object { fromLine: 1, toLine: 4 }`; also fails "finds a table without outer pipes" |
-| U2  | Extender ignores Obsidian's own filter           | re-adds its highlights when Obsidian clears them   | `expected [] to deeply equal [ …four row ranges ]`                                                         |
-| U3  | `retireTableWidgets` not called                  | retires Obsidian's widget for the table it reveals | `expected 12 to be Infinity`                                                                               |
-| U4  | `owned` removed from `tablewidget` `validValues` | accepts every current table widget mode            | `expected [ 'native', 'reveal', 'raw', …(4) ] to include 'owned'`                                          |
-| U5  | Composition skip removed from the extender       | leaves the marks alone during an IME composition   | `expected true to be false` — the composing transaction carried highlight effects                          |
+| #   | Sabotage                                                        | Case                                                   | Observed                                                                                                   |
+| --- | --------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| U1  | Finder requires a leading pipe                                  | keeps a row whose leading pipe was deleted             | `expected null to match object { fromLine: 1, toLine: 4 }`; also fails "finds a table without outer pipes" |
+| U2  | Extender ignores Obsidian's own filter                          | re-adds its highlights when Obsidian clears them       | `expected [] to deeply equal [ …four row ranges ]`                                                         |
+| U3  | `retireTableWidgets` not called                                 | retires Obsidian's widget for the table it reveals     | `expected 12 to be Infinity`                                                                               |
+| U4  | `normalize` removed from the `tablewidget` option               | retargets legacy values before they reach the setting  | `expected undefined to be 'reveal'`                                                                        |
+| U6  | `owned → reveal` branch removed from `migrateTableWidgetMode`   | retargets the removed owned surface to its successor   | `expected null to be 'reveal'`                                                                             |
+| U7  | Composition guard keyed on the `input.type.compose` label again | resyncs a vim edit the adapter labels as a composition | `expected [] to deeply equal [ { from: 12, to: 29 }, …(3) ]`                                               |
+| U5  | Composition skip removed from the extender                      | leaves the marks alone during an IME composition       | `expected true to be false` — the composing transaction carried highlight effects                          |
 
 ### An equivalent mutant, recorded rather than tested
 

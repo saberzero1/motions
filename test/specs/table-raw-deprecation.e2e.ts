@@ -187,8 +187,8 @@ describe('tableWidgetMode raw deprecation (Plan E3)', function () {
         expect((await rawNotices()).length).toBe(1);
     });
 
-    it('never notifies for native or owned', async () => {
-        for (const mode of ['native', 'owned'] as const) {
+    it('never notifies for native or reveal', async () => {
+        for (const mode of ['native', 'reveal'] as const) {
             await setPluginSettingAndReload('tableWidgetMode', 'native');
             await dismissNotices();
             await setPluginSetting('tableWidgetMode', mode);
