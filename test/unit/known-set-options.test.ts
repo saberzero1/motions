@@ -299,3 +299,19 @@ describe('new option entries', () => {
         }
     });
 });
+
+describe('tablewidget', () => {
+    /**
+     * Every `tableWidgetMode` a user can choose must pass the vimrc and Lua
+     * `validValues` check, or the `set` is dropped without a word. `owned`
+     * was missing for its whole life while the docs told users to set it.
+     */
+    it('accepts every current table widget mode', () => {
+        const spec = KNOWN_SET_OPTIONS['tablewidget'];
+        expect(spec?.type).toBe('string');
+        const valid = spec?.type === 'string' ? (spec.validValues ?? []) : [];
+        for (const mode of ['native', 'owned', 'raw']) {
+            expect(valid).toContain(mode);
+        }
+    });
+});
