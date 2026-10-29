@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`:tablerealign` placed the content of right- and centre-aligned columns at the left edge, where Obsidian places it by the separator's colons.** The text fallbacks in `reveal` share the same formatter. Switching a table between `native` and `reveal` therefore rewrote those columns back and forth, because Obsidian's editor realigns its way on every commit. `realignTableLines` now pads exactly as Obsidian's `TableEditor.getTableString()` does: right-aligned against the right edge, centred with the odd space after the content. Widths stay in UTF-16 code units, as Obsidian measures them, so CJK and emoji rows still do not line up in a monospace grid. Matching Obsidian byte for byte was chosen over display width.
+    - Plugin: `src/vim/table-utils.ts`
 - **A legacy `tablewidget` value from a vimrc or Lua was written into the setting raw.** `cursor`, `embedded`, `off` and `always` were stored as-is and corrected to `native` only afterwards, by the bundled engine's option callback — which is not registered under Obsidian's own Vim key bindings, where the invalid value stayed. The vimrc and Lua paths now retarget legacy values before the setting is written.
     - Plugin: `src/vimrc/loader.ts`
 - **The table cursor guard and the `:table*` text fallbacks now ask about the cursor's own table.** Both asked whether _any_ table widget was on screen, which is a different question once some tables are revealed and others are not: the guard would have hidden the caret in a revealed table, and the fallbacks refused to run there, whenever another table in the note kept its widget.
