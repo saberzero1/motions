@@ -17,6 +17,7 @@ import {
 } from '../../../src/vim/table/reveal/highlight-channel';
 import {
     isRevealedAt,
+    noteRevealView,
     revealField,
     revealStateExtension,
 } from '../../../src/vim/table/reveal/reveal-field';
@@ -286,11 +287,12 @@ describe('reveal extender', () => {
         expect(joined.field(revealField).highlights).toEqual(marks(joined));
     });
 
-    it('leaves the marks alone during an IME composition, then resyncs', () => {
+    it('leaves the marks alone while the view is composing, then resyncs', () => {
         const start = setup();
         const inside = start.update({
             selection: { anchor: lineStart(start, 5) },
         }).state;
+        noteRevealView(inside, { composing: true });
         const end = inside.doc.line(5).to;
         const composing = inside.update({
             changes: { from: end, insert: 'に' },
@@ -308,10 +310,34 @@ describe('reveal extender', () => {
             from: composing.state.doc.line(5).from,
             to: end,
         });
+        noteRevealView(composing.state, { composing: false });
         const settled = composing.state.update({
             selection: { anchor: end },
         }).state;
         expect(marks(settled)).toEqual(rows(settled, 3, 6));
+    });
+
+    it('resyncs a vim edit the adapter labels as a composition', () => {
+        // The vim adapter tags every change it dispatches
+        // `input.type.compose`. A whole-table replacement through it — what
+        // a realign does — must still be re-highlighted, or Obsidian
+        // replaces the table around the caret.
+        const start = setup();
+        const inside = start.update({
+            selection: { anchor: lineStart(start, 5) },
+        }).state;
+        noteRevealView(inside, { composing: false });
+        const from = lineStart(inside, 3);
+        const to = inside.doc.line(6).to;
+        const replaced = inside.update({
+            changes: {
+                from,
+                to,
+                insert: '| Name  | Value |\n| ----- | ----- |\n| aa    | 11    |\n| bb    | 22    |',
+            },
+            userEvent: 'input.type.compose',
+        }).state;
+        expect(marks(replaced)).toEqual(rows(replaced, 3, 6));
     });
 
     it('keeps a row whose leading pipe was deleted revealed', () => {

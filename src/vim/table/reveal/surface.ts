@@ -13,6 +13,7 @@ import {
 } from './highlight-channel';
 import {
     isRevealedAt,
+    noteRevealView,
     requestReveal,
     revealField,
     revealStateExtension,
@@ -51,11 +52,13 @@ class RevealLifecycle implements PluginValue {
         private readonly view: EditorView,
         private readonly options: TableRevealOptions,
     ) {
+        noteRevealView(view.state, view);
         this.ensureChannel();
         this.reconcileSoon();
     }
 
     update(update: ViewUpdate): void {
+        noteRevealView(update.state, update.view);
         this.placed = update.state.field(revealField, false)?.highlights ?? [];
         if (!getHighlightChannel() && !highlightChannelFailed()) {
             this.ensureChannel();
