@@ -301,17 +301,38 @@ describe('new option entries', () => {
 });
 
 describe('tablewidget', () => {
+    const spec = KNOWN_SET_OPTIONS['tablewidget'];
+    const str = spec?.type === 'string' ? spec : null;
+
     /**
      * Every `tableWidgetMode` a user can choose must pass the vimrc and Lua
-     * `validValues` check, or the `set` is dropped without a word. `owned`
-     * was missing for its whole life while the docs told users to set it.
+     * `validValues` check, or the `set` is dropped without a word — which is
+     * how `owned` went unaccepted for its whole life while the docs told
+     * users to set it.
      */
     it('accepts every current table widget mode', () => {
-        const spec = KNOWN_SET_OPTIONS['tablewidget'];
         expect(spec?.type).toBe('string');
-        const valid = spec?.type === 'string' ? (spec.validValues ?? []) : [];
-        for (const mode of ['native', 'owned', 'reveal', 'raw']) {
-            expect(valid).toContain(mode);
+        for (const mode of ['native', 'reveal', 'raw']) {
+            expect(str?.validValues).toContain(mode);
+        }
+    });
+
+    /**
+     * Legacy values are retargeted before the setting is written. Written raw,
+     * they relied on the fork's option callback to correct them afterwards,
+     * and that callback is not registered under Obsidian's own vim.
+     */
+    it('retargets legacy values before they reach the setting', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            expect(str?.normalize?.('owned')).toBe('reveal');
+            for (const legacy of ['off', 'cursor', 'embedded', 'always']) {
+                expect(str?.normalize?.(legacy)).toBe('native');
+            }
+            expect(str?.normalize?.('reveal')).toBe('reveal');
+            expect(str?.validValues).not.toContain('owned');
+        } finally {
+            warn.mockRestore();
         }
     });
 });

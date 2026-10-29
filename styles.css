@@ -1898,53 +1898,9 @@ settings:
     white-space: pre;
 }
 
-/* The nested table editor renders the table's text while it is mounted, so the
-   plain rows beneath it would otherwise show through as a duplicate. */
-.cm-editor .vim-motions-table-surface-mounted .vim-motions-table-surface-rows {
-    display: none;
-}
-
-/* The nested cell editor renders the fork's vim cursor (driven by the parent's
-   vim state), so CodeMirror's own caret from `drawSelection()` would show as a
-   second, 1px caret beside the block — measured `10x19` and `1x19` together in
-   normal mode. `drawSelection()` cannot be dropped: the child needs it for the
-   visual-mode selection background that the range mirror renders.
-
-   Only the cursor layer is hidden, never the selection layer, and the fork's
-   own layer is excluded by the `:not()`. Insert mode is unaffected either way —
-   there the fork hides its block and tints the real browser caret through
-   `caret-color`, which is not this element. */
-.cm-editor .vim-motions-table-nested .cm-cursorLayer:not(.cm-vimCursorLayer) {
-    display: none;
-}
-
-/* Plan E1.2 — the owned surface is a character grid and Obsidian's editor font
-   is proportional, under which columns do not line up between rows at all.
-   The passive rows and the nested editor MUST keep sharing this block: they
-   render the same table alternately, so any difference shows as a geometry
-   jump when the cursor enters or leaves the table, which
-   `table-typography.e2e.ts` pins to within 1px. A ligature collapses two
-   characters into one advance, and a wrapped row would put one table row on
-   two display lines, which the alignment model cannot represent. */
-.cm-editor .vim-motions-table-surface-rows,
-.cm-editor .vim-motions-table-surface-row,
-.cm-editor .vim-motions-table-nested,
-.cm-editor .vim-motions-table-nested .cm-content,
-.cm-editor .vim-motions-table-nested .cm-line {
-    font-family: var(--font-monospace);
-    font-variant-ligatures: none;
-    font-feature-settings:
-        'liga' 0,
-        'clig' 0,
-        'calt' 0;
-    white-space: pre;
-    tab-size: 4;
-}
-
 /* `tableWidgetMode: reveal` — the table holding the caret is ordinary editor
-   lines, styled as an aligned source grid. Monospace without ligatures for the
-   same reason as the owned surface above: padded columns only line up when
-   every character has one advance. Headers are tinted rather than bolded,
+   lines, styled as an aligned source grid. Monospace without ligatures,
+   because padded columns only line up when every character has one advance. Headers are tinted rather than bolded,
    because a bold face is not guaranteed the same advance in every monospace
    fallback. Rows still wrap: a revealed row is a real editor line, and
    CodeMirror cannot give one line a horizontal scroller of its own. */

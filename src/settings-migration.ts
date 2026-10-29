@@ -78,10 +78,15 @@ export function migrateSigncolumnSettings(
  * release deprecates that value rather than removing it, and silently moving a
  * user off a documented option they chose is the thing a deprecation exists to
  * avoid.
+ *
+ * `'owned'` retargets to `'reveal'`, its successor. The owned table surface
+ * never shipped in a release and was removed before one; anyone who chose it
+ * from a development build chose a plugin-owned table editor, which is what
+ * `'reveal'` is.
  */
 export function migrateTableWidgetMode(
     raw: Record<string, unknown> | null,
-): 'native' | 'raw' | 'owned' | null {
+): 'native' | 'raw' | 'reveal' | null {
     if (!raw) return null;
     if (
         'suppressTableWidget' in raw &&
@@ -99,5 +104,6 @@ export function migrateTableWidgetMode(
     ) {
         return 'native';
     }
+    if (mode === 'owned') return 'reveal';
     return null;
 }

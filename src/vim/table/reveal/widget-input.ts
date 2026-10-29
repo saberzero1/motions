@@ -163,8 +163,8 @@ interface CellEditorOwner {
  * Releases Obsidian's own cell editor for this view, if it opened one.
  *
  * While `editMode.tableCell` holds an editor, a write to that one cell's range
- * through the parent does not land (measured in `owned` mode, FINDINGS § STEP
- * 3b). `null` is Obsidian's resting value for the field.
+ * through the parent does not land (measured, `.omo/table-probe/FINDINGS.md`
+ * § STEP 3b). `null` is Obsidian's resting value for the field.
  */
 export function releaseNativeCellEditor(view: EditorView): void {
     const owner = view.state.field(editorInfoField, false) as

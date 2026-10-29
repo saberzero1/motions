@@ -450,7 +450,9 @@ export function registerVimOptions(
             always: 'native',
             native: 'native',
             raw: 'raw',
-            owned: 'owned',
+            // The owned surface was removed before it shipped; `reveal`
+            // replaces it.
+            owned: 'reveal',
             reveal: 'reveal',
         };
         const mapped = mapping[str];

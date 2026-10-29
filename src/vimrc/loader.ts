@@ -71,6 +71,24 @@ export function clearSetOptionWarnings(): void {
     loggedNeovimOptions = new Set();
 }
 
+/** Legacy `tablewidget` values and the current mode each resolves to. */
+const TABLE_WIDGET_LEGACY: Record<string, string> = {
+    off: 'native',
+    cursor: 'native',
+    embedded: 'native',
+    always: 'native',
+    owned: 'reveal',
+};
+
+function normalizeTableWidget(value: string): string {
+    const current = TABLE_WIDGET_LEGACY[value];
+    if (current === undefined) return value;
+    console.warn(
+        `[Vim Motions] tablewidget=${value} is deprecated. Using "${current}" instead.`,
+    );
+    return current;
+}
+
 export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     textobjects: { type: 'boolean', settingsKey: 'enableTextObjects' },
     to: { type: 'boolean', settingsKey: 'enableTextObjects' },
@@ -201,19 +219,12 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     tablewidget: {
         type: 'string',
         settingsKey: 'tableWidgetMode',
-        // Every current mode, plus the legacy values `options.ts` retargets.
-        // `owned` was missing, so `set tablewidget=owned` in a vimrc and
-        // `vim.opt.tablewidget = 'owned'` were silently dropped.
-        validValues: [
-            'native',
-            'owned',
-            'reveal',
-            'raw',
-            'off',
-            'cursor',
-            'always',
-            'embedded',
-        ],
+        // Legacy values are retargeted before the setting is written. They
+        // used to be written raw and corrected afterwards by the fork's
+        // option callback, which is not registered under Obsidian's own vim,
+        // so there a legacy value stayed in the setting as an invalid mode.
+        normalize: normalizeTableWidget,
+        validValues: ['native', 'reveal', 'raw'],
     },
 
     whichkey: {

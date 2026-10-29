@@ -154,7 +154,15 @@ describe('tableWidgetMode migration', () => {
         expect(
             migrateTableWidgetMode({ tableWidgetMode: 'native' }),
         ).toBeNull();
-        expect(migrateTableWidgetMode({ tableWidgetMode: 'owned' })).toBeNull();
+    });
+
+    it('retargets the removed owned surface to its successor, reveal', () => {
+        expect(migrateTableWidgetMode({ tableWidgetMode: 'owned' })).toBe(
+            'reveal',
+        );
+        expect(
+            migrateTableWidgetMode({ tableWidgetMode: 'reveal' }),
+        ).toBeNull();
     });
 
     it('returns null for absent, null and non-string data', () => {

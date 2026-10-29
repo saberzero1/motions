@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Text } from '@codemirror/state';
-import {
-    buildTableLayout,
-    cellAt,
-    findTableLayouts,
-} from '../../../src/vim/table/layout-model';
+import { buildTableLayout, cellAt } from '../../../src/vim/table/layout-model';
 import type { TableRange } from '../../../src/vim/table-utils';
 
 /**
@@ -171,42 +166,5 @@ describe('cellAt', () => {
 
     it('returns null outside the table', () => {
         expect(cellAt(layout, 999)).toBeNull();
-    });
-});
-
-describe('findTableLayouts', () => {
-    it('finds every renderable table in document order', () => {
-        const doc = Text.of([
-            'intro',
-            '',
-            '| a | b |',
-            '|---|---|',
-            '| c | d |',
-            '',
-            '| e |',
-            '|---|',
-            '',
-        ]);
-        const layouts = findTableLayouts(doc);
-        expect(layouts).toHaveLength(2);
-        expect(layouts[0]!.columnCount).toBe(2);
-        expect(layouts[1]!.columnCount).toBe(1);
-        // Offsets are absolute, so the second table starts after the first.
-        expect(layouts[1]!.from).toBeGreaterThan(layouts[0]!.to);
-    });
-
-    it('skips a fenced block that looks like a table', () => {
-        const doc = Text.of([
-            '```',
-            '| a | b |',
-            '|---|---|',
-            '```',
-            '',
-            '| c | d |',
-            '|---|---|',
-        ]);
-        const layouts = findTableLayouts(doc);
-        expect(layouts).toHaveLength(1);
-        expect(layouts[0]!.rows[0]!.text).toBe('| c | d |');
     });
 });

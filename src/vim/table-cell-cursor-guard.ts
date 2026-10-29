@@ -24,28 +24,19 @@ function isTableCellEditor(view: EditorView): boolean {
 }
 
 /**
- * Whether a table in this view is rendered by **either** implementation.
+ * Whether a table in this view is rendered as Obsidian's widget.
  *
- * Both are asked, and that is the whole point of this function. It used to
- * query only `.cm-table-widget` — Obsidian's widget — which
- * `tableWidgetMode: 'owned'` removes by construction, so the guard below
- * silently stopped engaging there and the parent's vim cursor kept rendering
- * at its parked position **inside the block-replaced range**: a cursor drawn
- * at the edge of the table while the nested editor holds the caret.
- *
- * That is the same defect this guard was added for three times over (#127,
- * #135, #136, #132), re-entering through a condition keyed on the old
- * implementation's DOM rather than on the question being asked. Any future
- * surface must be added here too.
+ * A revealed table is not, by design: its rows are ordinary editor lines and
+ * the caret drawn there is the only one. The caller asks `isRevealedAt` first
+ * for exactly that reason, so a widget elsewhere in the note does not read as
+ * the caret's table.
  *
  * `offsetParent` rather than presence: a widget inside a collapsed fold or an
  * inactive tab is in the DOM and renders nothing, and suppressing the cursor
  * for it would hide the caret in a view with no visible table at all.
  */
 function hasRenderedTable(view: EditorView): boolean {
-    const rendered = view.dom.querySelectorAll(
-        '.cm-table-widget, .vim-motions-table-surface',
-    );
+    const rendered = view.dom.querySelectorAll('.cm-table-widget');
     for (let i = 0; i < rendered.length; i++) {
         if ((rendered[i] as HTMLElement).offsetParent !== null) return true;
     }

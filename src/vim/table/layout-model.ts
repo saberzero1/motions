@@ -1,4 +1,3 @@
-import type { Text } from '@codemirror/state';
 import {
     SEPARATOR_RE,
     findUnescapedPipes,
@@ -6,7 +5,6 @@ import {
     type Alignment,
     type TableRange,
 } from '../table-utils';
-import { findRenderableTableRanges } from './renderable-ranges';
 
 export type RowKind = 'header' | 'separator' | 'data';
 
@@ -69,24 +67,23 @@ export interface TableLayout {
 /**
  * The layout of one table, derived purely from its source.
  *
- * A pure function of text — no `EditorState`, no DOM — so it is unit-testable
- * the way `findRenderableTableRanges` is, and so the decoration layer and the
- * passive renderer can share one model instead of each re-deriving geometry.
+ * A pure function of text — no `EditorState`, no DOM — so it is unit-testable,
+ * and so the reveal surface's grid decorations and its click mapping share one
+ * model instead of each re-deriving geometry.
  *
- * **Never throws.** It backs a `StateField`, where an exception takes the
- * whole editor down, and table source is user input that is malformed far more
- * often than not. Malformed shapes are given defined answers instead:
+ * **Never throws.** It runs inside a decoration pass, where an exception takes
+ * the whole editor down, and table source is user input that is malformed far
+ * more often than not. Malformed shapes are given defined answers instead:
  *
  * - a row with **fewer** cells than the header yields fewer `cells`; the
  *   renderer draws the remainder as empty. Nothing is inserted into the
  *   document.
  * - a row with **more** is truncated for layout and the excess counted in
  *   `overflow`, again leaving the document byte-identical. Rewriting the row
- *   to fit would be an unrequested edit, and `owned` mode must not edit a
- *   document just to render it.
- * - a missing separator row is already excluded upstream by
- *   `findRenderableTableRanges`, so a `TableRange` reaching here has one at
- *   index 1; `buildTableLayout` still checks rather than assuming.
+ *   to fit would be an unrequested edit, and styling a table must never edit
+ *   it.
+ * - a missing separator row yields `null`: without one there is no table to
+ *   lay out.
  */
 export function buildTableLayout(table: TableRange): TableLayout | null {
     const header = table.lines[0];
@@ -176,16 +173,6 @@ export function buildTableLayout(table: TableRange): TableLayout | null {
     };
 }
 
-/** Layouts for every renderable table in the document, in document order. */
-export function findTableLayouts(doc: Text): TableLayout[] {
-    const out: TableLayout[] = [];
-    for (const range of findRenderableTableRanges(doc)) {
-        const layout = buildTableLayout(range);
-        if (layout) out.push(layout);
-    }
-    return out;
-}
-
 /**
  * The cell containing `pos`, or null.
  *
@@ -205,43 +192,6 @@ export function cellAt(
         return null;
     }
     return null;
-}
-
-/**
- * A table-relative offset moved out of a delimiter and into a cell.
- *
- * A click on a rendered `|` resolves to a position inside the delimiter's own
- * range, which belongs to no cell — the next motion or text object would then
- * act from between two cells. `cellAt` deliberately returns null there rather
- * than guessing, so the choice is made here: prefer the cell that starts
- * immediately after the delimiter, and fall back to the one ending at it for a
- * row's final `|`.
- *
- * Shared by both surfaces on purpose. The nested editor resolves its own
- * clicks and the passive grid resolves clicks from outside the table; two
- * copies that drifted would land the cursor between cells on one surface only,
- * which is the hardest version of this bug to see.
- */
-export function snapOutOfDelimiter(
-    lines: readonly string[],
-    pos: number,
-): number {
-    const layout = buildTableLayout({
-        from: 0,
-        to: lines.join('\n').length,
-        lines: [...lines],
-    });
-    if (!layout || cellAt(layout, pos)) return pos;
-
-    for (const row of layout.rows) {
-        if (pos < row.from || pos > row.to) continue;
-        const after = row.cells.find((c) => c.from === pos + 1);
-        if (after) return after.from;
-        const before = row.cells.find((c) => c.to === pos);
-        if (before) return before.to;
-        return pos;
-    }
-    return pos;
 }
 
 function splitCount(line: string): number {

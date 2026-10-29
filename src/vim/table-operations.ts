@@ -11,8 +11,8 @@ import { getCmAdapterFromEditorView } from './vim-api';
  * exposes changed regions with no meaningful origin, insert recording accepts
  * `origin === undefined` as input, and a replacement spanning the table is
  * therefore eligible to enter `lastInsertModeChanges`. A formatter transaction
- * can then be replayed by `.`, which is the defect Plan B Step 5 fixed for
- * `sync-up`.
+ * can then be replayed by `.`, which is exactly how a formatter edit once
+ * reached dot-repeat.
  *
  * There is deliberately **no** composition check. Plan E1.7 asked for one, and
  * it is both unreachable and unverifiable: every realign entry point —
@@ -29,9 +29,8 @@ export function canRealignTable(view: EditorView): boolean {
 /**
  * Rewrite a table's source to its aligned form.
  *
- * Dispatched straight at the parent, never through `sync-up.ts`: that path
- * exists to carry a *keystroke* as a minimal diff, and handing it a whole-table
- * replacement is what put a formatter edit into dot-repeat before.
+ * Dispatched as one whole-table replacement, outside insert mode, so it can
+ * never be recorded as typed text and replayed by `.`.
  *
  * No `isolateHistory` annotation. Plan E1.7 asked for one, but
  * `@codemirror/commands` is not a declared dependency here — only a transitive
