@@ -4,6 +4,26 @@ Per `.agents/skills/negative-control/SKILL.md`.
 
 Covers `test/specs/table-realign-guard.e2e.ts` (**5 passing**).
 
+## Under `reveal`
+
+The `owned` table surface was removed before release, superseded by `tableWidgetMode: reveal`. The spec now opens a revealed table; the guard
+it protects, `canRealignTable`, reads the parent's vim state and is shared by
+every mode.
+
+- Control 1 re-run under `reveal` (`canRealignTable` returns `true`):
+  `4 passing | 1 failing`, only `refuses a realign requested from insert mode`
+  — the same isolation as below.
+- Control 2's code, the nested editor's focus reclaim, no longer exists. The
+  defect it guarded came back under `reveal` through a different mechanism,
+  and the conversion is what caught it: the undo and dot-repeat scenarios
+  failed with `activeElement` on `<body>`. The vim adapter labels its changes
+  `input.type.compose`, the reveal extender skipped them as compositions, a
+  realign removed every highlight, and Obsidian's rebuilt widget opened a cell
+  editor that `Editor.focus()` then targeted. Fixed in the composition-guard
+  commit; both scenarios were red before it and pass after.
+
+The record below was measured under the owned surface.
+
 Every scenario **requests** the realign. Nothing realigns on its own, so a
 sequence that merely types and exits would never reach the guard and control 1
 could not fail.

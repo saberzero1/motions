@@ -12,10 +12,10 @@ import {
  * This defect has been fixed four times — #127, #135, #136, #132 — and keeps
  * returning. Two things let it:
  *
- * 1. **The guard was keyed on the old implementation's DOM.**
- *    `mainEditorTableCursorGuard` required a visible `.cm-table-widget`, which
- *    `tableWidgetMode: 'owned'` removes by construction, so it silently stopped
- *    engaging there. Every prior regression spec pins
+ * 1. **The guard was keyed on the wrong question.** It asked whether a table
+ *    widget was on screen rather than whether the caret's own table was
+ *    rendered as one, so a surface that changes which tables have widgets
+ *    breaks it in one direction or the other. Every prior regression spec pins
  *    `tableWidgetMode = 'native'`, so none of them could see it.
  * 2. **Every prior assertion was an absence.** Counted across
  *    `table-cursor-suppression` and `table-cursor-source-mode`: four
@@ -24,12 +24,18 @@ import {
  *    from absences is satisfied by no cursor at all, so it cannot distinguish
  *    "suppressed correctly" from "broken everywhere".
  *
- * So this spec is parameterised over both surfaces and asserts presence as
+ * So this spec is parameterised over every surface and asserts presence as
  * well as absence. A new surface must be added to `SURFACES` — that is the
  * guard, and it is the thing the previous four fixes lacked.
+ *
+ * The two surfaces expect opposite things inside a table, and that is the
+ * point of running both. `native` suppresses the parent's cursor there,
+ * because the caret belongs to Obsidian's cell editor or the nav overlay.
+ * `reveal` must not: the revealed rows are the parent's own lines and its
+ * cursor is the only one, so suppressing it there is the bug.
  */
 
-const SURFACES = ['native', 'owned'] as const;
+const SURFACES = ['native', 'reveal'] as const;
 
 const TABLE_DOC = [
     'Line above',
@@ -48,9 +54,9 @@ interface CursorReading {
     parentFocused: boolean;
     /** A table is rendered by one implementation or the other. */
     tableRendered: boolean;
-    /** Which implementation is rendering it. */
+    /** How it is rendered: Obsidian's widget, or revealed editor lines. */
     widgets: number;
-    surfaces: number;
+    revealedRows: number;
     /** The parent's own cursor offset, to catch an exit that relocates it. */
     head: number;
 }
@@ -62,7 +68,7 @@ async function read(): Promise<CursorReading> {
             parentFocused: false,
             tableRendered: false,
             widgets: -1,
-            surfaces: -1,
+            revealedRows: -1,
             head: -1,
         };
         const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
@@ -88,16 +94,13 @@ async function read(): Promise<CursorReading> {
         };
 
         // The fork draws its own block cursor; `.cm-fat-cursor` is it. Only
-        // the parent's counts here — one inside a table surface belongs to
-        // that surface, not to the document.
+        // the parent's counts here — one inside Obsidian's widget belongs to
+        // a cell editor, not to the document.
         const parentCursors = Array.from(
             cm.dom.querySelectorAll('.cm-fat-cursor'),
         )
             .filter(
-                (el) =>
-                    visible(el) &&
-                    el.closest('.cm-table-widget') === null &&
-                    el.closest('.vim-motions-table-surface') === null,
+                (el) => visible(el) && el.closest('.cm-table-widget') === null,
             )
             .map((el) => {
                 const r = el.getBoundingClientRect();
@@ -107,16 +110,16 @@ async function read(): Promise<CursorReading> {
         const widgets = Array.from(
             cm.dom.querySelectorAll('.cm-table-widget'),
         ).filter((el) => (el as HTMLElement).offsetParent !== null).length;
-        const surfaces = Array.from(
-            cm.dom.querySelectorAll('.vim-motions-table-surface'),
-        ).filter((el) => (el as HTMLElement).offsetParent !== null).length;
+        const revealedRows = cm.dom.querySelectorAll(
+            '.vim-motions-reveal-row',
+        ).length;
 
         return {
             parentCursors,
             parentFocused: cm.hasFocus,
-            tableRendered: widgets + surfaces > 0,
+            tableRendered: widgets + revealedRows > 0,
             widgets,
-            surfaces,
+            revealedRows,
             head: cm.state.selection.main.head,
         };
     })) as CursorReading;
@@ -186,9 +189,11 @@ async function park(line: number, ch: number): Promise<void> {
 //                      without a keystroke left nav active with the caret
 //                      outside the table: keys swallowed, cursor suppressed.
 //
-// The `owned` half is therefore a **cross-test contamination guard** as much
-// as a cursor guard, and the two surfaces must keep running in one file and
-// in this order for it to stay one.
+// The surface after `native` is therefore a **cross-test contamination
+// guard** as much as a cursor guard: a suppression override leaking out of the
+// `native` scenarios would hide `reveal`'s in-table cursor. The surfaces must
+// keep running in one file, `native` first, for it to stay one. The `owned`
+// surface that held this position was removed before release.
 //
 // It also asserts the cursor's position after leaving, not just its presence:
 // nav's normal exit relocates the caret via `placeCursorAround`, which is
@@ -215,17 +220,19 @@ describe('Cursor guard parity across table surfaces', function () {
 
             it('renders the table through exactly one implementation', async () => {
                 // Establishes which surface is under test, so a mode that
-                // silently fell back to the other cannot pass as itself.
+                // silently fell back to the other cannot pass as itself. Both
+                // leave an idle table to Obsidian; only `reveal` turns the
+                // caret's table into editor lines.
                 const r = await read();
                 expect(r.error).toBeUndefined();
                 expect(r.tableRendered).toBe(true);
-                if (surface === 'owned') {
-                    expect(r.surfaces).toBeGreaterThan(0);
-                    expect(r.widgets).toBe(0);
-                } else {
-                    expect(r.widgets).toBeGreaterThan(0);
-                    expect(r.surfaces).toBe(0);
-                }
+                expect(r.widgets).toBeGreaterThan(0);
+                expect(r.revealedRows).toBe(0);
+
+                await park(5, 2);
+                const inside = await read();
+                expect(inside.revealedRows).toBe(surface === 'reveal' ? 3 : 0);
+                expect(inside.widgets).toBe(surface === 'reveal' ? 0 : 1);
             });
 
             it('PRESENCE: a cursor is drawn outside the table', async () => {
@@ -239,21 +246,26 @@ describe('Cursor guard parity across table surfaces', function () {
                 expect(r.parentCursors[0]).not.toBe('0x0');
             });
 
-            it('ABSENCE: no parent cursor is drawn inside the table', async () => {
-                // Paired with the presence scenario above. On its own this
-                // passes when the cursor is broken everywhere, which is
-                // exactly how the defect re-entered through `owned`.
+            it('inside the table: native suppresses the parent cursor, reveal draws it', async () => {
+                // Paired with the presence scenario above. On its own the
+                // `native` half passes when the cursor is broken everywhere,
+                // and the `reveal` half is the inverse defect: a guard that
+                // reads any widget on screen hides the one caret there is.
                 await park(1, 0);
                 expect((await read()).parentCursors.length).toBe(1);
 
                 await park(5, 2);
                 const inside = await read();
-                expect(inside.parentCursors.length).toBe(0);
+                expect(inside.parentCursors.length).toBe(
+                    surface === 'reveal' ? 1 : 0,
+                );
             });
 
             it('the cursor returns when the caret leaves the table', async () => {
                 await park(5, 2);
-                expect((await read()).parentCursors.length).toBe(0);
+                expect((await read()).parentCursors.length).toBe(
+                    surface === 'reveal' ? 1 : 0,
+                );
 
                 const expectedHead = await headOf(1, 0);
                 await park(1, 0);

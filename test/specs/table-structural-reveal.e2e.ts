@@ -9,21 +9,19 @@ import {
 } from '../helpers';
 
 /**
- * Plan E2: structural table commands in `owned` mode.
+ * Structural table commands on a revealed table.
  *
- * E2.1's measurement decided the shape of this. All eleven structural
- * operations already have registered vim commands, but ten of them wrap
- * Obsidian command ids that drive the private `TableEditor` through the table
- * widget — which `owned` removes. Measured with the cursor in a table, those
- * ten left the document **byte-identical** in `owned` while changing it
- * correctly in `native`; only `:tablerealign` worked in both, because it alone
- * was already text-based.
+ * All eleven structural operations have registered vim commands, but ten of
+ * them wrap Obsidian command ids that drive the private `TableEditor` through
+ * the table widget — which a revealed table does not have. Measured with the
+ * cursor in a table without a widget, those ten left the document
+ * **byte-identical** while changing it correctly in `native`; only
+ * `:tablerealign` worked in both, because it alone was already text-based.
  *
- * So the fix is a text fallback behind the same commands, not a second set.
- * Each scenario below asserts the **full document** in `owned` and pairs it
- * with the `native` result, because a substring match cannot see a column
- * added to three of four lines — the characteristic failure of column
- * operations — and the pairing is what shows `native` is untouched.
+ * So each falls back to a text implementation behind the same command. Each
+ * scenario asserts the **full document**, because a substring match cannot see
+ * a column added to three of four lines — the characteristic failure of
+ * column operations.
  */
 
 const TABLE_DOC = [
@@ -72,7 +70,7 @@ async function park(line: number, ch: number): Promise<void> {
     await browser.pause(700);
 }
 
-/** Run one command in owned mode from a parked cursor, return the document. */
+/** Run one command on a revealed table from a parked cursor, return the document. */
 async function run(command: string, line = 5, ch = 2): Promise<string> {
     await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
     await browser.pause(500);
@@ -83,12 +81,12 @@ async function run(command: string, line = 5, ch = 2): Promise<string> {
     return getEditorValue();
 }
 
-describe('Structural table commands in owned mode (Plan E2)', function () {
+describe('Structural table commands on a revealed table', function () {
     this.timeout(300000);
 
     before(async () => {
         await loadSingleFileWorkspace();
-        await setPluginSettingAndReload('tableWidgetMode', 'owned');
+        await setPluginSettingAndReload('tableWidgetMode', 'reveal');
         await ensureLivePreview();
     });
 

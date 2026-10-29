@@ -1,9 +1,23 @@
-# Negative controls — structural table commands in owned mode (Plan E2)
+# Negative controls — structural table commands on a revealed table
 
 Per `.agents/skills/negative-control/SKILL.md`.
 
-Covers `test/specs/table-structural-owned.e2e.ts` (**14 passing**) and
+Covers `test/specs/table-structural-reveal.e2e.ts` (**14 passing**) and
 `test/unit/table/structural.test.ts` (**22 passing**).
+
+## Under `reveal`
+
+The `owned` table surface was removed before release, superseded by `tableWidgetMode: reveal`. The spec was converted rather than deleted,
+because what it guards — the text fallbacks behind the `:table*` commands — is
+exactly what a revealed table relies on: like the owned surface, it has no
+widget for Obsidian's `TableEditor` to drive.
+
+Control 1 re-run under `reveal` (`return false` at the top of
+`runTextFallback`): `4 passing | 10 failing`, the same shape as below. The four
+survivors are the scenarios that assert no change.
+
+The inventory and controls that follow were measured under the owned surface.
+Where they say `owned`, read "a table without Obsidian's widget".
 
 ## E2.1 — the reuse inventory, measured
 

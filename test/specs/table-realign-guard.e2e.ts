@@ -17,7 +17,7 @@ import {
  * changed regions with no meaningful origin, insert recording accepts
  * `origin === undefined`, and a table-spanning replacement is therefore
  * eligible to enter `lastInsertModeChanges` — after which `.` replays a
- * formatter edit. That is the defect Plan B Step 5 fixed for `sync-up`.
+ * formatter edit.
  *
  * The realign must be **requested** in every scenario. Nothing realigns on its
  * own, so a sequence that merely types and exits never exercises the guard and
@@ -65,8 +65,8 @@ async function requestRealign(): Promise<void> {
     await browser.pause(700);
 }
 
-async function openOwned(doc = MISALIGNED): Promise<void> {
-    await setPluginSettingAndReload('tableWidgetMode', 'owned');
+async function openRevealed(doc = MISALIGNED): Promise<void> {
+    await setPluginSettingAndReload('tableWidgetMode', 'reveal');
     await ensureLivePreview();
     await setupEditor(doc, { line: 0, ch: 0 });
     await browser.pause(800);
@@ -84,7 +84,7 @@ describe('Table realign guard (Plan E1.7)', function () {
     });
 
     beforeEach(async () => {
-        await openOwned();
+        await openRevealed();
     });
 
     it('refuses a realign requested from insert mode', async () => {
@@ -185,9 +185,9 @@ describe('Table realign guard (Plan E1.7)', function () {
     });
 
     it('realigns from outside the table too, where no cell editor exists', async () => {
-        // The guard reads the parent's vim state and the nested editor's
-        // composition; with the cursor outside the table neither is engaged,
-        // so a request must still be honoured.
+        // The guard reads the parent's vim state; with the cursor outside
+        // the table and in normal mode it is not engaged, so a request must
+        // still be honoured.
         await browser.executeObsidian(({ app, obsidian }) => {
             const view = app.workspace.getActiveViewOfType(
                 obsidian.MarkdownView,

@@ -14,8 +14,8 @@ import { requireRpcPrerequisites } from './rpc-prerequisites';
  *
  * Nothing about the surface is RPC-specific, and that is what this spec
  * establishes. A revealed table is ordinary lines of the buffer Neovim already
- * mirrors, so the two limitations `rpc-table-owned.e2e.ts` pins for `owned` —
- * a parent caret that cannot follow Neovim into the table, and Neovim's own
+ * mirrors, so the two costs a block-replaced table carries under RPC — a
+ * parent caret that cannot follow Neovim into the table, and Neovim's own
  * rendering never appearing inside it — should both be absent. Each is
  * asserted against Neovim's own state, which is the authority under RPC.
  */
@@ -30,7 +30,7 @@ interface RevealRpcPlugin {
         neovimRpcEnabled: boolean;
         neovimBinaryPath: string;
         neovimConfigPath: string;
-        tableWidgetMode: 'native' | 'raw' | 'owned' | 'reveal';
+        tableWidgetMode: 'native' | 'raw' | 'reveal';
     };
     saveSettings(): Promise<void>;
     reloadFeatures(): void;
@@ -248,8 +248,8 @@ describe('Neovim RPC table reveal surface', function () {
         expect(s.widgets).toBe(0);
         expect(s.revealedRows).toBe(4);
         expect(s.tableCell).toBe(false);
-        // Under `owned` this reads row 3 while Neovim is on row 5, because a
-        // block-replaced range cannot host the caret. Here there is no
+        // Over a block-replaced table this read row 3 while Neovim was on row
+        // 5, because a replaced range cannot host the caret. Here there is no
         // replaced range.
         expect(s.parentRow).toBe(nvimRow);
     });
