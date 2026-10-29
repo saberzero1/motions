@@ -19,7 +19,17 @@ export const config: WebdriverIO.Config = {
             browserName: 'obsidian',
             browserVersion: '1.13.7',
             'wdio:obsidianOptions': {
-                installerVersion: 'earliest',
+                // `earliest` is the minimum-supported-installer policy, and
+                // Linux and macOS keep it. On Windows, from runner image
+                // windows-2025 20261021, the 1.5.8 installer's GPU process
+                // (Electron 28, Chrome 120) exits with STATUS_ACCESS_VIOLATION
+                // about every 2.3 s from launch; on the ninth crash Chromium
+                // ends the browser ("GPU process isn't usable. Goodbye."), so
+                // every spec dies about 20 s in as "not connected to
+                // DevTools". The latest installer (Electron 43) recorded no
+                // GPU crashes at all, against 13 for 1.5.8 in the same spec.
+                installerVersion:
+                    process.platform === 'win32' ? 'latest' : 'earliest',
                 plugins: [
                     '.',
                     { id: 'omnisearch', enabled: false },
