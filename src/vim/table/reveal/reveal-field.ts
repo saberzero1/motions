@@ -123,6 +123,13 @@ function revealExtender(): Extension {
         if (!channel) return null;
         const previous = tr.startState.field(revealField, false);
         if (previous === undefined) return null;
+        // Never rebuild the marks during an IME composition. The highlight
+        // wraps each row's text, and a composition at a row's end falls
+        // outside it, so a resync would rewrap the composing text node —
+        // measured as a corrupted row: the leading pipe deleted and the
+        // preedit left behind beside the commit. The marks still map with
+        // the edit, and the first ordinary transaction resyncs them.
+        if (tr.isUserEvent('input.type.compose')) return null;
 
         const external = tr.effects.some((e) => e.is(channel.filter));
         const requested = tr.effects.some((e) => e.is(requestReveal));
