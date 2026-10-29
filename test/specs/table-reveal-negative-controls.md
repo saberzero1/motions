@@ -56,6 +56,30 @@ An earlier scenario ran `d3j` from the line above the table. It passed under
 E1: a linewise operator on the parent document needs no revealed table. It was
 replaced by the visual-selection scenario, which does.
 
+### Line-level features (`table-reveal-integrations.e2e.ts`)
+
+The IME row-end scenario was red first: before the extender skipped
+composition transactions, the row read `" aa   | 11    |に日本"` against the
+expected `"| aa   | 11    |日本"` — the leading pipe deleted and the preedit
+left beside the commit. That failure is what the fix answers.
+
+| #   | Sabotage                       | Scenario            | Observed                                                                                                                                                                    |
+| --- | ------------------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | Extender returns `null` always | all seven scenarios | each failed; flash labels expected `2`, received `0`, and the others at their entry precondition — the caret could not reach the intended row, `widgets` `1` instead of `0` |
+
+Hint mode was first written to expect one label on the table's link and got
+two. A control on the same link on an ordinary line, with the caret inside it
+so Live Preview shows its source, also gets two, so the count is hint mode's
+own for a link shown as source. The scenario now asserts equality with that
+control and that the label opens the note.
+
+### Obsidian's own vim (`table-reveal-builtin-vim.e2e.ts`)
+
+| #   | Sabotage                                                                    | Scenario                                          | Observed                                                                                                                                                                                        |
+| --- | --------------------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | `builtin-vim` blocker restored for `reveal`                                 | reveals the table on the keystroke that enters it | failed — but only once the spec rebooted Obsidian with the setting on. Enabling it at runtime, as first written, built the slot before the setting changed, and the restored blocker **passed** |
+| B2  | Reveal slot pushed into `vimExtensionSlot` instead of registered on its own | same                                              | failed: the vim layer is never installed while Obsidian's vim is on                                                                                                                             |
+
 ## Unit
 
 | #   | Sabotage                                         | Case                                               | Observed                                                                                                   |
@@ -64,6 +88,7 @@ replaced by the visual-selection scenario, which does.
 | U2  | Extender ignores Obsidian's own filter           | re-adds its highlights when Obsidian clears them   | `expected [] to deeply equal [ …four row ranges ]`                                                         |
 | U3  | `retireTableWidgets` not called                  | retires Obsidian's widget for the table it reveals | `expected 12 to be Infinity`                                                                               |
 | U4  | `owned` removed from `tablewidget` `validValues` | accepts every current table widget mode            | `expected [ 'native', 'reveal', 'raw', …(4) ] to include 'owned'`                                          |
+| U5  | Composition skip removed from the extender       | leaves the marks alone during an IME composition   | `expected true to be false` — the composing transaction carried highlight effects                          |
 
 ### An equivalent mutant, recorded rather than tested
 
