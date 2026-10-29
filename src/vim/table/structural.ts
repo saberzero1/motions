@@ -5,18 +5,18 @@ import {
 } from '../table-utils';
 
 /**
- * Text-based row and column operations for the owned table surface.
+ * Text-based row and column operations, for a table without Obsidian's widget.
  *
  * Obsidian's `editor:table-*` commands are already registered as vim actions,
  * but they drive Obsidian's private `TableEditor` through the table widget —
- * which `owned` mode removes. Measured, with the cursor in a table: ten of
- * them leave the document **byte-identical** in `owned` while changing it
- * correctly in `native`. Only `:tablerealign` works in both, because it alone
- * is text-based.
+ * which a table revealed by `tableWidgetMode: 'reveal'` does not have.
+ * Measured, with the cursor in a table without a widget: ten of them leave the
+ * document **byte-identical** while changing it correctly in `native`. Only
+ * `:tablerealign` works in both, because it alone is text-based.
  *
  * So these operate on the table's lines and nothing else. No `TableEditor`, no
- * `editMode.tableCell`, no `.cm-table-widget` — the surface deletes all three,
- * and depending on them is what made the existing commands inert.
+ * `editMode.tableCell`, no `.cm-table-widget` — a revealed table has none of
+ * the three, and depending on them is what made the existing commands inert.
  *
  * Every function is pure: `string[]` in, `string[]` out, unit-testable with no
  * DOM. Each returns the input array unchanged when the operation does not

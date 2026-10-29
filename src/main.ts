@@ -286,22 +286,11 @@ import { applyTableCellMotions } from './vim/table-cell-motions';
 import { createTableCellCursorGuard } from './vim/table-cell-cursor-guard';
 import { createTableNavExtension } from './vim/table-nav-controller';
 import { realignTableLines } from './vim/table-utils';
-import { createTableSurface } from './vim/table/surface-field';
-import { createTableSurfaceClick } from './vim/table/click-to-place';
-import {
-    createNestedTableHost,
-    getNestedTableStats,
-    type NestedTableStats,
-    getNestedSelectionReport,
-} from './vim/table/nested-view';
-import { suppressNativeCellEditor } from './vim/table/native-cell-suppressor';
 import {
     describeTableSurfaceBlocker,
-    livePreviewOnly,
     resolveTableSurfaceBlocker,
     type TableSurfaceBlocker,
 } from './vim/table/gates';
-import { getTableSurfaceRedrawCount as readTableSurfaceRedrawCount } from './vim/table/surface-widget';
 import { createTableReveal } from './vim/table/reveal/surface';
 import {
     getHighlightChannel,
@@ -316,10 +305,7 @@ import { getActiveTableCellEditorView } from './vim/native-table-adapter';
 import { autocompletion } from './snippets/autocomplete-types';
 import { loadSnippets, loadSnippetsSync } from './snippets/loader';
 import { createSnippetCompletionSource } from './snippets/completion-source';
-import {
-    createSnippetTabKeymap,
-    expandSnippetAtCursor,
-} from './snippets/tab-expand';
+import { createSnippetTabKeymap } from './snippets/tab-expand';
 import { registerSnippetCommands } from './snippets/commands';
 import { createSnippetsPickerSource } from './snippets/picker-source';
 import type { SnippetRegistry } from './snippets/registry';
@@ -330,13 +316,7 @@ import {
     setActiveDynamicContext,
 } from './snippets/dynamic-bridge';
 import { createSnippetLivePreviewGuard } from './snippets/live-preview-guard';
-import {
-    hasNextSnippetField,
-    hasPrevSnippetField,
-    nextSnippetField,
-    prevSnippetField,
-    snippetState,
-} from './snippets/autocomplete-types';
+import { snippetState } from './snippets/autocomplete-types';
 import { setJumpListInstance } from './workspace/navigate';
 
 import { runCleanups } from './util/cleanup';
@@ -443,10 +423,8 @@ export default class VimMotionsPlugin extends Plugin {
     private animatedCursorSlot: Extension[] = [];
     private undoTreeSlot: Extension[] = [];
 
-    private tableSurfaceSlot: Extension[] = [];
     private tableRevealSlot: Extension[] = [];
 
-    private tableSurfaceBlockerNotified: TableSurfaceBlocker = null;
     private tableRevealBlockerNotified: TableSurfaceBlocker = null;
     private tableRevealUnavailableNotified = false;
     private rawDeprecationNotified = false;
@@ -2867,7 +2845,6 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.vimExtensionSlot.push(this.undoTreeSlot);
-        this.vimExtensionSlot.push(this.tableSurfaceSlot);
 
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
@@ -3411,60 +3388,22 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     /**
-     * Installs the owned table surface, or explains why it is not installed.
-     *
-     * Every blocker is a deliberate restriction rather than a missing feature,
-     * so a blocked surface tells the user once instead of silently falling
-     * back to the native editor, which reads as a bug.
-     */
-    private applyTableSurfaceSlot(): void {
-        const blocker = resolveTableSurfaceBlocker(
-            this.app,
-            this.settings.tableWidgetMode,
-            'owned',
-        );
-        if (blocker === null) {
-            this.tableSurfaceBlockerNotified = null;
-        } else if (this.tableSurfaceBlockerNotified !== blocker) {
-            this.tableSurfaceBlockerNotified = blocker;
-            const message = describeTableSurfaceBlocker(blocker, 'owned');
-            if (message) new Notice(message);
-        }
-        this.setSlotEnabled(
-            this.tableSurfaceSlot,
-            'tableSurface',
-            blocker === null,
-            () => [
-                createTableSurface(livePreviewOnly()).extension,
-                createTableSurfaceClick(),
-                createNestedTableHost(
-                    (parent) => suppressNativeCellEditor(this.app, parent),
-                    (parent, direction) =>
-                        this.runTableSnippetTab(parent, direction),
-                ),
-            ],
-        );
-    }
-
-    /**
      * Installs the reveal table surface, or explains why it is not installed.
      *
-     * Same blocker policy as the owned surface. A channel that cannot be
+     * Desktop only for now. A channel that cannot be
      * captured — an Obsidian whose `addHighlights` no longer has the measured
      * shape — leaves the surface inert, which is Obsidian's own table editor,
      * and says so once.
      */
     private applyTableRevealSlot(): void {
         const blocker = resolveTableSurfaceBlocker(
-            this.app,
             this.settings.tableWidgetMode,
-            'reveal',
         );
         if (blocker === null) {
             this.tableRevealBlockerNotified = null;
         } else if (this.tableRevealBlockerNotified !== blocker) {
             this.tableRevealBlockerNotified = blocker;
-            const message = describeTableSurfaceBlocker(blocker, 'reveal');
+            const message = describeTableSurfaceBlocker(blocker);
             if (message) new Notice(message);
         }
         this.setSlotEnabled(
@@ -3512,32 +3451,6 @@ export default class VimMotionsPlugin extends Plugin {
         };
     }
 
-    /** Redraw count for the owned table surface, for e2e assertions. */
-    getTableSurfaceRedrawCount(): number {
-        return readTableSurfaceRedrawCount();
-    }
-
-    /** Every selection range the nested table editor renders. */
-    getNestedSelectionReport(): {
-        childTexts: string[];
-        childCount: number;
-        childMain: number;
-    } {
-        return getNestedSelectionReport();
-    }
-
-    /** Nested table editor lifecycle counts, for e2e assertions. */
-    getNestedTableStats(): NestedTableStats {
-        return getNestedTableStats();
-    }
-
-    /**
-     * The snippet session on the **parent** editor, for e2e assertions.
-     *
-     * Read from the parent's state rather than from a module-level flag: a
-     * session can be open in another leaf, and a boolean "a snippet is active
-     * somewhere" cannot tell the two apart.
-     */
     /**
      * The pure table formatter, exposed for conformance testing.
      *
@@ -3550,21 +3463,6 @@ export default class VimMotionsPlugin extends Plugin {
      */
     formatTableLines(lines: string[]): string[] {
         return realignTableLines(lines);
-    }
-
-    getSnippetSessionReport(): {
-        active: boolean;
-        field: number;
-        ranges: number;
-    } {
-        const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        const parent = mdView ? getEditorView(mdView) : null;
-        const session = parent ? parent.state.field(snippetState, false) : null;
-        return {
-            active: !!session,
-            field: session ? session.active : -1,
-            ranges: session ? session.ranges.length : -1,
-        };
     }
 
     /**
@@ -3753,39 +3651,6 @@ export default class VimMotionsPlugin extends Plugin {
         );
     }
 
-    /**
-     * Tab inside the owned table surface, driven against the parent editor.
-     *
-     * Navigation before expansion, matching the precedence the parent's own
-     * keymaps already have: `createSnippetTabKeymap` declines while a next
-     * field exists so CodeMirror's snippet keymap can move, and that keymap is
-     * unreachable here because the parent is unfocused.
-     *
-     * Returning false leaves the key to the router's ordinary handling. Only
-     * snippet commands run — the parent's full keymap stack must not, because
-     * an unmatched Tab there reaches Obsidian's indent handler and writes a
-     * literal tab into the table row.
-     */
-    private runTableSnippetTab(
-        parent: EditorView,
-        direction: 'next' | 'prev',
-    ): boolean {
-        if (!this.settings.enableSnippets) return false;
-        if (direction === 'prev') {
-            return hasPrevSnippetField(parent.state)
-                ? prevSnippetField(parent)
-                : false;
-        }
-        if (hasNextSnippetField(parent.state)) return nextSnippetField(parent);
-        return expandSnippetAtCursor(
-            parent,
-            () => this.snippetRegistry,
-            () => this.getSnippetPreprocessContext(),
-            () => this.isVimInsertMode(),
-            () => this.settings.enableSnippets,
-        );
-    }
-
     private buildSnippetRuntimeExtension(): Extension {
         return [
             createDynamicSnippetPlugin(() => getActiveDynamicContext()),
@@ -3818,7 +3683,6 @@ export default class VimMotionsPlugin extends Plugin {
     private populateRuntimeSlots(): void {
         this.applyAnimatedCursorSlot();
         this.applyUndoTreeSlot();
-        this.applyTableSurfaceSlot();
         this.applyTableRevealSlot();
         this.applyRawDeprecationNotice();
         this.applySnippetSlots();

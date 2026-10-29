@@ -231,14 +231,15 @@ export const tableRealignEx: ExCommandFn = (cm) => {
  * The text-based equivalent of each Obsidian table command, by command id.
  *
  * Those commands drive Obsidian's private `TableEditor` through the table
- * widget, which `tableWidgetMode: 'owned'` removes — so in owned mode they are
- * **inert**. Measured with the cursor in a table: ten of them leave the
- * document byte-identical in owned while changing it correctly in native.
- * Only `:tablerealign` worked in both, because it alone was already text-based.
+ * widget, which a table revealed by `tableWidgetMode: 'reveal'` does not have —
+ * so there they are **inert**. Measured with the cursor in a table without a
+ * widget: ten of them leave the document byte-identical while changing it
+ * correctly in native. Only `:tablerealign` worked in both, because it alone
+ * was already text-based.
  *
  * Rather than register a second set of commands, each falls back here when the
- * widget is absent, so the same `:tablerowafter`, the same action name and the
- * same `<leader>` binding work in both modes.
+ * caret's table has no widget, so the same `:tablerowafter`, the same action
+ * name and the same `<leader>` binding work in every mode.
  */
 const TEXT_FALLBACKS: Record<
     string,
@@ -259,10 +260,10 @@ const TEXT_FALLBACKS: Record<
 /**
  * Runs the text fallback for `commandId`, returning whether it applied.
  *
- * Deliberately keyed on the **widget's absence** rather than on the setting:
- * the setting can say `owned` while a per-view gate — Source mode, a blocked
- * surface — leaves Obsidian's widget in place, and there the native command is
- * the right one. Asking the DOM answers the question that actually matters.
+ * Deliberately keyed on the caret's table rather than on the setting: the
+ * setting can say `reveal` while a per-view gate — a blocked surface — leaves
+ * Obsidian's widget in place, and there the native command is the right one.
+ * Asking about the table the caret is in answers the question that matters.
  */
 function runTextFallback(cm: CmAdapter, commandId: string): boolean {
     const fallback = TEXT_FALLBACKS[commandId];

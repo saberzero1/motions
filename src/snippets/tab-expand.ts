@@ -15,17 +15,8 @@ function hasNextSnippetFieldCompat(state: EditorState): boolean {
     );
 }
 
-/**
- * Expands the snippet prefix before `view`'s cursor, if one matches.
- *
- * Exported because the owned table surface has to drive this against the
- * **parent** editor: the nested cell editor holds focus, so the parent's own
- * Tab keymap never fires. Delivering the key to the parent's whole keymap
- * stack instead was measured corrupting the table — with no matching prefix,
- * Obsidian's indent handler claimed Tab and wrote a literal tab before the
- * row (`\t| iznlaa   | 11    |`).
- */
-export function expandSnippetAtCursor(
+/** Expands the snippet prefix before `view`'s cursor, if one matches. */
+function expandSnippetAtCursor(
     view: EditorView,
     getRegistry: () => SnippetRegistry | null,
     getContext: () => PreprocessContext,

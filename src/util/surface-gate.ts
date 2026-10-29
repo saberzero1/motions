@@ -40,9 +40,8 @@ const SURFACE_SELECTORS: readonly (readonly [string, EditorSurface])[] = [
 /**
  * Classify from a selector matcher rather than from a DOM node.
  *
- * Injected for the same reason `surface-field.ts` takes its Live Preview gate
- * as a predicate: it keeps the decision table unit-testable without a DOM, and
- * it makes the selector list the only thing a test has to agree with.
+ * Injected so the decision table stays unit-testable without a DOM, and so the
+ * selector list is the only thing a test has to agree with.
  */
 export function classifySurfaceBy(
     matches: (selector: string) => boolean,
