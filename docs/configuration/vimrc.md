@@ -140,68 +140,69 @@ interactive behaviour an override replaces.
 
 Use `set <option>` to enable, `set no<option>` to disable.
 
-| Option                 | Alias  | Description                                  | Default |
-| ---------------------- | ------ | -------------------------------------------- | ------- |
-| `textobjects`          | `to`   | Markdown-aware text objects                  | on      |
-| `replacewithregister`  | `rwr`  | Replace-with-register operator               | on      |
-| `navigation`           | `nav`  | Heading, list, and link navigation           | on      |
-| `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators                | on      |
-| `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`           | on      |
-| `tablenav`             | `tn`   | Table cell navigation                        | on      |
-| `workspacenav`         | `wn`   | Pane/tab/sidebar control                     | on      |
-| `number`               | `nu`   | Show absolute line numbers                   | off     |
-| `relativenumber`       | `rnu`  | Show relative line numbers                   | off     |
-| `flash`                | —      | Flash-style f/F/t/T labels                   | on      |
-| `flashmultiline`       | `fml`  | Flash searches beyond current line           | on      |
-| `flashjump`            | —      | Flash bidirectional jump mode (s)            | off     |
-| `flashcleverf`         | —      | Clever-f repetition                          | off     |
-| `flashsearch`          | —      | Labels on /? search matches                  | on      |
-| `labelmatchfontsize`   | `lmfs` | Scale labels to match line font size         | off     |
-| `easymotion`           | `em`   | EasyMotion/Hop navigation                    | on      |
-| `easymotiondimming`    | `emd`  | Dim non-target text during EasyMotion        | on      |
-| `hintmode`             | `hm`   | Vimium-style hint labels                     | on      |
-| `statusbar`            | `sb`   | Vim mode in status bar                       | on      |
-| `chorddisplay`         | `cd`   | Pending keystrokes in status bar             | on      |
-| `powerline`            | `pl`   | Colored powerline status bar                 | off     |
-| `expandtab`            | `et`   | Use spaces instead of tabs                   | on      |
-| `pcre`                 | —      | Use JavaScript regexps in search/subst       | on      |
-| `cursorline`           | `cul`  | Cursor line highlight                        | on      |
-| `foldcolumn`           | `fdc`  | Fold column indicators                       | off     |
-| `markgutter`           | —      | Alias for `signcolumn` (compat)              | on      |
-| `snippets`             | —      | Enable snippet expansion                     | on      |
-| `snippetbundled`       | —      | Include bundled Obsidian snippets            | on      |
-| `vimtextareas`         | `vta`  | Vim keybindings in text areas                | off     |
-| `yankring`             | —      | Yank-ring paste cycling                      | on      |
-| `harpoon`              | —      | Harpoon file pinning                         | on      |
-| `dial`                 | —      | Enhanced increment/decrement                 | off     |
-| `jumplist`             | —      | Vim-style jump list for `<C-o>`/`<C-i>`      | on      |
-| `foldawarenavigation`  | —      | Master toggle for fold-aware navigation      | on      |
-| `foldpersistence`      | —      | Persist fold state across sessions           | off     |
-| `undotree`             | `ut`   | Enable undo tree tracking                    | on      |
-| `undofile`             | `udf`  | Persist undo tree across sessions            | off     |
-| `smoothcursor`         | `sc`   | Enable animated cursor                       | off     |
-| `smoothcursorglide`    | `scg`  | Smooth cursor movement (glide)               | on      |
-| `smoothcursorsmear`    | `scm`  | Enable smear trail                           | on      |
-| `subword`              | —      | Spider.nvim-style subword motions            | off     |
-| `picker`               | —      | Telescope-style picker                       | on      |
-| `pickerleadermappings` | —      | Leader key picker shortcuts                  | on      |
-| `pickeromnisearch`     | —      | Omnisearch picker integration                | off     |
-| `pickertasks`          | —      | Obsidian Tasks picker integration            | off     |
-| `pickerdataview`       | —      | Dataview picker integration                  | off     |
-| `ripgrep`              | —      | Use ripgrep binary for grep                  | off     |
-| `oil`                  | —      | Oil file explorer                            | off     |
-| `oilhiddenfiles`       | —      | Show hidden files in Oil                     | off     |
-| `undotreeautoopen`     | —      | Auto-open undo tree on branch                | off     |
-| `imswitching`          | —      | Input method auto-switching                  | off     |
-| `ignorecase`           | `ic`   | Case-insensitive search                      | on      |
-| `smartcase`            | `scs`  | Override ignorecase when query has uppercase | on      |
-| `hlsearch`             | `hls`  | Highlight all search matches                 | on      |
-| `incsearch`            | `is`   | Incremental search while typing              | on      |
-| `wrapscan`             | `ws`   | Search wraps around document                 | on      |
-| `gdefault`             | `gd`   | `:s` defaults to global replace              | off     |
-| `startofline`          | `sol`  | Vertical motions go to first non-blank       | on      |
-| `joinspaces`           | `js`   | `J` inserts two spaces after `.!?`           | off     |
-| `shiftround`           | `sr`   | `>>`/`<<` round to shiftwidth multiple       | off     |
+| Option                 | Alias  | Description                                                    | Default |
+| ---------------------- | ------ | -------------------------------------------------------------- | ------- |
+| `textobjects`          | `to`   | Markdown-aware text objects                                    | on      |
+| `replacewithregister`  | `rwr`  | Replace-with-register operator                                 | on      |
+| `navigation`           | `nav`  | Heading, list, and link navigation                             | on      |
+| `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators                                  | on      |
+| `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`                             | on      |
+| `tablenav`             | `tn`   | Table cell navigation                                          | on      |
+| `tableautorealign`     | —      | Realign an edited table on leaving insert mode (`reveal` mode) | off     |
+| `workspacenav`         | `wn`   | Pane/tab/sidebar control                                       | on      |
+| `number`               | `nu`   | Show absolute line numbers                                     | off     |
+| `relativenumber`       | `rnu`  | Show relative line numbers                                     | off     |
+| `flash`                | —      | Flash-style f/F/t/T labels                                     | on      |
+| `flashmultiline`       | `fml`  | Flash searches beyond current line                             | on      |
+| `flashjump`            | —      | Flash bidirectional jump mode (s)                              | off     |
+| `flashcleverf`         | —      | Clever-f repetition                                            | off     |
+| `flashsearch`          | —      | Labels on /? search matches                                    | on      |
+| `labelmatchfontsize`   | `lmfs` | Scale labels to match line font size                           | off     |
+| `easymotion`           | `em`   | EasyMotion/Hop navigation                                      | on      |
+| `easymotiondimming`    | `emd`  | Dim non-target text during EasyMotion                          | on      |
+| `hintmode`             | `hm`   | Vimium-style hint labels                                       | on      |
+| `statusbar`            | `sb`   | Vim mode in status bar                                         | on      |
+| `chorddisplay`         | `cd`   | Pending keystrokes in status bar                               | on      |
+| `powerline`            | `pl`   | Colored powerline status bar                                   | off     |
+| `expandtab`            | `et`   | Use spaces instead of tabs                                     | on      |
+| `pcre`                 | —      | Use JavaScript regexps in search/subst                         | on      |
+| `cursorline`           | `cul`  | Cursor line highlight                                          | on      |
+| `foldcolumn`           | `fdc`  | Fold column indicators                                         | off     |
+| `markgutter`           | —      | Alias for `signcolumn` (compat)                                | on      |
+| `snippets`             | —      | Enable snippet expansion                                       | on      |
+| `snippetbundled`       | —      | Include bundled Obsidian snippets                              | on      |
+| `vimtextareas`         | `vta`  | Vim keybindings in text areas                                  | off     |
+| `yankring`             | —      | Yank-ring paste cycling                                        | on      |
+| `harpoon`              | —      | Harpoon file pinning                                           | on      |
+| `dial`                 | —      | Enhanced increment/decrement                                   | off     |
+| `jumplist`             | —      | Vim-style jump list for `<C-o>`/`<C-i>`                        | on      |
+| `foldawarenavigation`  | —      | Master toggle for fold-aware navigation                        | on      |
+| `foldpersistence`      | —      | Persist fold state across sessions                             | off     |
+| `undotree`             | `ut`   | Enable undo tree tracking                                      | on      |
+| `undofile`             | `udf`  | Persist undo tree across sessions                              | off     |
+| `smoothcursor`         | `sc`   | Enable animated cursor                                         | off     |
+| `smoothcursorglide`    | `scg`  | Smooth cursor movement (glide)                                 | on      |
+| `smoothcursorsmear`    | `scm`  | Enable smear trail                                             | on      |
+| `subword`              | —      | Spider.nvim-style subword motions                              | off     |
+| `picker`               | —      | Telescope-style picker                                         | on      |
+| `pickerleadermappings` | —      | Leader key picker shortcuts                                    | on      |
+| `pickeromnisearch`     | —      | Omnisearch picker integration                                  | off     |
+| `pickertasks`          | —      | Obsidian Tasks picker integration                              | off     |
+| `pickerdataview`       | —      | Dataview picker integration                                    | off     |
+| `ripgrep`              | —      | Use ripgrep binary for grep                                    | off     |
+| `oil`                  | —      | Oil file explorer                                              | off     |
+| `oilhiddenfiles`       | —      | Show hidden files in Oil                                       | off     |
+| `undotreeautoopen`     | —      | Auto-open undo tree on branch                                  | off     |
+| `imswitching`          | —      | Input method auto-switching                                    | off     |
+| `ignorecase`           | `ic`   | Case-insensitive search                                        | on      |
+| `smartcase`            | `scs`  | Override ignorecase when query has uppercase                   | on      |
+| `hlsearch`             | `hls`  | Highlight all search matches                                   | on      |
+| `incsearch`            | `is`   | Incremental search while typing                                | on      |
+| `wrapscan`             | `ws`   | Search wraps around document                                   | on      |
+| `gdefault`             | `gd`   | `:s` defaults to global replace                                | off     |
+| `startofline`          | `sol`  | Vertical motions go to first non-blank                         | on      |
+| `joinspaces`           | `js`   | `J` inserts two spaces after `.!?`                             | off     |
+| `shiftround`           | `sr`   | `>>`/`<<` round to shiftwidth multiple                         | off     |
 
 ## Number options
 

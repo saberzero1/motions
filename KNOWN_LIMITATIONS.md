@@ -559,6 +559,16 @@ In practice the first press after a large jump can land up to about two display 
 
 `scrolloff` does not cause this and does not change it; the same offset appears at `scrolloff` 0. The e2e coverage in `test/specs/vim-builtin/z-commands.e2e.ts` presses twice where it needs the converged value, so the artifact cannot mask a real regression.
 
+## Normal-mode `Tab` indents the line
+
+**Status**: Known deviation from Neovim.
+
+In normal mode, `<Tab>` passes through the bundled engine to Obsidian, whose editor keymap indents the current line. Neovim treats normal-mode `<Tab>` as `<C-i>` and jumps forward in the jump list instead. The pass-through is deliberate: for a key it has no mapping for, the engine lets functional and navigation keys (`<Tab>`, `<S-Tab>`, `<F1>`–`<F12>`, modifier combinations) reach the host application rather than swallowing them, so Obsidian's own bindings for them keep working.
+
+The indent applies everywhere, including inside a table. Measured in a revealed table with the insert-mode cell navigation removed: normal-mode `Tab` turned `| aa   | 11    |` into `\t| aa   | 11    |`, and the cursor moved from column 2 to column 3. The cell navigation does not change this, because it acts in insert mode only (`test/specs/table-reveal-editing.e2e.ts`).
+
+A normal-mode mapping of `<Tab>` is matched before the pass-through, so `nnoremap <Tab> <C-i>` should give Neovim's behaviour; that is not covered by a test. Under the Neovim backend, `<Tab>` is Neovim's own.
+
 ## ~~Insert-mode surround dot-repeat~~ (Fixed)
 
 **Status**: Fixed. `.` after `i<C-G>s{char}text<Esc>` now replays the full surround + typed text. This exceeds both vim-surround and nvim-surround, where insert-mode surround dot-repeat is broken ([nvim-surround #301](https://github.com/kylechui/nvim-surround/issues/301)). ([#82](https://github.com/saberzero1/motions/issues/82))
@@ -651,7 +661,7 @@ Auto-format: ~~typing `|` in insert mode on a table line triggers automatic colu
 The following are intentionally not implemented:
 
 - ~~**`j`/`k` column tracking**~~: Fixed. `h`/`j`/`k`/`l` now cross cell boundaries in native table cell editors via `defineMotion` overrides. The overrides delegate to the originals outside table cells, preserving stock vim behavior.
-- **`Tab`/`Shift-Tab`**: These conflict with Obsidian's built-in table Tab handling and insert-mode tab completion.
+- ~~**`Tab`/`Shift-Tab`**~~: Implemented for `reveal`, in insert mode, where the table holding the cursor is plain lines and Obsidian's own table `Tab` handling does not run; a snippet that can expand or walk its tabstops keeps `Tab`. In `native` mode Obsidian's cell editor already moves between cells with them.
 
 ## Table widget in Live Preview
 
@@ -660,11 +670,11 @@ Three modes are available via `set tablewidget`:
 - **`native`** (default): Uses Obsidian's built-in `cm-table-widget`. Vim is injected into cell editors via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping, cursor positioning, and `<br>` conversion automatically. Cross-cell `h`/`j`/`k`/`l` navigation is always active in native mode, independent of the `tablenav` setting.
 - **`raw`**: Hides the widget. **In Live Preview this renders the table as nothing at all** — see the measured subsection below; it does not fall back to showing markdown source. Use **Source mode** for source-style table editing instead.
 
-- **`reveal`** (experimental): Obsidian keeps rendering every table the cursor is not in, and the table holding the cursor becomes ordinary lines of the note's own editor, edited by its own vim — one document, one vim state, one undo history, with no nested editor. The mechanism is Obsidian's own: its Live Preview table builder skips any table touched by the `obsidian-search-match-highlight` mark in the `Editor.addHighlights()` field, which is how in-file search shows a match inside a table, and that branch is unchanged from 1.5.8 through 1.13.7. The plugin places that mark over each row of the active table **in the same transaction** that moves the cursor there, so the table is never replaced around the cursor. Measured in `test/specs/table-reveal.e2e.ts` (18 scenarios), `table-reveal-integrations.e2e.ts` (7), `table-reveal-builtin-vim.e2e.ts` (5) and `rpc-table-reveal.e2e.ts` (4), with the negative controls in `test/specs/table-reveal-negative-controls.md`. Its limitations, each a consequence of the design rather than a defect:
+- **`reveal`** (experimental): Obsidian keeps rendering every table the cursor is not in, and the table holding the cursor becomes ordinary lines of the note's own editor, edited by its own vim — one document, one vim state, one undo history, with no nested editor. The mechanism is Obsidian's own: its Live Preview table builder skips any table touched by the `obsidian-search-match-highlight` mark in the `Editor.addHighlights()` field, which is how in-file search shows a match inside a table, and that branch is unchanged from 1.5.8 through 1.13.7. The plugin places that mark over each row of the active table **in the same transaction** that moves the cursor there, so the table is never replaced around the cursor. Measured in `test/specs/table-reveal.e2e.ts` (18 scenarios), `table-reveal-editing.e2e.ts` (12), `table-reveal-integrations.e2e.ts` (7), `table-reveal-builtin-vim.e2e.ts` (7) and `rpc-table-reveal.e2e.ts` (5), with the negative controls in `test/specs/table-reveal-negative-controls.md`. Its limitations, each a consequence of the design rather than a defect:
     - **The table changes shape when the cursor enters or leaves it**, because Obsidian's formatted table and its source are different sizes.
     - **Long rows wrap.** A revealed row is a real editor line, and CodeMirror cannot give one line a horizontal scroller of its own.
     - **Mouse multi-cell selection on an idle table is gone**, because a click on a cell places the cursor instead of reaching Obsidian's widget. Links, checkboxes, the row and column buttons and the drag handles are left to Obsidian.
-    - **Obsidian's realign-on-commit does not happen**, because its cell editor is never used. `:tablerealign` does the same on request.
+    - **Obsidian's realign-on-commit does not happen**, because its cell editor is never used. `:tablerealign` does the same on request, and `tableautorealign` does it when insert mode ends, with the same output as Obsidian's editor.
     - **It depends on three Obsidian internals**: the search-highlight exemption in the table builder; the shape of `addHighlights`, from which the plugin captures Obsidian's own highlight effect types without dispatching anything; and the reuse rule of Obsidian's table widget, whose instance for the revealed table is retired (`start = Infinity`) so the builder drops it. Without that last step the widget, which Obsidian keeps calling while hidden, opens a cell editor on the revealed table and schedules the cursor jump of [#121](https://github.com/saberzero1/motions/issues/121). If the capture does not find the expected shape, the mode stays inert — Obsidian's own table editor — and says so once.
     - **Mobile falls back to `native`**, unmeasured. Obsidian's own Vim key bindings do not: the surface is registered outside the plugin's vim layer, which stands down when they are on, and it edits the same way under them — measured in `test/specs/table-reveal-builtin-vim.e2e.ts`, with Obsidian rebooted with the setting on so the gate is evaluated the way a user of it starts the plugin.
     - **A snippet whose body contains a `|` or a newline damages the row**, as typing one would — a revealed table is plain source, and Obsidian's cell editor, which escapes these, is not used. Snippets otherwise expand and walk their tabstops inside a revealed cell.
