@@ -201,7 +201,18 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     tablewidget: {
         type: 'string',
         settingsKey: 'tableWidgetMode',
-        validValues: ['native', 'raw', 'off', 'cursor', 'always', 'embedded'],
+        // Every current mode, plus the legacy values `options.ts` retargets.
+        // `owned` was missing, so `set tablewidget=owned` in a vimrc and
+        // `vim.opt.tablewidget = 'owned'` were silently dropped.
+        validValues: [
+            'native',
+            'owned',
+            'raw',
+            'off',
+            'cursor',
+            'always',
+            'embedded',
+        ],
     },
 
     whichkey: {
