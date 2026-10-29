@@ -7,6 +7,7 @@ import {
     setupEditor,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 // Plugin settings whose behaviour Neovim can provide natively are projected
 // onto the mirror buffer rather than reimplemented, the way `textwidth`
@@ -35,15 +36,6 @@ interface RpcPlugin {
 
 const spawnedPids = new Set<number>();
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function setRpcEnabled(enabled: boolean): Promise<void> {
     await browser.executeObsidian(
@@ -222,7 +214,7 @@ describe('Neovim RPC editor options', function () {
     afterEach(async () => {
         await setRpcEnabled(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

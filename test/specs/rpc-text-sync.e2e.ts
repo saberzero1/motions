@@ -7,6 +7,7 @@ import {
     setupEditor,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 interface RpcState {
     connected: boolean;
@@ -45,15 +46,6 @@ interface ActiveDocumentSnapshot {
 const spawnedPids = new Set<number>();
 const encoder = new TextEncoder();
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 function byteBoundaries(text: string): number[] {
     const result = [0];
@@ -388,7 +380,7 @@ describe('Neovim RPC text synchronisation', function () {
     afterEach(async () => {
         await setRpcEnabled(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

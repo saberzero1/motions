@@ -12,6 +12,7 @@ import {
     vimHandleKeysSync,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 interface RpcState {
     connected: boolean;
@@ -467,7 +468,7 @@ describe('Neovim RPC structural navigation and hard-wrap', function () {
         await setRpcEnabled(false);
         await waitForRpc(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

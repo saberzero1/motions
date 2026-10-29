@@ -7,6 +7,7 @@ import {
     loadSingleFileWorkspace,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 const FIXTURE_PATH = 'rpc-latency-runtime.md';
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
@@ -776,14 +777,7 @@ describe('M7 RPC key-to-paint latency certification', function () {
             FIXTURE_PATH,
             originalPropertiesInDocument,
         );
-        for (const pid of spawnedPids) {
-            try {
-                process.kill(pid, 0);
-                process.kill(pid, 'SIGKILL');
-            } catch {
-                // Process already exited.
-            }
-        }
+        for (const pid of spawnedPids) killIfAlive(pid);
         spawnedPids.clear();
     });
 

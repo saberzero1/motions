@@ -7,6 +7,7 @@ import {
     setupEditor,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 // `canActivate()` gates the table-nav overlay on `forkAvailable`, which is
 // `!isBuiltinVimEnabled(app)` -- that Obsidian's own vim is off, not that the
@@ -37,15 +38,6 @@ const spawnedPids = new Set<number>();
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
 const TABLE_DOC =
     'Line above\n\n| AA | BB |\n|-----|-----|\n| cc | dd |\n\nLine below';
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function setRpcEnabled(enabled: boolean): Promise<void> {
     await browser.executeObsidian(
@@ -165,7 +157,7 @@ describe('Neovim RPC table navigation', function () {
     afterEach(async () => {
         await setRpcEnabled(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

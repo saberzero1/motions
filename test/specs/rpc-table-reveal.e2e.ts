@@ -8,6 +8,7 @@ import {
     setupEditor,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 /**
  * `tableWidgetMode: 'reveal'` under the Neovim RPC backend.
@@ -51,15 +52,6 @@ const TABLE_DOC = [
     'Line below',
 ].join('\n');
 const MARK_TEXT = 'reveal-probe-mark';
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function setMode(mode: 'native' | 'reveal'): Promise<void> {
     await browser.executeObsidian(async ({ app }, next: string) => {
@@ -230,7 +222,7 @@ describe('Neovim RPC table reveal surface', function () {
         await setRpcEnabled(false);
         await setMode('native');
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

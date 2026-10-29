@@ -12,6 +12,7 @@ import {
     vimHandleKeysSync,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 interface RpcState {
     connected: boolean;
@@ -184,15 +185,6 @@ const cases: TextObjectCase[] = objects.flatMap((object) => [
     },
 ]);
 
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 async function getRpcState(): Promise<RpcState> {
     return browser.executeObsidian(({ app }) => {
         const plugin = (
@@ -364,7 +356,7 @@ describe('Neovim RPC Markdown text objects', function () {
         await setRpcEnabled(false);
         await waitForRpc(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

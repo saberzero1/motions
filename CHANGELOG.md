@@ -58,6 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **RPC spec cleanup no longer fails when Neovim exits on its own.** Fourteen specs cleaned up with `if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL')`. That runs right after disabling the backend, so Neovim is already shutting down and can exit between the check and the kill, which then throws `kill ESRCH`. That is how `rpc-editor-options` failed a macOS shard after all three of its tests had passed. The shared `killIfAlive` kills without a liveness check and treats ESRCH (process already gone) as success; any other error still fails. All 14 specs now use it, and so does `rpc-latency`, whose cleanup used to swallow every error. Twelve local `pidIsAlive` copies that only served the old check are gone.
+    - **Unit test, written red first:** a reaped process. Under the old bare kill it threw `Error: kill ESRCH`, the same error as CI.
+    - **Negative controls:** a no-op helper left the child `'running'`, against the expected `{ code: null, signal: 'SIGKILL' }`. Swallowing every error let a `NaN` pid pass without the expected `ERR_INVALID_ARG_TYPE`.
+    - Tests: `test/specs/rpc-process.ts` (new), `test/unit/rpc/kill-if-alive.test.ts` (new), 15 `test/specs/rpc-*.e2e.ts` cleanup hooks
 - **The Windows end-to-end shards run Obsidian's latest installer; Linux and macOS keep `earliest`.** All 36 Windows shards failed with `not connected to DevTools`. On the windows-2025 20261021 runner image, the 1.5.8 installer's GPU process (Electron 28) crashes with `STATUS_ACCESS_VIOLATION` about every 2.3 s from launch, and Chromium ends the browser on the ninth crash. Any spec running longer than about 20 s therefore died, along with the cold-cache setup. Branch probes isolated it to the installer:
     - **Ruled out:** the Neovim install, the fetched test plugins and the cold Obsidian cache.
     - **Did not stop the crashes:** `--disable-gpu`.
