@@ -185,6 +185,7 @@ npm run build
     scripts/install-neovim.ps1                 # Windows official-release installer and API-floor check
     scripts/neovim-version.txt                 # Single cross-platform Neovim version pin
     test/specs/rpc-prerequisites.ts            # Shared Neovim/API-level/fixture skip guard for RPC specs
+    test/specs/rpc-process.ts                  # killIfAlive: race-free cleanup of spec-spawned Neovim processes
     ```
 - Keep the plugin small. Avoid large dependencies. Prefer browser-compatible packages.
 - Generated output should be placed at the plugin root or `dist/` depending on your build setup. Release artifacts must end up at the top level of the plugin folder in the vault (`main.js`, `manifest.json`, `styles.css`).

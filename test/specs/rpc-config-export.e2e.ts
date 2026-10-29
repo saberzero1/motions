@@ -3,6 +3,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getNotices, loadSingleFileWorkspace, setupEditor } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 // The generated file is only useful if Neovim can actually require it, which
 // depends on it landing under lua/ on the runtimepath. That is asserted here
@@ -43,15 +44,6 @@ const spawnedPids = new Set<number>();
 const TEST_CONFIG_PATH = resolve('test/fixtures/nvim/init.lua');
 const GENERATED_PATH = resolve('test/fixtures/nvim/lua/vim_motions.lua');
 const LUASNIP_FIXTURE = 'test-vault/lua/luasnip/init.lua';
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function plugin<T>(
     fn: (plugin: RpcPlugin) => T | Promise<T>,
@@ -202,7 +194,7 @@ describe('Neovim RPC configuration export', function () {
         await setRpcEnabled(false);
         rmSync(GENERATED_PATH, { force: true });
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

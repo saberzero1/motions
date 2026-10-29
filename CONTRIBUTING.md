@@ -456,6 +456,7 @@ scripts/install-neovim.sh                  # Linux/macOS official-release instal
 scripts/install-neovim.ps1                 # Windows official-release installer and API-floor check
 scripts/neovim-version.txt                 # Single cross-platform Neovim version pin
 test/specs/rpc-prerequisites.ts            # Shared Neovim/API-level/fixture skip guard for RPC specs
+test/specs/rpc-process.ts                  # killIfAlive: race-free cleanup of spec-spawned Neovim processes
 ```
 
 ## Adding a new feature
@@ -709,6 +710,7 @@ test/
   tsconfig.json              # Test-specific TypeScript config
   specs/                     # E2E tests (Tier 2 — plugin features)
     rpc-prerequisites.ts     # Shared Neovim/API-level/fixture skip guard for all RPC specs
+    rpc-process.ts           # killIfAlive: race-free cleanup of spec-spawned Neovim processes
     rpc-lifecycle.e2e.ts     # Neovim spawn, attach, version floor, crash, and teardown lifecycle
     rpc-lifecycle.negative-control.md # Observed teardown and version-check sabotage failures
     rpc-text-sync.e2e.ts     # Active-editor line-event sync and raw-byte oracle coverage

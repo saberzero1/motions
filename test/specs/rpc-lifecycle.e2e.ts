@@ -11,6 +11,7 @@ import {
     setupEditor,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 interface RpcState {
     connected: boolean;
@@ -286,7 +287,7 @@ describe('Neovim RPC connection lifecycle', function () {
         );
         if (loaded) await setRpcSettings(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

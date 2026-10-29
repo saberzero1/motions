@@ -8,6 +8,7 @@ import {
     setupEditor,
 } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 interface RpcState {
     connected: boolean;
@@ -58,15 +59,6 @@ const FRONTMATTER = [
 ].join('\n');
 const FRONTMATTER_FIXTURE = `${FRONTMATTER}\nbody one\nbody two\nbody three`;
 const FIRST_BODY_LINE = 6;
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function setRpcEnabled(enabled: boolean): Promise<void> {
     await browser.executeObsidian(
@@ -385,7 +377,7 @@ describe('Neovim RPC key delegation', function () {
     afterEach(async () => {
         await setRpcEnabled(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

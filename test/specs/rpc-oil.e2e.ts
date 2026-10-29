@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { Key } from 'webdriverio';
 import { getNotices, loadSingleFileWorkspace, setupEditor } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 interface RpcState {
     connected: boolean;
@@ -43,15 +44,6 @@ const FLASH_FIXTURE = 'test-vault/lua/flash/init.lua';
 const FIXTURE_DIR = 'rpc-oil-fixture';
 const SENTINEL = 'rpc oil sentinel\nsecond line';
 const spawnedPids = new Set<number>();
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function getPluginState(): Promise<RpcState> {
     return (await browser.executeObsidian(({ app }) => {
@@ -308,7 +300,7 @@ describe('Neovim RPC Oil isolation', function () {
         await loadSingleFileWorkspace('Welcome.md');
         await removeFixture();
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });

@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { obsidianPage } from 'wdio-obsidian-service';
 import { getNotices, loadSingleFileWorkspace, setupEditor } from '../helpers';
 import { requireRpcPrerequisites } from './rpc-prerequisites';
+import { killIfAlive } from './rpc-process';
 
 // Fold state as the user meets it: whatever the production activation path
 // leaves behind. Nothing here sets `foldlevel`, `foldmethod`, `foldexpr` or
@@ -109,15 +110,6 @@ for lnum = 1, vim.api.nvim_buf_line_count(0) do
     }
 end
 return out`;
-
-function pidIsAlive(pid: number): boolean {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
 
 async function request(method: string, args: unknown[]): Promise<unknown> {
     return browser.executeObsidian(
@@ -443,7 +435,7 @@ describe('Neovim RPC fold state on pane focus', function () {
     afterEach(async () => {
         await setRpcEnabled(false);
         for (const pid of spawnedPids) {
-            if (pidIsAlive(pid)) process.kill(pid, 'SIGKILL');
+            killIfAlive(pid);
             spawnedPids.delete(pid);
         }
     });
