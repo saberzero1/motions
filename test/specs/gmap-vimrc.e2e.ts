@@ -47,7 +47,15 @@ async function loadTwoTabs(): Promise<void> {
 
 describe('gmap vimrc integration', function () {
     before(async function () {
-        await browser.reloadObsidian({ vault: 'test-vault' });
+        // The vimrc must be on disk before Obsidian starts, so the plugin's
+        // first load reads it. This hook used to reload with a fresh vault
+        // copy first, then write the vimrc and reset `vimrcLoaded` and
+        // `vimrcLoading` to force a second load. On a slow macOS runner the
+        // startup load had already read the old, empty vimrc and finished
+        // after the reset. It marked the vimrc loaded with 0 commands, and
+        // the wait below passed on that stale load. Each spec already starts
+        // on a fresh vault copy, so the vimrc is written and the same vault
+        // reopened in place, which keeps it.
         await obsidianPage.write(
             '.obsidian.vimrc',
             [
@@ -60,25 +68,7 @@ describe('gmap vimrc integration', function () {
                 'gwhichkeygroup , +leader',
             ].join('\n'),
         );
-        await browser.executeObsidian(({ app }) => {
-            const plugin = (
-                app as unknown as {
-                    plugins: {
-                        plugins: Record<
-                            string,
-                            {
-                                vimrcLoaded?: boolean;
-                                vimrcLoading?: boolean;
-                            }
-                        >;
-                    };
-                }
-            ).plugins.plugins['vim-motions'];
-            if (plugin) {
-                plugin.vimrcLoaded = false;
-                plugin.vimrcLoading = false;
-            }
-        });
+        await browser.reloadObsidian();
         await obsidianPage.openFile('Welcome.md');
         await browser.waitUntil(
             async () =>
@@ -95,7 +85,7 @@ describe('gmap vimrc integration', function () {
                     ).plugins.plugins['vim-motions'];
                     return plugin?.vimrcLoaded === true;
                 })) as boolean,
-            { timeout: 5000, interval: 100 },
+            { timeout: 15000, interval: 100 },
         );
         await browser.pause(PAUSE.OBSIDIAN_LOAD);
     });

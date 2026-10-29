@@ -57,14 +57,25 @@ async function setOpt(value: string): Promise<void> {
 
 async function loadVimrc(body: string): Promise<void> {
     await obsidianPage.write('.obsidian.vimrc', body);
-    await browser.executeObsidian(({ app }) => {
-        (
-            app as unknown as {
-                commands: { executeCommandById: (id: string) => void };
-            }
-        ).commands.executeCommandById('vim-motions:reload-configuration');
+    // The command starts the reload without awaiting it. This used to pause a
+    // fixed 900 ms instead, and a macOS runner read the previous value
+    // ("number" for "both"). The same race let the "rejects" cases pass
+    // without the new vimrc ever having been read.
+    await browser.executeObsidian(async ({ app }) => {
+        const host = app as unknown as {
+            commands: { executeCommandById: (id: string) => void };
+            plugins: {
+                plugins: Record<
+                    string,
+                    { configReloadSettledForTest: () => Promise<void> }
+                >;
+            };
+        };
+        host.commands.executeCommandById('vim-motions:reload-configuration');
+        const plugin = host.plugins.plugins['vim-motions'];
+        if (!plugin) throw new Error('loadVimrc: plugin not found');
+        await plugin.configReloadSettledForTest();
     });
-    await browser.pause(PAUSE.EDITOR_SETTLE * 3);
 }
 
 async function loadLua(body: string): Promise<void> {
