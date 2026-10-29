@@ -218,6 +218,8 @@ The nested cell editor is `contenteditable=false` and never takes focus, so Neov
 - **Neovim's own rendering does not appear inside the table.** Extmarks, flash labels, diagnostics, fold state and signs all dispatch to the parent editor, whose copy of the table's range is block-replaced. They remain visible everywhere else in the note.
 - **The active cell is not highlighted.** A block-replaced range cannot host a caret; with the bundled engine it is the focused cell editor that keeps the cursor parked there, and a presentational editor cannot. Neovim's cursor is still authoritative and edits land on the correct row — measured, four `j` into a table puts Neovim on the right line and `x` edits that line in Neovim's buffer.
 
+With the mode set to `reveal`, nothing about the table is special to the backend. The table holding Neovim's cursor becomes ordinary lines of the buffer Neovim already mirrors, so neither cost above applies: the editor's cursor sits on Neovim's row inside the table, and Neovim's extmarks, flash labels, diagnostics and signs render inside it like anywhere else. Tables the cursor is not in keep Obsidian's own rendering. See [[tables#Reveal mode]].
+
 `native` remains the default and is unaffected.
 
 ## Known limitations
