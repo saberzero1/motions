@@ -192,6 +192,7 @@ export interface VimMotionsSettings {
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'native' | 'raw' | 'reveal';
+    tableAutoRealign: boolean;
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
 
@@ -338,6 +339,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     listContinuationOnOpen: true,
     enableTableNav: true,
     tableWidgetMode: 'native',
+    tableAutoRealign: false,
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,
 
@@ -968,6 +970,26 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     },
                                     disabled: () =>
                                         this.isOverridden('tableWidgetMode'),
+                                },
+                            },
+                            {
+                                name: 'Realign tables after insert mode',
+                                desc: this.describeOverride(
+                                    'tableAutoRealign',
+                                    "In reveal mode, realign a table's columns when you leave insert mode after editing it, the way Obsidian's table editor does when it commits a cell. One undo takes back the edit and the realign together. When disabled, tables are realigned only by :tablerealign.",
+                                ),
+                                aliases: [
+                                    'table',
+                                    'realign',
+                                    'format table',
+                                    'tableautorealign',
+                                ],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'tableAutoRealign',
+                                    defaultValue: false,
+                                    disabled: () =>
+                                        this.isOverridden('tableAutoRealign'),
                                 },
                             },
                             {
@@ -3599,6 +3621,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.clearSettingOverride('tableWidgetMode');
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Realign tables after insert mode')
+            .setDesc(
+                describeOverride(
+                    'tableAutoRealign',
+                    "In reveal mode, realign a table's columns when you leave insert mode after editing it, the way Obsidian's table editor does when it commits a cell. One undo takes back the edit and the realign together. When disabled, tables are realigned only by :tablerealign.",
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.tableAutoRealign)
+                    .setDisabled(isOverridden('tableAutoRealign'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.tableAutoRealign = value;
+                        this.plugin.clearSettingOverride('tableAutoRealign');
+                        await this.plugin.saveSettings();
                     }),
             );
 

@@ -211,6 +211,36 @@ describe('Table reveal surface with Obsidian’s own Vim key bindings', function
         expect(lines[5]).toBe('|    | 22    |');
     });
 
+    it('moves between cells with Tab in insert mode', async function () {
+        await keys('j', 'j', 'j', 'j', 'l', 'l', 'i');
+        await keys('Tab');
+        const pos = await getCursorPos();
+        await keys('Escape');
+
+        // Obsidian's own Tab handling sits below the bundled keymap here too,
+        // with Obsidian's vim rather than the fork deciding insert mode.
+        expect(pos).toEqual({ line: 4, ch: 9 });
+        expect(await getEditorValue()).toBe(DOC);
+    });
+
+    it('realigns an edited table on leaving insert mode when tableAutoRealign is on', async function () {
+        await setPluginSettingAndReload('tableAutoRealign', true);
+        await setupEditor(DOC, { line: 0, ch: 0 });
+        await browser.pause(400);
+        await keys('Escape');
+        await keys('j', 'j', 'j', 'j', 'l', 'l', 'l', 'a');
+        await keys('x', 'x', 'x', 'x', 'Escape');
+        const lines = (await getEditorValue()).split('\n');
+        await setPluginSettingAndReload('tableAutoRealign', false);
+
+        expect(lines.slice(2, 6)).toEqual([
+            '| Name   | Value |',
+            '| ------ | ----- |',
+            '| aaxxxx | 11    |',
+            '| bb     | 22    |',
+        ]);
+    });
+
     it('hands the table back on leaving, and places the caret on a click', async function () {
         await keys('j', 'j', 'j', 'j', 'j', 'j', 'j');
         const left = await probe();

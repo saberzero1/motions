@@ -108,6 +108,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     lc: { type: 'boolean', settingsKey: 'listContinuationOnOpen' },
     tablenav: { type: 'boolean', settingsKey: 'enableTableNav' },
     tn: { type: 'boolean', settingsKey: 'enableTableNav' },
+    tableautorealign: { type: 'boolean', settingsKey: 'tableAutoRealign' },
     workspacenav: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
     wn: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
     workspacenavviewtypes: {

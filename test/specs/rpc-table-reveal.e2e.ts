@@ -260,6 +260,25 @@ describe('Neovim RPC table reveal surface', function () {
         expect((await surface()).widgets).toBe(0);
     });
 
+    it('R5: leaves insert-mode Tab to Neovim instead of moving between cells', async () => {
+        await browser.keys(['j', 'j', 'j', 'j', 'l', 'l']);
+        await browser.pause(900);
+        await browser.keys(['i']);
+        await browser.pause(400);
+        await browser.keys(['Tab']);
+        await browser.pause(400);
+        await browser.keys(['Escape']);
+        await browser.pause(900);
+
+        // Neovim inserted its own Tab before `cc`. Moving to the next cell
+        // would have left the row unchanged.
+        const lines = await neovimLines();
+        expect(lines[4]).not.toBe('| cc   | dd   |');
+        // Neovim's 'softtabstop' folds the space before `cc` into the tab.
+        expect(lines[4]).toMatch(/^\|[\t ]*\t[\t ]*cc {3}\| dd {3}\|$/);
+        expect((await getEditorValue()).split('\n')[4]).toBe(lines[4]);
+    });
+
     it('R3: hands the table back to Obsidian when Neovim leaves it', async () => {
         await browser.keys(['j', 'j', 'j', 'j']);
         await browser.pause(900);

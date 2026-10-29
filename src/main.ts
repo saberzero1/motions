@@ -3432,6 +3432,7 @@ export default class VimMotionsPlugin extends Plugin {
                             'Vim Motions: revealing table source is not available in this version of Obsidian. Using the native table editor.',
                         );
                     },
+                    autoRealign: () => this.settings.tableAutoRealign,
                 }),
         );
     }
