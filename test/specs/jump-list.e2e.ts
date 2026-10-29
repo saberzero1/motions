@@ -4,6 +4,7 @@ import {
     setupEditor,
     vimKeys,
     getCursorPos,
+    getEditorValue,
     sendVimEscape,
     getVimMode,
     loadSingleFileWorkspace,
@@ -101,6 +102,20 @@ describe('Jump list', function () {
             expect((await getCursorPos()).line).toBe(0);
             await sendCtrlJump('<C-o>');
             expect((await getCursorPos()).line).toBe(3);
+        });
+
+        it('normal-mode Tab goes forward like <C-i>, without indenting', async function () {
+            const doc = 'line1\nline2\nline3\nline4\nline5';
+            await setupEditor(doc, { line: 0, ch: 0 });
+            await vimKeys('G');
+            await sendCtrlJump('<C-o>');
+            expect((await getCursorPos()).line).toBe(0);
+            // A real key: <Tab> used to fall through to Obsidian, which
+            // indented the line instead of jumping.
+            await browser.keys(['Tab']);
+            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+            expect((await getCursorPos()).line).toBe(4);
+            expect(await getEditorValue()).toBe(doc);
         });
 
         it('count support: 3G then G then <C-o> chain', async function () {

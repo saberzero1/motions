@@ -390,7 +390,7 @@ The `LanguageTree` class supports child language trees and injection resolution,
 
 **Status**: Implemented.
 
-The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>`. Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 14 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Within-buffer jumps (G, gg, /, ?) are handled by the fork's built-in jump list and delegate to the original `jumpListWalk` action.
+The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>` (or `<Tab>`, which is `<C-i>` in normal mode, as in Vim). Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 14 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Within-buffer jumps (G, gg, /, ?) are handled by the fork's built-in jump list and delegate to the original `jumpListWalk` action.
 
 The plugin-level jump list is cross-note only — it stores `{ filePath, line, ch }` entries and only records when the source and destination files differ. The `jumpListWalk` action override peeks at the next entry: if it points to a different file, the override navigates cross-note; otherwise, it delegates to the fork's within-buffer handler.
 
@@ -558,16 +558,6 @@ This means `<leader>t` mappings with longer partials (e.g., table nav `<leader>t
 In practice the first press after a large jump can land up to about two display rows away from the Neovim-correct position, and a second press converges exactly, because it is computed from measured coordinates once the line is on screen. Measured on a 54-row viewport: `zz` on an 18-row wrapped line landed at `scrollTop` 2572 from a starting scroll of 3145, against the correct 2530 it reaches from a nearby starting position and on every subsequent press.
 
 `scrolloff` does not cause this and does not change it; the same offset appears at `scrolloff` 0. The e2e coverage in `test/specs/vim-builtin/z-commands.e2e.ts` presses twice where it needs the converged value, so the artifact cannot mask a real regression.
-
-## Normal-mode `Tab` indents the line
-
-**Status**: Known deviation from Neovim.
-
-In normal mode, `<Tab>` passes through the bundled engine to Obsidian, whose editor keymap indents the current line. Neovim treats normal-mode `<Tab>` as `<C-i>` and jumps forward in the jump list instead. The pass-through is deliberate: for a key it has no mapping for, the engine lets functional and navigation keys (`<Tab>`, `<S-Tab>`, `<F1>`–`<F12>`, modifier combinations) reach the host application rather than swallowing them, so Obsidian's own bindings for them keep working.
-
-The indent applies everywhere, including inside a table. Measured in a revealed table with the insert-mode cell navigation removed: normal-mode `Tab` turned `| aa   | 11    |` into `\t| aa   | 11    |`, and the cursor moved from column 2 to column 3. The cell navigation does not change this, because it acts in insert mode only (`test/specs/table-reveal-editing.e2e.ts`).
-
-A normal-mode mapping of `<Tab>` is matched before the pass-through, so `nnoremap <Tab> <C-i>` should give Neovim's behaviour; that is not covered by a test. Under the Neovim backend, `<Tab>` is Neovim's own.
 
 ## ~~Insert-mode surround dot-repeat~~ (Fixed)
 
@@ -2271,6 +2261,12 @@ Investigation found that Obsidian 1.13+'s `SettingDefinitionList` (`type: 'list'
 The current `render` callback approach is the correct pattern for these complex settings. The imperative path works identically on pre-1.13. No migration planned.
 
 ## Resolved Issues
+
+## ~~Normal-mode `Tab` indents the line~~ (Fixed)
+
+Normal-mode `<Tab>` is now `<C-i>`, as in Vim and Neovim: it walks forward through the jump list, the cross-note one included. It used to pass through the bundled engine to Obsidian, whose editor keymap indented the line. Measured in a revealed table, it turned `| aa   | 11    |` into `\t| aa   | 11    |`; the pass-through is the engine's deliberate handling of functional keys it has no mapping for, and `<Tab>` simply had none. `test/specs/jump-list.e2e.ts` presses a real `Tab` after `G` and `<C-o>` and checks both the jump and the unchanged document.
+
+In Obsidian's own table cell editor (`native` mode), normal-mode `Tab` still moves to the next cell, as [#136](https://github.com/saberzero1/motions/issues/136) relies on: that editor is Obsidian's construct, so the key is handed to its own keymap there. The first version of this change broke that, which `test/specs/table-nav-disabled.e2e.ts` caught. Under Obsidian's own Vim key bindings the plugin registers no mappings, so normal-mode `Tab` still reaches Obsidian and indents the line. Under the Neovim backend, `<Tab>` is Neovim's own.
 
 ## ~~Vim keymaps intermittently stop working~~ (Fixed)
 

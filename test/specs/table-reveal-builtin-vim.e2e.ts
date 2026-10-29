@@ -223,6 +223,21 @@ describe('Table reveal surface with Obsidian’s own Vim key bindings', function
         expect(await getEditorValue()).toBe(DOC);
     });
 
+    it('does not move between cells with Tab in normal mode', async function () {
+        await keys('j', 'j', 'j', 'j', 'l', 'l');
+        await keys('Tab');
+        const pos = await getCursorPos();
+        const row = (await getEditorValue()).split('\n')[4] ?? '';
+
+        // The plugin registers no mappings under Obsidian's vim, so normal-mode
+        // Tab still reaches Obsidian, which indents the row. The cell handler
+        // must stay out of it: unguarded, it puts the caret at column 9.
+        expect(pos.line).toBe(4);
+        expect(pos.ch).not.toBe(9);
+        expect(row.trimStart()).toBe('| aa   | 11    |');
+        expect(await getVimMode()).toBe('normal');
+    });
+
     it('realigns an edited table on leaving insert mode when tableAutoRealign is on', async function () {
         await setPluginSettingAndReload('tableAutoRealign', true);
         await setupEditor(DOC, { line: 0, ch: 0 });

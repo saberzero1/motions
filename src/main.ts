@@ -292,6 +292,7 @@ import {
     type TableSurfaceBlocker,
 } from './vim/table/gates';
 import { createTableReveal } from './vim/table/reveal/surface';
+import { withTableCellTab } from './vim/normal-tab';
 import {
     getHighlightChannel,
     highlightChannelFailed,
@@ -2554,7 +2555,9 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registration.defineActionOverride('jumpListWalk', (original) =>
-            createJumpListWalkOverride(original, this.app, this.jumpList),
+            withTableCellTab(
+                createJumpListWalkOverride(original, this.app, this.jumpList),
+            ),
         );
         this.registration.mapCommand(
             '<C-o>',
@@ -2568,6 +2571,16 @@ export default class VimMotionsPlugin extends Plugin {
             'action',
             'jumpListWalk',
             { forward: true },
+            { context: 'normal' },
+        );
+        // Vim and Neovim treat normal-mode <Tab> as <C-i>. Unmapped, the
+        // engine let it through to Obsidian, which indented the line; in a
+        // table cell editor `withTableCellTab` keeps Obsidian's cell move.
+        this.registration.mapCommand(
+            '<Tab>',
+            'action',
+            'jumpListWalk',
+            { forward: true, fromTab: true },
             { context: 'normal' },
         );
 
@@ -3781,7 +3794,13 @@ export default class VimMotionsPlugin extends Plugin {
 
         if (this.jumpList) {
             this.registration.defineActionOverride('jumpListWalk', (original) =>
-                createJumpListWalkOverride(original, this.app, this.jumpList),
+                withTableCellTab(
+                    createJumpListWalkOverride(
+                        original,
+                        this.app,
+                        this.jumpList,
+                    ),
+                ),
             );
             this.registration.mapCommand(
                 '<C-o>',
@@ -3795,6 +3814,13 @@ export default class VimMotionsPlugin extends Plugin {
                 'action',
                 'jumpListWalk',
                 { forward: true },
+                { context: 'normal' },
+            );
+            this.registration.mapCommand(
+                '<Tab>',
+                'action',
+                'jumpListWalk',
+                { forward: true, fromTab: true },
                 { context: 'normal' },
             );
         }
