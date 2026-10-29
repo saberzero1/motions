@@ -99,7 +99,7 @@ The source lines belong to the note's own editor. There is no second editor insi
 
 ### What works
 
-Each item below is covered by `test/specs/table-reveal.e2e.ts` or `test/specs/rpc-table-reveal.e2e.ts`.
+Each item below is covered by a test in `test/specs/table-reveal*.e2e.ts` or `test/specs/rpc-table-reveal.e2e.ts`.
 
 - Normal-mode editing with the note's one undo history: `x`, `dd`, `u`, counts, and `.` repeating an insert on the next row
 - Charwise, linewise and **visual block** selections, including a `V` selection that starts above the table and extends into it
@@ -110,9 +110,13 @@ Each item below is covered by `test/specs/table-reveal.e2e.ts` or `test/specs/rp
 - Clicking a cell of an idle table places the cursor in that cell, on the clicked character for plain text
 - The `:table*` commands and their `<leader>t` bindings, while other tables in the note keep Obsidian's widget
 - Switching between Live Preview and Source mode with the cursor in a table
+- IME composition, inside a cell and at the end of a row, committed once and reversed with one `u`
+- [[snippets|Snippets]]: a prefix expands in a cell and `Tab` walks its tabstops
+- [[flash|Flash]] and [[easymotion|EasyMotion]] label targets inside the table and jump to them
+- [[hint-mode|Hint mode]] labels a link in the table the way it labels any link shown as source, and opens it
+- The [[animated-cursor|animated cursor]] is painted on the caret inside the table
+- Obsidian's own **Vim key bindings**, instead of the bundled engine: the same entering, editing, visual block and click behaviour
 - The [[neovim-backend|Neovim backend]]: the cursor follows Neovim into the table, edits land on Neovim's row, and Neovim's extmarks render inside the table
-
-Because the rows are the note's own editor lines, features that act on editor lines — IME composition, flash, EasyMotion, hint mode, the animated cursor — use the same code path inside a table as outside it. They have not been tested inside a revealed table yet.
 
 ### How it looks
 
@@ -126,10 +130,11 @@ Run `:tablerealign` (or `<Leader>tr`) to pad the columns; Vim Motions never real
 - **Long rows wrap.** A revealed row is an editor line, and an editor line cannot scroll sideways on its own; a table wider than the note wraps until the cursor leaves it.
 - **Mouse selection across the cells of an idle table is not available**, because a click places the cursor instead. Select with `<C-v>` once the table is revealed.
 - **Obsidian does not realign a table after an edit**, because its cell editor is never used. Use `:tablerealign`.
+- **A snippet whose body contains a `|` or a newline damages the row**, exactly as typing one would. Obsidian's cell editor escapes these; a revealed table is plain source. Escape the pipe in the snippet definition.
 
 ### When it falls back
 
-`reveal` is skipped, with a one-time notice, when Obsidian's own **Vim key bindings** are on, or on **mobile** — neither has been measured yet. It also falls back to Obsidian's table editor, with a notice, if the version of Obsidian in use does not expose what the mode relies on; see [[known-limitations#Tables]].
+`reveal` is skipped, with a one-time notice, on **mobile**, which has not been measured yet. It also falls back to Obsidian's table editor, with a notice, if the version of Obsidian in use does not expose what the mode relies on; see [[known-limitations#Tables]].
 
 ## Owned table surface
 
