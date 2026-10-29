@@ -36,6 +36,17 @@ export function getCmAdapterFromEditorView(
     }
 }
 
+/**
+ * The vim adapter driving `editorView`, whichever engine provides it.
+ * Obsidian's built-in vim attaches its adapter as `editorView.cm`, which
+ * `getCmAdapterFromEditorView` never reads, so a feature that must also work
+ * under Obsidian's own Vim key bindings resolves the adapter here.
+ */
+export function getAnyVimAdapter(editorView: EditorView): CmAdapter | null {
+    const own = (editorView as unknown as { cm?: CmAdapter }).cm;
+    return own ?? getCmAdapterFromEditorView(editorView);
+}
+
 export function getCmAdapter(view: MarkdownView): CmAdapter | null {
     try {
         const editorView = getEditorView(view);

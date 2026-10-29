@@ -166,6 +166,15 @@ export function registerVimOptions(
         const enabled = !!value;
         notify('enableTableNav', enabled, `set ${enabled ? '' : 'no'}tablenav`);
     });
+    vim.defineOption('tableautorealign', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'tableAutoRealign',
+            enabled,
+            `set ${enabled ? '' : 'no'}tableautorealign`,
+        );
+    });
     vim.defineOption('jumplist', true, 'boolean', [], (value) => {
         if (value === undefined) return jumpListEnabled;
         const enabled = !!value;
