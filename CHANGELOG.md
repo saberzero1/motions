@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **What counts:** a quoted table keeps its `>` markers, and a `cw` with nothing typed counts as an edit.
     - **Engines:** works with Obsidian's own Vim key bindings as well as the bundled engine. Neither assist applies under the Neovim backend, which owns every key.
     - Plugin: `src/vim/table/reveal/realign-on-leave.ts` (new), `src/vim/vim-api.ts` (`getAnyVimAdapter`, which also reads Obsidian's built-in adapter), `src/settings.ts` (both implementations), `src/vim/options.ts`, `src/vimrc/loader.ts`, `src/main.ts`
+- **A revealed table shows which column the cursor is in.** The status bar reads `Col 2/3 · Value`, with the column, the column count and the header, and warns, for example `row has 4 cells`, when the cursor's row has a different number of cells from the header, so a stray or missing pipe shows while you type. rainbow_csv and csv.vim show the same in their statuslines. Every cell of the cursor's column is highlighted, more faintly than the cursor's own cell.
+    - Plugin: `src/vim/table/reveal/column-status.ts` (new), `src/vim/table/reveal/grid-decorations.ts`, `src/vim/table/reveal/surface.ts`, `src/main.ts`, `styles.css`
+- **Typing a pipe in reveal mode: `\|` inside a wikilink, and `||` for a separator.**
+    - **Wikilinks:** a `|` typed inside an unclosed `[[` on a revealed row is written as `\|`, so `[[page|alias]]` or an embed size stays in its cell. Obsidian's cell editor escapes every pipe; a revealed table escapes only these, because elsewhere a typed pipe is how a column is made.
+    - **Separator:** `||` typed as the whole of the line below a header with no separator yet becomes the separator, sized to the header's cells. This is vim-table-mode's shortcut, and this plugin's own before it moved to Obsidian's table editor. Unlike that version, it leaves a `||` row of an existing table alone.
+    - Plugin: `src/vim/table/reveal/typing.ts` (new), `src/vim/table/reveal/surface.ts`
+- **`<Leader>tal`, `<Leader>tac` and `<Leader>tar` set the current column's alignment, and the alignment commands now work in a revealed table.** `:tablealignleft`, `:tablealigncenter` and `:tablealignright` already ran Obsidian's commands, which drive its table widget and so did nothing to a revealed table. They now fall back to rewriting the separator cell and realigning, like the other `:table*` commands.
+    - Plugin: `src/motions/tables.ts`, `src/vim/table/structural.ts` (`setColumnAlignment`)
 
 ### Changed
 
@@ -71,6 +79,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **Column status, the typing assists, the alignment commands, normal-mode `Tab`, and the existing cell motions in a revealed table, each with negative controls.** Twelve sabotages each failed their own scenario:
+    - **Typing and alignment:**
+        - escape removed: the alias split the cell, `[[page|alias]]`;
+        - escape applied everywhere: an ordinary delimiter became `aa\|z`;
+        - separator off: the line stayed `||`;
+        - header check reduced to "has cells": a `||` row of an existing table became a separator;
+        - fallbacks removed: the alignment commands left the table unchanged.
+    - **Column awareness:** status removed (nothing shown); mismatch ignored (no warning); column mark removed (no highlighted cells).
+    - **`Tab`:** mapping removed, so the jump stayed at line 0 instead of line 4; the cell handler's insert-mode guard removed, so under Obsidian's vim normal-mode `Tab` reached column 9.
+    - **Existing motions:** `i|` taking the opening pipe yanked `| aa   `; `[r` without the separator skip stopped on the separator.
+    - **Moved test:** the guard's normal-mode test moved to the built-in-vim spec. Under the bundled engine, normal-mode `Tab` is now consumed by its mapping before any keymap runs, so the old test could no longer fail.
+    - **Caught regression:** `table-nav-disabled.e2e.ts` caught the first version of the `<Tab>` mapping consuming `Tab` in Obsidian's cell editor, where #136 needs it to move cells. The cell column stayed at 0. It passes again with the cell-editor hand-back, and that failure is the hand-back's negative control.
+    - **Unit tests:** `setColumnAlignment` has three cases, each failing under its own sabotage.
+    - **Realign guard:** a probe confirmed that `canRealignTable`, which reads only the bundled engine's adapter, is unreachable under Obsidian's own Vim key bindings. There `:tablerealign` reports "Not an editor command", so the guard is left as it is and its comment records why.
+    - Tests: `test/specs/table-reveal-editing.e2e.ts`, `test/specs/table-reveal-builtin-vim.e2e.ts`, `test/specs/jump-list.e2e.ts`, `test/unit/table/structural.test.ts`
 - **Insert-mode `Tab`, `tableautorealign`, and the realign formatter's alignment rules, each with negative controls.**
     - **`table-reveal-editing.e2e.ts`** (12 scenarios) drives real keys, because `Tab` is a keymap binding that `Vim.handleKey` never reaches. Ten sabotages each failed their scenario:
         - insert-mode guard removed: normal-mode `Tab` reached column 9;
@@ -148,6 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- **Known limitations no longer says tables realign when the cursor leaves them.** That format-on-exit behaviour, and its `||` shortcut, went with the move to Obsidian's table editor. The paragraph now describes when a table is realigned today. The normal-mode `Tab` entry moved to Resolved, and the tables page documents the typing assists, the column status and the alignment bindings.
+    - Documentation: `KNOWN_LIMITATIONS.md`, `docs/features/tables.md`, `docs/reference/keybindings.md`, `docs/features/index.md`
 - **The tables page listed `<Leader>tj` and `<Leader>tk` for moving a row; the bindings are `<Leader>tJ` and `<Leader>tK`**, as the keybindings reference already said. The page also documents insert-mode `Tab` in a revealed table, `tableautorealign`, and the realign formatter's alignment and width rules. Known limitations records that normal-mode `Tab` reaches Obsidian and indents the line, where Neovim jumps forward in the jump list.
     - Documentation: `docs/features/tables.md`, `docs/reference/keybindings.md`, `docs/configuration/settings.md`, `docs/configuration/vimrc.md`, `docs/configuration/lua-config.md`, `docs/features/neovim-backend.md`, `KNOWN_LIMITATIONS.md`
 - **`docs/features/tables.md` gains a "Reveal mode" section**, listing only behaviour a test covers and naming what is not yet tested inside a revealed table. `docs/configuration/settings.md`, `vimrc.md`, `lua-config.md` and `docs/features/neovim-backend.md` list the new value.

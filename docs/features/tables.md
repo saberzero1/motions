@@ -54,6 +54,7 @@ A suite of manipulation commands is available under the `<Leader>t` prefix for s
 - `<Leader>tL`: Move the current column to the right.
 - `<Leader>tH`: Move the current column to the left.
 - `<Leader>tdc`: Delete the current column.
+- `<Leader>tal`, `<Leader>tac`, `<Leader>tar`: Align the current column left, centre or right.
 - `<Leader>tr`: Realign the entire table.
 
 > [!note]
@@ -116,12 +117,16 @@ Each item below is covered by a test in `test/specs/table-reveal*.e2e.ts` or `te
 - The [[animated-cursor|animated cursor]] is painted on the caret inside the table
 - In insert mode, `Tab` and `Shift-Tab` move to the next and previous cell, wrapping across rows and skipping the separator, and `Tab` in the last cell adds an empty row
 - With `tableautorealign` on, leaving insert mode realigns the table you edited, keeping the cursor on its character; one `u` undoes the edit and the realign together
+- A `|` typed inside `[[…]]` is written as `\|`, and `||` typed under a header with no separator yet becomes the separator
+- The status bar shows the cursor's column and its header, and every cell of that column is highlighted
+- The cell motions `]|`, `[|`, `]r`, `[r` and the text objects `i|`, `a|`
+- The column alignment commands, `<Leader>tal`, `<Leader>tac` and `<Leader>tar`
 - Obsidian's own **Vim key bindings**, instead of the bundled engine: the same entering, editing, visual block and click behaviour
 - The [[neovim-backend|Neovim backend]]: the cursor follows Neovim into the table, edits land on Neovim's row, and Neovim's extmarks render inside the table
 
 ### How it looks
 
-The active table is shown in a monospace font with ligatures off, so a realigned table's columns line up. Every bit of inline Markdown inside it — `**bold**`, `[[links]]`, inline math — is shown as source, not rendered, which is what keeps the columns aligned. The delimiters and the separator row are dimmed, the header row is tinted, and the cell holding the cursor is highlighted. The tint, the dimming and the highlight use your theme's table variables.
+The active table is shown in a monospace font with ligatures off, so a realigned table's columns line up. Every bit of inline Markdown inside it — `**bold**`, `[[links]]`, inline math — is shown as source, not rendered, which is what keeps the columns aligned. The delimiters and the separator row are dimmed, the header row is tinted, and the cell holding the cursor is highlighted, with a fainter highlight on the rest of its column. The tint, the dimming and the cell highlight use your theme's table variables; the column highlight uses its hover colour.
 
 Run `:tablerealign` (or `<Leader>tr`) to pad the columns, or turn on `tableautorealign` to have that happen when you leave insert mode.
 
@@ -134,6 +139,18 @@ Obsidian's own table editor moves the same way, but it selects the content of th
 With `tableautorealign` on (**Settings → Vim Motions → General → Realign tables after insert mode**, `set tableautorealign` or `vim.opt.tableautorealign = true`), leaving insert mode realigns each table you edited during that insert, with the same output as `:tablerealign`. The cursor stays on the character it was on, in the same cell, and one `u` undoes the edit and the realign together. `<C-o>` does not count as leaving insert mode. A table is left alone if any of its rows does not both start and end with a pipe, so a row you are still typing is never rebuilt under you, and a quoted table keeps its `>` markers.
 
 Neither applies under the [[neovim-backend|Neovim backend]], where Neovim owns every key and every mode change, so `Tab` is Neovim's.
+
+### Typing pipes, headers and alignment
+
+A `|` typed inside an unclosed `[[` on a revealed row is written as `\|`, so a wikilink alias or an embed size, such as `[[page|alias]]` or `![[image.png|200]]`, stays inside its cell. Obsidian's own table editor escapes every pipe typed in a cell. A revealed table cannot, because there a typed `|` is how you make a new column, so only the pipes inside a wikilink are escaped. A pipe you escaped yourself is left alone.
+
+To start a table, type its header row, then `||` as the whole of the next line: it becomes the separator row, one column per header cell, sized to the header's cells. This works only below a header that has no separator yet, so `||` typed as a row of an existing table stays a row.
+
+`<Leader>tal`, `<Leader>tac` and `<Leader>tar` (`:tablealignleft`, `:tablealigncenter`, `:tablealignright`) set the current column's alignment by rewriting its separator cell, then realign the table so the content moves to match. In `native` mode they run Obsidian's own alignment commands.
+
+### Which column you are in
+
+While the cursor is in a revealed table, the status bar shows its column, the number of columns and the column's header, for example `Col 2/3 · Value`. When the cursor's row has a different number of cells from the header, it adds a warning, for example `row has 4 cells`, so a stray or missing pipe shows up while you type. Every cell of the cursor's column is highlighted, more faintly than the cursor's own cell.
 
 ### What is different from the other modes
 

@@ -4,7 +4,9 @@ import {
     ensureSourceMode,
     getCursorPos,
     getEditorValue,
+    getRegisterContent,
     getVimMode,
+    handleEx,
     loadSingleFileWorkspace,
     setPluginSettingAndReload,
     setupEditor,
@@ -86,6 +88,36 @@ async function moveTo(line: number, ch: number): Promise<void> {
 
 async function setAutoRealign(on: boolean): Promise<void> {
     await setPluginSettingAndReload('tableAutoRealign', on);
+}
+
+interface ColumnStatus {
+    text: string | null;
+    mismatched: boolean;
+    activeColumn: string[];
+}
+
+async function columnStatus(): Promise<ColumnStatus> {
+    return (await browser.executeObsidian(({ app, obsidian }) => {
+        const el = document.querySelector<HTMLElement>(
+            '.status-bar-item.vim-motions-table-column',
+        );
+        const view = app.workspace.getActiveViewOfType(obsidian.MarkdownView);
+        const cm = (view?.editor as unknown as { cm?: { dom: HTMLElement } })
+            ?.cm;
+        const cells = cm
+            ? Array.from(
+                  cm.dom.querySelectorAll(
+                      '.vim-motions-reveal-cell.is-active-column',
+                  ),
+              ).map((c) => (c.textContent ?? '').trim())
+            : [];
+        const shown = !!el && el.style.display !== 'none';
+        return {
+            text: shown ? (el?.textContent ?? '') : null,
+            mismatched: !!el?.classList.contains('is-mismatched'),
+            activeColumn: cells,
+        };
+    })) as ColumnStatus;
 }
 
 describe('Table reveal editing assists', function () {
@@ -313,6 +345,165 @@ describe('Table reveal editing assists', function () {
                 '> | 1234 | 2   |',
             ]);
             await ensureLivePreview();
+        });
+    });
+
+    describe('existing cell motions and text objects', function () {
+        it('moves between cells with ]| and [| and between rows with ]r and [r', async function () {
+            await moveTo(4, 2);
+            await keys(']', '|');
+            const next = await getCursorPos();
+            await keys(']', '|');
+            const wrapped = await getCursorPos();
+            await keys('[', '|');
+            const back = await getCursorPos();
+            await keys(']', 'r');
+            const down = await getCursorPos();
+            await keys('[', 'r', '[', 'r');
+            const header = await getCursorPos();
+
+            expect(next).toEqual({ line: 4, ch: 9 });
+            expect(wrapped).toEqual({ line: 5, ch: 2 });
+            expect(back).toEqual({ line: 4, ch: 9 });
+            expect(down).toEqual({ line: 5, ch: 9 });
+            // `[r` skips the separator on its way to the header.
+            expect(header).toEqual({ line: 2, ch: 9 });
+            expect((await surface()).widgets).toBe(0);
+        });
+
+        it('operates on a cell with i| and a|', async function () {
+            await moveTo(4, 2);
+            await keys('y', 'i', '|');
+            const yanked = await getRegisterContent('"');
+            await keys('d', 'i', '|');
+            const inner = (await getEditorValue()).split('\n')[4];
+            await keys('u');
+            await moveTo(4, 2);
+            await keys('d', 'a', '|');
+            const around = (await getEditorValue()).split('\n')[4];
+
+            expect(yanked?.text).toBe(' aa   ');
+            expect(inner).toBe('|| 11    |');
+            expect(around).toBe('| 11    |');
+        });
+    });
+
+    describe('typing a pipe', function () {
+        it('escapes a pipe typed inside a wikilink', async function () {
+            await setupEditor(
+                DOC.replace('| aa   | 11    |', '| [[page]] | 11 |'),
+                { line: 0, ch: 0 },
+            );
+            await browser.pause(400);
+            // On `e` of `page`, so `a` appends inside the brackets.
+            await moveTo(4, 7);
+            await keys('a');
+            await typeText('|alias');
+            await keys('Escape');
+
+            expect((await getEditorValue()).split('\n')[4]).toBe(
+                '| [[page\\|alias]] | 11 |',
+            );
+        });
+
+        it('leaves a pipe typed outside a wikilink as a delimiter', async function () {
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText('|z');
+            await keys('Escape');
+
+            expect((await getEditorValue()).split('\n')[4]).toBe(
+                '| aa|z   | 11    |',
+            );
+        });
+
+        it('turns || under a header into its separator', async function () {
+            await setupEditor('Intro\n\n| Name | Value |', {
+                line: 0,
+                ch: 0,
+            });
+            await browser.pause(400);
+            await moveTo(2, 0);
+            await keys('A', 'Enter');
+            await typeText('||');
+            const lines = (await getEditorValue()).split('\n');
+            const pos = await getCursorPos();
+            await keys('Escape');
+
+            expect(lines[3]).toBe('| ---- | ----- |');
+            // At the end of the new separator line.
+            expect(pos).toEqual({ line: 3, ch: 16 });
+            expect((await surface()).widgets).toBe(0);
+        });
+
+        it('keeps || as a row of a table that already has a separator', async function () {
+            await moveTo(5, 0);
+            await keys('o');
+            await typeText('||');
+            await keys('Escape');
+
+            expect((await getEditorValue()).split('\n')[6]).toBe('||');
+        });
+    });
+
+    describe('column awareness', function () {
+        it('shows the column in the status bar and highlights it', async function () {
+            await moveTo(4, 9);
+            const second = await columnStatus();
+            await moveTo(2, 2);
+            const first = await columnStatus();
+            await moveTo(7, 0);
+            const outside = await columnStatus();
+
+            expect(second.text).toBe('Col 2/2 · Value');
+            expect(second.mismatched).toBe(false);
+            expect(second.activeColumn).toEqual(['Value', '11', '22']);
+            expect(first.text).toBe('Col 1/2 · Name');
+            expect(first.activeColumn).toEqual(['Name', 'aa', 'bb']);
+            expect(outside.text).toBeNull();
+            expect(outside.activeColumn).toEqual([]);
+        });
+
+        it('warns when the row has a different number of cells from the header', async function () {
+            await setupEditor(
+                DOC.replace('| bb   | 22    |', '| bb   | 22    | 33 |'),
+                { line: 0, ch: 0 },
+            );
+            await browser.pause(400);
+            await moveTo(5, 2);
+            const status = await columnStatus();
+
+            expect(status.text).toBe('Col 1/2 · Name · row has 3 cells');
+            expect(status.mismatched).toBe(true);
+        });
+    });
+
+    describe('column alignment commands', function () {
+        it('right-aligns the column with <leader>tar and realigns it', async function () {
+            await moveTo(4, 9);
+            await keys('\\', 't', 'a', 'r');
+            await browser.pause(300);
+
+            expect((await getEditorValue()).split('\n').slice(2, 6)).toEqual([
+                '| Name | Value |',
+                '| ---- | ----: |',
+                '| aa   |    11 |',
+                '| bb   |    22 |',
+            ]);
+        });
+
+        it('centres a column with :tablealigncenter', async function () {
+            await moveTo(4, 2);
+            const ex = await handleEx('tablealigncenter');
+            await browser.pause(300);
+
+            expect(ex.unknownCommand).toBe(false);
+            expect((await getEditorValue()).split('\n').slice(2, 6)).toEqual([
+                '| Name | Value |',
+                '| :--: | ----- |',
+                '|  aa  | 11    |',
+                '|  bb  | 22    |',
+            ]);
         });
     });
 });

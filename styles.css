@@ -1926,6 +1926,14 @@ settings:
     color: var(--text-faint);
 }
 
+/* The caret's column, under the active cell's own highlight below. Not
+   `--table-row-background-hover`, which Obsidian defaults to transparent. */
+.cm-editor
+    .cm-line.vim-motions-reveal-row
+    .vim-motions-reveal-cell.is-active-column {
+    background-color: var(--background-modifier-hover);
+}
+
 .cm-editor
     .cm-line.vim-motions-reveal-row
     .vim-motions-reveal-cell.is-active-cell {
@@ -1955,4 +1963,17 @@ settings:
     box-shadow: 0 0 0px 3px var(--text-accent);
     mix-blend-mode: var(--highlight-mix-blend-mode);
     border-radius: 2px;
+}
+
+/* The caret's column in a revealed table. A long header is cut short rather
+   than pushing the rest of the status bar aside. */
+.status-bar-item.vim-motions-table-column {
+    white-space: nowrap;
+    max-width: 32ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-bar-item.vim-motions-table-column.is-mismatched {
+    color: var(--text-warning);
 }

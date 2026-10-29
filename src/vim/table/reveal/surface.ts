@@ -25,12 +25,16 @@ import { revealGridDecorations } from './grid-decorations';
 import { releaseNativeCellEditor, revealWidgetInput } from './widget-input';
 import { revealCellTab } from './cell-tab';
 import { realignOnInsertLeave } from './realign-on-leave';
+import { revealTypingAssists } from './typing';
+import { revealColumnStatus, type TableColumnInfo } from './column-status';
 
 export interface TableRevealOptions {
     /** Called once if Obsidian's highlight channel cannot be captured. */
     onUnavailable: () => void;
     /** Whether to realign an edited table when insert mode ends. */
     autoRealign: () => boolean;
+    /** Receives the caret's column in a revealed table, or null. */
+    columnStatus: (info: TableColumnInfo | null) => void;
 }
 
 function sameSpans(
@@ -143,6 +147,8 @@ export function createTableReveal(options: TableRevealOptions): Extension {
         revealGridDecorations(),
         revealWidgetInput(),
         revealCellTab(),
+        revealTypingAssists(),
+        revealColumnStatus(options.columnStatus),
         realignOnInsertLeave(options.autoRealign),
         ViewPlugin.define((view) => new RevealLifecycle(view, options)),
     ];
