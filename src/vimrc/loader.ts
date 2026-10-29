@@ -207,6 +207,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         validValues: [
             'native',
             'owned',
+            'reveal',
             'raw',
             'off',
             'cursor',

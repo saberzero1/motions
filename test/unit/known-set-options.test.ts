@@ -310,7 +310,7 @@ describe('tablewidget', () => {
         const spec = KNOWN_SET_OPTIONS['tablewidget'];
         expect(spec?.type).toBe('string');
         const valid = spec?.type === 'string' ? (spec.validValues ?? []) : [];
-        for (const mode of ['native', 'owned', 'raw']) {
+        for (const mode of ['native', 'owned', 'reveal', 'raw']) {
             expect(valid).toContain(mode);
         }
     });

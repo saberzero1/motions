@@ -1940,3 +1940,63 @@ settings:
     white-space: pre;
     tab-size: 4;
 }
+
+/* `tableWidgetMode: reveal` — the table holding the caret is ordinary editor
+   lines, styled as an aligned source grid. Monospace without ligatures for the
+   same reason as the owned surface above: padded columns only line up when
+   every character has one advance. Headers are tinted rather than bolded,
+   because a bold face is not guaranteed the same advance in every monospace
+   fallback. Rows still wrap: a revealed row is a real editor line, and
+   CodeMirror cannot give one line a horizontal scroller of its own. */
+.cm-editor .cm-line.vim-motions-reveal-row {
+    font-family: var(--font-monospace);
+    font-variant-ligatures: none;
+    font-feature-settings:
+        'liga' 0,
+        'clig' 0,
+        'calt' 0;
+    tab-size: 4;
+}
+
+.cm-editor .cm-line.vim-motions-reveal-row.is-header {
+    background-color: var(
+        --table-header-background,
+        var(--background-secondary)
+    );
+}
+
+.cm-editor .cm-line.vim-motions-reveal-row.is-separator,
+.cm-editor .cm-line.vim-motions-reveal-row .vim-motions-reveal-delim {
+    color: var(--text-faint);
+}
+
+.cm-editor
+    .cm-line.vim-motions-reveal-row
+    .vim-motions-reveal-cell.is-active-cell {
+    background-color: var(--table-selection, var(--background-modifier-hover));
+    border-radius: var(--radius-s);
+}
+
+/* The reveal surface keeps a table as source by placing Obsidian's own
+   search-match highlight over each of its rows — the one signal both Obsidian's
+   table builder and its inline renderer honour, and it has to be the exact mark
+   Obsidian compares against, so it cannot carry a class of ours. On a revealed
+   line it must not look like a search result. A genuine match inside such a
+   line renders as a second highlight nested in ours, and keeps Obsidian's
+   ring (`app.css`: `.cm-s-obsidian span.obsidian-search-match-highlight`). */
+.cm-editor
+    .cm-line.vim-motions-revealed-line
+    span.obsidian-search-match-highlight {
+    box-shadow: none;
+    mix-blend-mode: normal;
+    border-radius: 0;
+}
+
+.cm-editor
+    .cm-line.vim-motions-revealed-line
+    span.obsidian-search-match-highlight
+    span.obsidian-search-match-highlight {
+    box-shadow: 0 0 0px 3px var(--text-accent);
+    mix-blend-mode: var(--highlight-mix-blend-mode);
+    border-radius: 2px;
+}
