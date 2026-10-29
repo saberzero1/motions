@@ -978,6 +978,14 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.registerEditorExtension(this.vimExtensionSlot);
         this.registerEditorExtension(this.treesitterExtensionSlot);
+        // Registered on its own rather than inside `vimExtensionSlot`, which
+        // is only populated when the bundled engine is set up. The reveal
+        // surface uses no API of the fork — the table becomes ordinary lines
+        // that whichever vim is running edits — so it must survive the
+        // plugin standing its own vim layer down, which it does whenever
+        // Obsidian's Vim key bindings are on.
+        this.applyTableRevealSlot();
+        this.registerEditorExtension(this.tableRevealSlot);
         void this.enableTreesitterBridge();
 
         const builtinVimOn = isBuiltinVimEnabled(this.app);
@@ -2860,7 +2868,6 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.vimExtensionSlot.push(this.undoTreeSlot);
         this.vimExtensionSlot.push(this.tableSurfaceSlot);
-        this.vimExtensionSlot.push(this.tableRevealSlot);
 
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
@@ -3844,7 +3851,13 @@ export default class VimMotionsPlugin extends Plugin {
     reloadFeatures(): void {
         this.reconcileNeovimConnection();
         this.maybeAutoExportNeovimConfig();
-        if (!this.settings.vimEnabled) return;
+        if (!this.settings.vimEnabled) {
+            // The reveal surface lives outside the vim layer, so its setting
+            // must still apply while that layer is down.
+            this.applyTableRevealSlot();
+            this.app.workspace.updateOptions();
+            return;
+        }
         if (this.autocmdManager?.isFiring()) {
             this.autocmdManager.deferReload();
             return;
