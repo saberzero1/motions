@@ -16,7 +16,7 @@ Vim Motions adds Markdown-aware editing capabilities to Obsidian's Vim mode. Eac
 
 ## Jump navigation
 
-- **Cross-note jump list** — `<C-o>` and `<C-i>` navigate backward/forward through jump history across notes. Jumps recorded on `gd`, picker selection, harpoon, oil, EasyMotion, and all cross-note navigation. Persists across sessions. `:jumps` displays the list. Configurable via `set jumplist`/`set jumplistsize`.
+- **Cross-note jump list** — `<C-o>` and `<C-i>` navigate backward/forward through jump history across notes, and normal-mode `<Tab>` is `<C-i>`, as in Vim, except in Obsidian's table cell editor, where it still moves to the next cell. Jumps recorded on `gd`, picker selection, harpoon, oil, EasyMotion, and all cross-note navigation. Persists across sessions. `:jumps` displays the list. Configurable via `set jumplist`/`set jumplistsize`.
 - **[[undo-tree|Undo tree]]** — branching undo history with `g-`/`g+` navigation, sidebar view, persistence. `:earlier`/`:later` by count, time, or save point. `:undolist` modal. `vim.fn.undotree()` Lua API.
 - **[[animated-cursor|Animated cursor]]** — canvas-based smooth cursor movement and [smear-cursor.nvim](https://github.com/sphamba/smear-cursor.nvim)-style spring-damper smear trail. Per-mode cursor shapes, configurable stiffness/damping/smoothness, `prefers-reduced-motion` support.
 - **[[flash|Flash motions]]** — enhanced `f`/`F`/`t`/`T` with labels on all visible matches, incremental `s` jump mode (multi-char search with live label updates), post-commit `/`/`?` search labels, label conflict skipping, `[3/15]` search match counter. Inspired by [flash.nvim](https://github.com/folke/flash.nvim).

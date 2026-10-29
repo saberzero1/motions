@@ -166,16 +166,14 @@ describe('Table reveal editing assists', function () {
         it('does not move between cells in normal mode', async function () {
             await moveTo(4, 2);
             await keys('Tab');
-            // Normal-mode `<Tab>` reaches Obsidian, which indents the line:
-            // measured with this keymap removed, the row read
-            // `\t| aa   | 11    |` with the caret at column 3. So the row's
-            // own text is compared, and the caret must not be in the next
-            // cell, at column 9, where an unguarded handler puts it.
+            // Normal-mode `<Tab>` is `<C-i>`, as in Vim, so it may walk the
+            // jump list (`moveTo` leaves a `gg` behind); that is covered in
+            // `jump-list.e2e.ts`. Before it was mapped it reached Obsidian,
+            // which indented the row to `\t| aa   | 11    |`, and an unguarded
+            // cell handler puts the caret at column 9 of row 4.
             const pos = await getCursorPos();
-            const row = (await getEditorValue()).split('\n')[4] ?? '';
-            expect(pos.line).toBe(4);
-            expect(pos.ch).not.toBe(9);
-            expect(row.trimStart()).toBe('| aa   | 11    |');
+            expect(pos).not.toEqual({ line: 4, ch: 9 });
+            expect(await getEditorValue()).toBe(DOC);
             expect(await getVimMode()).toBe('normal');
         });
 

@@ -68,6 +68,8 @@ export interface ActionArgs {
     pendingOperator?: string;
     pendingOperatorArgs?: unknown;
     forward?: boolean;
+    /** Set by the normal-mode `<Tab>` mapping, which is `<C-i>` outside table cells. */
+    fromTab?: boolean;
     /** Direction for increment/decrement. true = increment (<C-a>), false = decrement (<C-x>) */
     increase?: boolean;
     /** Whether to search backward for number */
