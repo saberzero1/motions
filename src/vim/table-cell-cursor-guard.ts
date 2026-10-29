@@ -13,6 +13,7 @@ import {
 } from '@replit/codemirror-vim';
 import { findTableRanges, cursorInRange } from './table-utils';
 import { isTableNavActive } from './table-nav-state';
+import { isRevealedAt } from './table/reveal/reveal-field';
 import {
     pauseAnimatedCursorForView,
     resumeAnimatedCursorForView,
@@ -87,7 +88,14 @@ const mainEditorTableCursorGuard = ViewPlugin.fromClass(
                 return;
             }
 
+            // A revealed table is ordinary editor lines, and the caret drawn
+            // in it is the only one there is. Asked of the state, not the
+            // DOM: this runs before CodeMirror redraws, so on the keystroke
+            // that enters a table its widget is still in the DOM, and every
+            // *other* table on screen keeps Obsidian's widget anyway — either
+            // would hide the caret in the one table being edited.
             const inTable =
+                !isRevealedAt(update.state, update.state.selection.main.head) &&
                 hasRenderedTable(update.view) &&
                 findTableRanges(update.state).some((t) =>
                     cursorInRange(update.state, t.from, t.to),

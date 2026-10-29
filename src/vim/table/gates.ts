@@ -4,7 +4,7 @@ import { isBuiltinVimEnabled } from '../../util/vault';
 import type { ShouldRender } from './surface-field';
 
 /**
- * Why the owned table surface is not installed, or `null` when it is.
+ * Why a plugin-owned table surface is not installed, or `null` when it is.
  *
  * Each value is a deliberate restriction rather than a missing feature, so the
  * reason is kept rather than collapsed to a boolean — a surface that silently
@@ -12,36 +12,46 @@ import type { ShouldRender } from './surface-field';
  */
 export type TableSurfaceBlocker = 'disabled' | 'builtin-vim' | 'mobile' | null;
 
+/** The `tableWidgetMode` values that install a surface of the plugin's own. */
+export type TableSurfaceMode = 'owned' | 'reveal';
+
 export function resolveTableSurfaceBlocker(
     app: App,
     mode: string,
+    surface: TableSurfaceMode,
 ): TableSurfaceBlocker {
-    if (mode !== 'owned') return 'disabled';
-    // The bundled fork is the only engine the surface has been measured
+    if (mode !== surface) return 'disabled';
+    // The bundled fork is the only engine these surfaces have been measured
     // against. Obsidian's own vim is a third engine without the fork's
     // extended API, and supporting it unmeasured is how a silent regression
-    // class appears.
+    // class appears. `reveal` depends on no fork API at all, so this is the
+    // first restriction to lift once it is measured there.
     if (isBuiltinVimEnabled(app)) return 'builtin-vim';
     if (Platform.isMobile) return 'mobile';
-    // RPC is deliberately **not** a blocker. Under the Neovim backend the
-    // surface renders as a presentational table: the child is inert and never
+    // RPC is deliberately **not** a blocker. Under the Neovim backend `owned`
+    // renders as a presentational table: the child is inert and never
     // focused, so Neovim keeps owning keys, IME, floats and the command line.
-    // What Neovim *draws* — extmarks, flash labels, diagnostics, folds — does
-    // not appear inside the table, which is stated in the setting's own
-    // description rather than in a notice, because a notice only fires when a
-    // blocker exists and there is no longer one.
+    // `reveal` needs nothing at all there — the table becomes ordinary lines
+    // of the buffer Neovim already mirrors.
     return null;
 }
+
+const SURFACE_LABEL: Record<TableSurfaceMode, string> = {
+    owned: 'owned table rendering',
+    reveal: 'revealing table source',
+};
 
 /** User-facing explanation for a blocked surface, or `null` when silent. */
 export function describeTableSurfaceBlocker(
     blocker: TableSurfaceBlocker,
+    surface: TableSurfaceMode,
 ): string | null {
+    const label = SURFACE_LABEL[surface];
     switch (blocker) {
         case 'builtin-vim':
-            return "Vim Motions: owned table rendering needs Obsidian's own Vim key bindings turned off. Using the native table editor.";
+            return `Vim Motions: ${label} needs Obsidian's own Vim key bindings turned off. Using the native table editor.`;
         case 'mobile':
-            return 'Vim Motions: owned table rendering is desktop-only for now. Using the native table editor.';
+            return `Vim Motions: ${label} is desktop-only for now. Using the native table editor.`;
         case 'disabled':
         case null:
             return null;

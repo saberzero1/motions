@@ -302,6 +302,14 @@ import {
     type TableSurfaceBlocker,
 } from './vim/table/gates';
 import { getTableSurfaceRedrawCount as readTableSurfaceRedrawCount } from './vim/table/surface-widget';
+import { createTableReveal } from './vim/table/reveal/surface';
+import {
+    getHighlightChannel,
+    highlightChannelFailed,
+} from './vim/table/reveal/highlight-channel';
+import { revealField } from './vim/table/reveal/reveal-field';
+import { getRetiredWidgetCount } from './vim/table/reveal/widget-retire';
+import { REVEAL_ROW_CLASS } from './vim/table/reveal/grid-decorations';
 import { classifySurface, type EditorSurface } from './util/surface-gate';
 import { getTreeForView } from './treesitter/tree-state';
 import { getActiveTableCellEditorView } from './vim/native-table-adapter';
@@ -436,8 +444,11 @@ export default class VimMotionsPlugin extends Plugin {
     private undoTreeSlot: Extension[] = [];
 
     private tableSurfaceSlot: Extension[] = [];
+    private tableRevealSlot: Extension[] = [];
 
     private tableSurfaceBlockerNotified: TableSurfaceBlocker = null;
+    private tableRevealBlockerNotified: TableSurfaceBlocker = null;
+    private tableRevealUnavailableNotified = false;
     private rawDeprecationNotified = false;
     private snippetCompletionSlot: Extension[] = [];
     private snippetTabSlot: Extension[] = [];
@@ -2849,6 +2860,7 @@ export default class VimMotionsPlugin extends Plugin {
 
         this.vimExtensionSlot.push(this.undoTreeSlot);
         this.vimExtensionSlot.push(this.tableSurfaceSlot);
+        this.vimExtensionSlot.push(this.tableRevealSlot);
 
         this.vimExtensionSlot.push(yankHighlightExtension());
         this.vimExtensionSlot.push(extmarkExtension());
@@ -3402,12 +3414,13 @@ export default class VimMotionsPlugin extends Plugin {
         const blocker = resolveTableSurfaceBlocker(
             this.app,
             this.settings.tableWidgetMode,
+            'owned',
         );
         if (blocker === null) {
             this.tableSurfaceBlockerNotified = null;
         } else if (this.tableSurfaceBlockerNotified !== blocker) {
             this.tableSurfaceBlockerNotified = blocker;
-            const message = describeTableSurfaceBlocker(blocker);
+            const message = describeTableSurfaceBlocker(blocker, 'owned');
             if (message) new Notice(message);
         }
         this.setSlotEnabled(
@@ -3424,6 +3437,72 @@ export default class VimMotionsPlugin extends Plugin {
                 ),
             ],
         );
+    }
+
+    /**
+     * Installs the reveal table surface, or explains why it is not installed.
+     *
+     * Same blocker policy as the owned surface. A channel that cannot be
+     * captured — an Obsidian whose `addHighlights` no longer has the measured
+     * shape — leaves the surface inert, which is Obsidian's own table editor,
+     * and says so once.
+     */
+    private applyTableRevealSlot(): void {
+        const blocker = resolveTableSurfaceBlocker(
+            this.app,
+            this.settings.tableWidgetMode,
+            'reveal',
+        );
+        if (blocker === null) {
+            this.tableRevealBlockerNotified = null;
+        } else if (this.tableRevealBlockerNotified !== blocker) {
+            this.tableRevealBlockerNotified = blocker;
+            const message = describeTableSurfaceBlocker(blocker, 'reveal');
+            if (message) new Notice(message);
+        }
+        this.setSlotEnabled(
+            this.tableRevealSlot,
+            'tableReveal',
+            blocker === null,
+            () =>
+                createTableReveal({
+                    onUnavailable: () => {
+                        if (this.tableRevealUnavailableNotified) return;
+                        this.tableRevealUnavailableNotified = true;
+                        new Notice(
+                            'Vim Motions: revealing table source is not available in this version of Obsidian. Using the native table editor.',
+                        );
+                    },
+                }),
+        );
+    }
+
+    /**
+     * What the reveal surface is doing in the active editor, for e2e
+     * assertions. `rowLines` counts rendered rows carrying the grid class, so
+     * a test can tell a revealed table from one that merely exists.
+     */
+    getTableRevealReport(): {
+        channel: boolean;
+        failed: boolean;
+        retired: number;
+        tables: { from: number; to: number }[];
+        highlights: { from: number; to: number }[];
+        rowLines: number;
+    } {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const cm = view ? getEditorView(view) : null;
+        const reveal = cm?.state.field(revealField, false);
+        return {
+            channel: getHighlightChannel() !== null,
+            failed: highlightChannelFailed(),
+            retired: getRetiredWidgetCount(),
+            tables: reveal ? reveal.tables.map((t) => ({ ...t })) : [],
+            highlights: reveal ? reveal.highlights.map((h) => ({ ...h })) : [],
+            rowLines: cm
+                ? cm.contentDOM.querySelectorAll(`.${REVEAL_ROW_CLASS}`).length
+                : 0,
+        };
     }
 
     /** Redraw count for the owned table surface, for e2e assertions. */
@@ -3733,6 +3812,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.applyAnimatedCursorSlot();
         this.applyUndoTreeSlot();
         this.applyTableSurfaceSlot();
+        this.applyTableRevealSlot();
         this.applyRawDeprecationNotice();
         this.applySnippetSlots();
     }

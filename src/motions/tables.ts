@@ -18,6 +18,7 @@ import {
     moveColumn,
     moveRow,
 } from '../vim/table/structural';
+import { isRevealedAt } from '../vim/table/reveal/reveal-field';
 
 const TABLE_RE = /^\s*\|/;
 const SEPARATOR_RE = /^\s*\|[\s:]*-+[\s:|-]*\|\s*$/;
@@ -267,7 +268,15 @@ function runTextFallback(cm: CmAdapter, commandId: string): boolean {
     const fallback = TEXT_FALLBACKS[commandId];
     if (!fallback) return false;
     const view = cm.cm6;
-    if (view.dom.querySelector('.cm-table-widget')) return false;
+    // A revealed table has no widget of its own, while other tables in the
+    // note keep theirs — so in `reveal` the presence of *a* widget says
+    // nothing about the table the caret is in.
+    if (
+        !isRevealedAt(view.state, view.state.selection.main.head) &&
+        view.dom.querySelector('.cm-table-widget')
+    ) {
+        return false;
+    }
 
     const cursor = cm.getCursor();
     const bounds = findTableBounds(cm, cursor.line);
