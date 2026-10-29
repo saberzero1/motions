@@ -286,6 +286,34 @@ describe('reveal extender', () => {
         expect(joined.field(revealField).highlights).toEqual(marks(joined));
     });
 
+    it('leaves the marks alone during an IME composition, then resyncs', () => {
+        const start = setup();
+        const inside = start.update({
+            selection: { anchor: lineStart(start, 5) },
+        }).state;
+        const end = inside.doc.line(5).to;
+        const composing = inside.update({
+            changes: { from: end, insert: 'に' },
+            selection: { anchor: end + 1 },
+            userEvent: 'input.type.compose',
+        });
+        expect(
+            composing.effects.some(
+                (e) => e.is(OBSIDIAN_ADD) || e.is(OBSIDIAN_FILTER),
+            ),
+        ).toBe(false);
+        // Typed past the row's end, outside its mark, until the next
+        // ordinary transaction.
+        expect(marks(composing.state)[2]).toEqual({
+            from: composing.state.doc.line(5).from,
+            to: end,
+        });
+        const settled = composing.state.update({
+            selection: { anchor: end },
+        }).state;
+        expect(marks(settled)).toEqual(rows(settled, 3, 6));
+    });
+
     it('keeps a row whose leading pipe was deleted revealed', () => {
         const start = setup();
         const inside = start.update({
