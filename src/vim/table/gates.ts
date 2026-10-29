@@ -21,12 +21,11 @@ export function resolveTableSurfaceBlocker(
     surface: TableSurfaceMode,
 ): TableSurfaceBlocker {
     if (mode !== surface) return 'disabled';
-    // The bundled fork is the only engine these surfaces have been measured
-    // against. Obsidian's own vim is a third engine without the fork's
-    // extended API, and supporting it unmeasured is how a silent regression
-    // class appears. `reveal` depends on no fork API at all, so this is the
-    // first restriction to lift once it is measured there.
-    if (isBuiltinVimEnabled(app)) return 'builtin-vim';
+    // `owned` routes keys into the fork's API, which Obsidian's own vim does
+    // not have. `reveal` routes nothing: the table becomes ordinary lines
+    // that whichever vim is running edits, measured with Obsidian's own in
+    // `table-reveal-builtin-vim.e2e.ts`.
+    if (surface === 'owned' && isBuiltinVimEnabled(app)) return 'builtin-vim';
     if (Platform.isMobile) return 'mobile';
     // RPC is deliberately **not** a blocker. Under the Neovim backend `owned`
     // renders as a presentational table: the child is inert and never
