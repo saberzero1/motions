@@ -57,7 +57,7 @@ A suite of manipulation commands is available under the `<Leader>t` prefix for s
 - `<Leader>tr`: Realign the entire table.
 
 > [!note]
-> These manipulation commands call Obsidian's internal table commands. In `native` mode, they work when the cursor is inside the table. In `raw` mode, use Source mode or manual Markdown editing.
+> These manipulation commands call Obsidian's internal table commands. In `native` mode, they work when the cursor is inside the table. In `reveal` mode they work on the revealed table through text-based equivalents, since it has no widget for Obsidian's commands to drive. In `raw` mode, use Source mode or manual Markdown editing.
 
 ## Table auto-formatting
 
@@ -65,14 +65,13 @@ Vim Motions includes built-in auto-formatting for tables:
 
 - **Manual realignment**: Use `<Leader>tr` or `:tablerealign` to realign a table's columns at any time. In table-nav mode, `=` does the same.
 - **Vim Motions never reformats a table on its own** — not while you type, not when the cursor leaves the table. Realignment happens only when you ask for it, so the cursor stays where you expect it.
-- **Obsidian does realign automatically, in `native` mode**: its table editor realigns the columns when it commits a cell edit. That is Obsidian's behaviour, not this plugin's — and because `owned` mode replaces Obsidian's widget, automatic realignment does not happen there. Use `:tablerealign` instead.
+- **Obsidian does realign automatically, in `native` mode**: its table editor realigns the columns when it commits a cell edit. That is Obsidian's behaviour, not this plugin's — and in `reveal` mode, which never uses Obsidian's cell editor, it does not happen. Use `:tablerealign` instead.
 
 ## Table widget in Live Preview
 
-Vim Motions integrates with Obsidian's native table editor in Live Preview. Two rendering modes are available via `set tablewidget`:
+Vim Motions integrates with Obsidian's native table editor in Live Preview. Three modes are available via `set tablewidget`:
 
 - **`native`** (default): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
-- **`owned`** (experimental): the plugin renders the table itself, replacing Obsidian's widget entirely. See [[tables#Owned table surface]] below.
 - **`reveal`** (experimental): Obsidian renders every table the cursor is not in, and the table holding the cursor becomes ordinary editor lines that Vim edits directly. See [[tables#Reveal mode]] below.
 - **`raw`** (**deprecated**, will be removed): despite the name it does **not** show Markdown source. It hides Obsidian's widget with CSS while Obsidian still replaces the table's range, so the table renders as nothing at all. Use **Source mode** to edit a table's source. No widget rendering. Useful for users who prefer source-style editing in Live Preview. The vim cursor remains fully visible in raw mode — cursor suppression only activates when a native table widget is visible.
 
@@ -85,7 +84,6 @@ The `tablenav` setting (on by default) controls whether the **table-nav overlay*
 | `native` + `tablenav` (default) | Full table-nav overlay with cell highlighting and structural commands |
 | `native` + `notablenav`         | Native table editor with vim cell editing and cross-cell navigation   |
 | `raw`                           | Raw markdown tables                                                   |
-| `owned`                         | The plugin's own renderer, with Vim normal, visual and insert mode    |
 | `reveal`                        | Obsidian's table when idle; the active table as editable source       |
 
 ## Reveal mode
@@ -126,7 +124,7 @@ Run `:tablerealign` (or `<Leader>tr`) to pad the columns; Vim Motions never real
 
 ### What is different from the other modes
 
-- **The table changes size when the cursor enters or leaves it**, since a formatted table and its source are not the same shape. The `owned` mode avoids this by showing source all the time.
+- **The table changes size when the cursor enters or leaves it**, since a formatted table and its source are not the same shape.
 - **Long rows wrap.** A revealed row is an editor line, and an editor line cannot scroll sideways on its own; a table wider than the note wraps until the cursor leaves it.
 - **Mouse selection across the cells of an idle table is not available**, because a click places the cursor instead. Select with `<C-v>` once the table is revealed.
 - **Obsidian does not realign a table after an edit**, because its cell editor is never used. Use `:tablerealign`.
@@ -135,46 +133,6 @@ Run `:tablerealign` (or `<Leader>tr`) to pad the columns; Vim Motions never real
 ### When it falls back
 
 `reveal` is skipped, with a one-time notice, on **mobile**, which has not been measured yet. It also falls back to Obsidian's table editor, with a notice, if the version of Obsidian in use does not expose what the mode relies on; see [[known-limitations#Tables]].
-
-## Owned table surface
-
-> [!warning]
-> Experimental, and not the default. Enable with `set tablewidget=owned` or **Settings → Vim Motions → General → Table widget in live preview**.
->
-> `native` stays the default deliberately. The owned surface renders the table's **source** in a monospace grid rather than as a formatted table, the nav overlay's single-key structural commands are `native`-only, and several of Obsidian's widget features have no equivalent — they are listed under [What is not supported yet](#what-is-not-supported-yet).
-
-With `owned`, the plugin replaces Obsidian's table decoration with its own and mounts a nested editor inside it when the cursor enters a table. The nested editor hosts the caret; the **parent editor's vim owns every command**, so there is one vim state, one undo history and one document.
-
-![[keybindings#Owned table surface]]
-
-### What works
-
-- Normal-mode commands, including `dd`, `D`, `u`, `.`, `zz` and counts
-- Charwise and linewise visual mode, with the selection rendered inside the table
-- Insert mode, including IME composition — a composition commits once and one `u` reverses it
-- Leaving the table by `j`/`k` at the first or last row, preserving the desired column and any count; re-entering remounts
-
-### What is not supported yet
-
-- **Structural commands work, but the nav overlay's single keys do not.** `:tablerowafter`, `:tablecoldelete`, `:tablerealign` and the rest of the `:table*` family — with their `<leader>t` bindings — operate on the table in this mode. The overlay's one-key forms (`o`, `O`, `dd`, `J`, `K`, `H`, `L`, `I`, `A`) are specific to `native`, where the overlay auto-activates inside a table; in `owned` those keys keep their ordinary Vim meanings.
-- **Under the Neovim backend the table is presentational.** It renders, but the cell editor is inert and never focused so Neovim keeps the cursor, the text and the keys. Neovim's own rendering — extmarks, flash labels, diagnostics, folds, signs — does not appear inside the table, and the active cell is not highlighted. See [[neovim-backend#Tables]].
-- **Neither renderer re-aligns a cell's contents.** Both the idle grid and the cursor's editor show the table's source characters exactly, with cells and delimiters marked up for styling and each column's alignment carried as a class. A column marked `---:` is therefore themeable but its text is not moved to the right, because the two renderers must agree glyph-for-glyph — otherwise the grid visibly shifts the moment the cursor enters the table. Neither is an HTML `<table>`, for the same reason.
-- **The table-nav overlay** (`tablenav`) is not reconciled with this mode.
-- **Some Obsidian widget features** are not reproduced: row and column buttons, the **column** context menu, column and row drag-to-reorder, sort by column, **mouse** multi-cell selection, and alignment-aware rendering. Four are supported: the **cell** context menu (a right-click reaches Obsidian's editor menu), **keyboard** multi-cell selection (`<C-v>` renders a true rectangular selection, one range per row), **click-to-place-cursor** (both between cells and into a table the cursor is not yet in), and **malformed tables**, which are given defined behaviour — a short row yields fewer cells and a long one is truncated for layout, both leaving the document unchanged. Column _resizing_ is not in that list — Obsidian's widget does not offer it, so nothing is lost.
-- **`scrolloff=100` disables horizontal scrolling inside a table in `native`.** `owned` no longer does: its monospace grid sets `white-space: pre`, so the nested editor does not wrap and still scrolls. Ordinary horizontal scrolling works in both — the nested editor follows the caret.
-- **A snippet body containing a `|` or a newline damages the row.** Snippets otherwise work in a cell in this mode — see [[snippets#Snippets in a table cell]] — but a literal pipe is inserted as-is and opens an extra column, and a newline cannot be represented in a row at all. Obsidian's own table editor converts these to `\|` and `<br>`; this mode does not yet. Escape the pipe in the snippet definition as a workaround.
-- **Only the active tabstop is marked.** The remaining tabstops of an open snippet carry no highlight inside a cell, because that decoration is driven from the parent editor's state and the cell renders its own. The active one is visible as the selection.
-
-### When it falls back
-
-`owned` is skipped, with a one-time notice, when any of these hold. Each is a deliberate restriction rather than a missing feature:
-
-| Condition                                  | Reason                                                            |
-| ------------------------------------------ | ----------------------------------------------------------------- |
-| Obsidian's own **Vim key bindings** are on | Only the bundled engine has been measured against this surface    |
-| **Mobile**                                 | Desktop only for now                                              |
-| **Source mode** or Reading view            | Replacing table source in a mode meant to show source is a defect |
-| The setting is not `owned`                 | Opt-in                                                            |
 
 ## Table-nav mode
 
@@ -261,7 +219,7 @@ In raw Markdown mode, you can operate on entire table rows using the `ir` and `a
 These text objects are useful for quickly deleting, changing, or yanking whole rows while editing the Markdown source.
 
 > [!info]
-> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=native` / `set tablewidget=owned` in your vimrc. `set tablewidget=raw` still works but is **deprecated** — see below.
+> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=native` / `set tablewidget=reveal` in your vimrc. `set tablewidget=raw` still works but is **deprecated** — see below.
 
 ## Ex commands
 

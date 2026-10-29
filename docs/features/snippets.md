@@ -32,16 +32,14 @@ After expansion, the cursor lands on the first tabstop. Navigate between fields:
 
 **Linked mirrors**: When the same tabstop number appears multiple times in a template, editing one updates all instances simultaneously. `$1 *a$2* *b$2* $0` places a cursor in both `$2` positions, and what you type appears in both. Neovim's own `vim.snippet` shows a single cursor and mirrors the others instead, so the resulting text matches but the cursor count does not.
 
-> [!bug] Tabstops inside a table need Source mode or `tablewidget=owned`
-> In the default **native** mode Obsidian renders a Markdown table as an interactive widget that owns the region, so a tabstop between the pipes sits inside replaced content. The jump is placed correctly, but the next keystroke goes to the table widget instead of the tabstop. Use **Source mode**, or `set tablewidget=owned` — see [Snippets in a table cell](#snippets-in-a-table-cell). `set tablewidget=raw` is **not** a workaround, because it only hides the widget in CSS and leaves Obsidian's decoration in place; it is also deprecated. See [[known-limitations#Tabstop placement limitations]].
+> [!bug] Tabstops inside a table need Source mode or `tablewidget=reveal`
+> In the default **native** mode Obsidian renders a Markdown table as an interactive widget that owns the region, so a tabstop between the pipes sits inside replaced content. The jump is placed correctly, but the next keystroke goes to the table widget instead of the tabstop. Use **Source mode**, or `set tablewidget=reveal` — see [Snippets in a table cell](#snippets-in-a-table-cell). `set tablewidget=raw` is **not** a workaround, because it only hides the widget in CSS and leaves Obsidian's decoration in place; it is also deprecated. See [[known-limitations#Tabstop placement limitations]].
 
 ### Snippets in a table cell
 
-With `set tablewidget=owned` the plugin owns the table surface, and snippets work inside a cell: a prefix expands on `Tab`, `Tab` and `Shift+Tab` move between tabstops, and `Escape` ends the session and leaves insert mode in one press. The active tabstop is selected in the cell, as it is anywhere else.
+With `set tablewidget=reveal`, the table holding the cursor is ordinary editor lines, so snippets work inside a cell exactly as they do in the rest of the note: a prefix expands on `Tab`, `Tab` and `Shift+Tab` move between tabstops, and `Escape` ends the session. It works with the [[neovim-backend|Neovim backend]] off; under the backend, Neovim owns the keys.
 
-This is specific to `owned`. It does **not** apply to `native`, where Obsidian's per-cell editor owns the keys, nor to the [[neovim-backend|Neovim backend]].
-
-Two conversions Obsidian's own table editor performs are **not** applied yet, so a snippet whose body contains either will damage the row:
+Because a revealed table is plain source, a snippet whose body contains either of these damages the row, as typing it would:
 
 | In the body | What happens in a cell                          |
 | ----------- | ----------------------------------------------- |
