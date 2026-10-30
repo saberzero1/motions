@@ -705,7 +705,7 @@ end
 
 ### vim.fn.getcharstr() and vim.fn.getchar()
 
-These functions yield the Lua coroutine and wait for the user to press a key.
+These functions yield the Lua coroutine and wait for the user to press a key. While they wait, Obsidian's own hotkeys are held off, so a key such as Ctrl+D reaches them instead of running Obsidian's command. A Ctrl chord arrives as its letter (`d`), not as Neovim's control character (`"\4"`).
 
 > [!warning] They cannot be called directly from a keymap callback
 > A `vim.keymap.set` callback runs on the main Lua state and cannot yield, so calling `getcharstr()` there raises `async APIs can only be called from async-capable callbacks`. Schedule the work instead — a scheduled callback runs on a coroutine and can wait:

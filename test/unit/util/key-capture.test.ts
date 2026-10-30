@@ -6,9 +6,11 @@
  * The defect being prevented is a listener that outlives an abandoned Promise,
  * which shipped once already in `vim.fn.getcharstr()`.
  */
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import {
     captureKeys,
+    holdObsidianKeymap,
+    setCaptureKeymap,
     type KeyCaptureTarget,
 } from '../../../src/util/key-capture';
 
@@ -189,5 +191,91 @@ describe('captureKeys', () => {
         target.press('Enter');
         await expect(capture.promise).resolves.toBe('done');
         expect(target.listenerCount).toBe(0);
+    });
+});
+
+/**
+ * A capture also holds Obsidian's keymap, so its hotkeys cannot take keys the
+ * capture is waiting for: with Delete paragraph on Ctrl+D, flash, EasyMotion
+ * and getcharstr all lost the key and a paragraph with it.
+ */
+describe("holding Obsidian's keymap", () => {
+    function fakeKeymap(): {
+        pushScope(scope: unknown): void;
+        popScope(scope: unknown): void;
+        stack: unknown[];
+        pops: number;
+    } {
+        return {
+            stack: [],
+            pops: 0,
+            pushScope(scope) {
+                this.stack.push(scope);
+            },
+            popScope(scope) {
+                this.pops++;
+                this.stack = this.stack.filter((s) => s !== scope);
+            },
+        };
+    }
+
+    afterEach(() => setCaptureKeymap(null));
+
+    it('pushes a parentless scope for the capture and pops it when a key settles it', async () => {
+        const keymap = fakeKeymap();
+        setCaptureKeymap(keymap as never);
+        const target = fakeTarget();
+
+        const capture = captureKeys<string>({
+            onKey: (e, settle) => settle(e.key),
+            abortValue: 'aborted',
+            target,
+        });
+        const held = keymap.stack.slice();
+        target.press('x');
+        await capture.promise;
+
+        expect(held).toHaveLength(1);
+        expect((held[0] as { parent?: unknown }).parent).toBeUndefined();
+        expect(keymap.stack).toEqual([]);
+        expect(keymap.pops).toBe(1);
+    });
+
+    it('pops exactly once across abort, a second abort and a late key', async () => {
+        const keymap = fakeKeymap();
+        setCaptureKeymap(keymap as never);
+        const target = fakeTarget();
+
+        const capture = captureKeys<string>({
+            onKey: (e, settle) => settle(e.key),
+            abortValue: 'aborted',
+            target,
+        });
+        capture.abort();
+        capture.abort();
+        target.press('x');
+        await capture.promise;
+
+        expect(keymap.stack).toEqual([]);
+        expect(keymap.pops).toBe(1);
+    });
+
+    it('lets the getcharstr broker hold it the same way', () => {
+        const keymap = fakeKeymap();
+        setCaptureKeymap(keymap as never);
+
+        const release = holdObsidianKeymap();
+        const held = keymap.stack.length;
+        release();
+        release();
+
+        expect(held).toBe(1);
+        expect(keymap.pops).toBe(1);
+    });
+
+    it('does nothing before the plugin has set a keymap', () => {
+        const release = holdObsidianKeymap();
+
+        expect(() => release()).not.toThrow();
     });
 });

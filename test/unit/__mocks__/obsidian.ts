@@ -19,6 +19,9 @@ export class Notice {
     constructor(_msg: string, _duration?: number) {}
 }
 export class Plugin {}
+export class Scope {
+    constructor(public parent?: Scope) {}
+}
 export class PluginSettingTab {}
 const stubElement = { addClass: () => {} } as unknown as HTMLElement;
 

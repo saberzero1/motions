@@ -49,7 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The hotkey-conflict check now covers Ctrl+E, Ctrl+T and Ctrl+G.** Obsidian binds them by default to Toggle reading view, New tab and Open graph view, which took `<C-e>` scrolling, insert-mode `<C-t>` indenting and `<C-g>`. Pressing Ctrl+E to scroll left the editor for reading view. The startup notice and **Check hotkey conflicts** list them with the same unbinding instructions as the others. Ctrl+N, Ctrl+P and Ctrl+6 also collide, but are left to Obsidian: `j`, `k` and `:e #` do the same. The test vault unbinds the two new defaults it had left bound, as it does the others.
 
-- **Holding Ctrl over a hint label could run an Obsidian command, such as Delete paragraph, instead of opening the label in a new pane.** Labels start with a home-row letter, and Obsidian binds Ctrl+D, Ctrl+F, Ctrl+G, Ctrl+H, Ctrl+K and Ctrl+L by default. Its Keymap handles a key before hint mode's listener does. Measured with Obsidian's defaults: Ctrl on a `d` label deleted a line of the note, and Ctrl on an `f` label opened search. Hint mode now pauses Obsidian's hotkeys while labels are showing, the way a modal does, and restores them on every exit.
+- **Holding the keyboard for a modal input no longer lets Obsidian's hotkeys run underneath it.**
+    - **Hint mode:** holding Ctrl over a hint label could run an Obsidian command instead of opening the label in a new pane. Labels start with a home-row letter, and Obsidian binds Ctrl+D (Delete paragraph), Ctrl+F, Ctrl+G, Ctrl+H, Ctrl+K and Ctrl+L by default. Measured with Obsidian's defaults: Ctrl on a `d` label deleted a line of the note, and Ctrl on an `f` label opened search.
+    - **Flash, EasyMotion and `vim.fn.getcharstr()`:** Ctrl+D while flash jump input or EasyMotion labels were up, or while `getcharstr()` waited, deleted a paragraph, and the input never saw the key.
+    - **The fix:** Obsidian's Keymap handles a key before any of these listeners. While a capture holds the keyboard, Obsidian's hotkeys are now paused, the way a modal pauses them, and restored on every exit. `captureKeys` does this for hint mode, flash and EasyMotion, and the `getcharstr` broker does it while it listens.
+    - **Still differs from Neovim:** `getcharstr()` returns a Ctrl chord as its letter (`d`), not the control character (`"\4"`).
 
 - **The animated cursor painted the old letter after an edit, and did not follow an edit that moved it** ([#181](https://github.com/saberzero1/motions/issues/181), follow-up reports). There were two faults:
     - **Stale glyph:** the block cursor repaints the character under it, cached by document position and row. `x` and `r` change that character without moving either, so the deleted or replaced letter was drawn again. This is the "text artifacts while typing and editing" report.
@@ -123,13 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - a detector that never sees a claimed key fails the table check and both controls, leaving only the four global-mapping collisions;
         - marking Mod+E "Obsidian wins" fails the unit pin.
     - Tests: `test/specs/hotkey-collisions.e2e.ts` (new), `test/fixtures/hotkey-collisions.ts` (new), `test/unit/hotkey-collision-table.test.ts` (new), `test/unit/hotkey-conflicts.test.ts`
-- **`hint-mode-ctrl-hotkeys.e2e.ts` presses Ctrl-held labels with Obsidian's default hotkeys restored for the session.** The test vault unbinds most of the colliding hotkeys, which is why the existing Ctrl+label test, pressing the first label (`a`), never saw it.
-    - **Scenarios:** a `d` label and an `f` label; a control in which Ctrl+D is Obsidian's again once hint mode ends.
-    - **Before the fix:** the note lost a line (1149 to 1121 characters) and search opened. The control passed.
+- **`hint-mode-ctrl-hotkeys.e2e.ts` and `capture-obsidian-hotkeys.e2e.ts` press Ctrl+<letter> while a capture holds the keyboard, with Obsidian's default hotkeys restored for the session.** The test vault unbinds most of the colliding hotkeys, which is why the existing tests never saw it.
+    - **Hint mode:** a `d` label and an `f` label. Before the fix, the note lost a line (1149 to 1121 characters) and search opened.
+    - **Other captures:** Ctrl+D during flash jump input, during EasyMotion labels, and while `getcharstr()` waits. Before the fix, each lost a line.
+    - **Controls:** in both specs, Ctrl+D is Obsidian's again once the capture ends.
     - **Negative controls:**
-        - not pushing the scope fails the two label scenarios with those values;
-        - never popping it fails the control, because Ctrl+D stays dead after hint mode.
-    - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new)
+        - `captureKeys` not holding the keymap fails the hint, flash and EasyMotion scenarios;
+        - the `getcharstr` broker not holding it fails only the `getcharstr` scenario;
+        - either owner never releasing it fails the control after its capture.
+    - **Unit tests:** `key-capture.test.ts` pins one push and exactly one pop across every exit, and fails if the release guard is removed or the capture never holds the keymap.
+    - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new), `test/specs/capture-obsidian-hotkeys.e2e.ts` (new), `test/unit/util/key-capture.test.ts`
 - **`animated-cursor-edits.e2e.ts` reads the pixels painted on the animated-cursor canvas (#181).** Smoothing and the smear trail are off, so the paint is the resolved caret rect.
     - **Scenarios:** `x` and `r` under a block cursor, each compared with a fresh paint of the same position; a change that moves the caret without setting the selection; Enter outdenting an empty nested bullet, checked against CodeMirror's caret.
     - **Before the fix:** the glyph scenarios differed by 32 and 33 pixels, the old letter, and the cursor sat 37.5 and 35.7 px from the caret.
