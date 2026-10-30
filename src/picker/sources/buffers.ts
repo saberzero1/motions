@@ -40,6 +40,9 @@ export function createBuffersSource(
             });
             return items;
         },
+        yankText(item) {
+            return (item.data as { path: string }).path;
+        },
         onSelect(item, app) {
             const data = item.data as { path: string };
             let target: ReturnType<typeof app.workspace.getLeaf> | null = null;

@@ -29,5 +29,9 @@ export function createCommandsSource(): PickerSource {
             const data = item.data as { id: string };
             return `${item.label}\n\nID: ${data.id}`;
         },
+        // The id is what `:obcommand`, vimrc and Lua take (#171).
+        yankText(item) {
+            return (item.data as { id: string }).id;
+        },
     };
 }

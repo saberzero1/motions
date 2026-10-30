@@ -25,6 +25,9 @@ export function createFilesSource(
                 data: { path: file.path },
             }));
         },
+        yankText(item) {
+            return (item.data as { path: string }).path;
+        },
         onSelect(item, app) {
             const data = item.data as { path: string };
             void navigateWithJump(app, data.path, '');

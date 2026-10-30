@@ -2016,6 +2016,7 @@ export default class VimMotionsPlugin extends Plugin {
                 scrollDown: [...this.settings.pickerKeymap.scrollDown],
                 scrollUp: [...this.settings.pickerKeymap.scrollUp],
                 close: [...this.settings.pickerKeymap.close],
+                yank: [...this.settings.pickerKeymap.yank],
             },
         };
         this.vimrcGroupLabels = [];
@@ -6285,6 +6286,12 @@ export default class VimMotionsPlugin extends Plugin {
             migrateSigncolumnSettings(migrateConfigModeSettings(data)),
         );
         this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated ?? {});
+        // Nested, so the shallow merge above keeps a saved keymap whole and
+        // drops any key added since it was saved, such as `yank`.
+        this.settings.pickerKeymap = {
+            ...DEFAULT_SETTINGS.pickerKeymap,
+            ...this.settings.pickerKeymap,
+        };
         this.migrateLegacySettings(migrated);
         this.baseSettings = {
             ...this.settings,
