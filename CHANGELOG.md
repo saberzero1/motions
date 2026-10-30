@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`:files`, `:buffers` and `:recent` show an icon for each file's type** ([#171](https://github.com/saberzero1/motions/issues/171)).
+    - **Icons:** 22 file types, from Markdown, canvas, base and Excalidraw (including `.excalidraw.md`) to PDF, images, audio, video, tables, code, archives, Office documents and EPUB, with a generic file icon for the rest.
+    - **How they are drawn:** they live in `styles.css` as URL-encoded SVG data URIs and are drawn as masks painted in Obsidian's theme colours, so they follow light and dark themes. That fixes the contrast the icon sets' own fixed colours fail on a light background. `main.js` does not grow; `styles.css` grows by about 21 KB, including the licence notices.
+    - **Overrides:** `--vim-motions-icon-<type>` and `--vim-motions-icon-<type>-color` replace any icon or colour.
+    - **Style Settings:** the **Picker** section gains toggles to hide the icons or paint them in one colour.
+    - **Sources:** the icons are from Material Icon Theme (MIT). Canvas and base use Lucide's `layout-dashboard` and `layout-list` (ISC), the icons Obsidian shows for them. The licence notices are in `styles.css`.
+
 - **EasyMotion motions have vim-easymotion's `<Plug>` names, including the bidirectional ones that had no key** ([#205](https://github.com/saberzero1/motions/issues/205)).
     - **Names:** `<Plug>(easymotion-bd-w)`, `-bd-e`, `-bd-W`, `-bd-E`, `-bd-jk`, `-bd-t` and `-bd-f`, and one for every motion with a default key (`-f`, `-w`, `-j` and so on) plus `-repeat`. The bidirectional motions existed but were unreachable, and the docs' advice to remap "using the internal command names" led nowhere.
     - **Use:** a key mapped to a `<Plug>` name keeps the motion's behaviour after an operator, in visual mode, with a count and under dot-repeat. A Lua function mapping would run as an action instead.
@@ -179,6 +186,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Labels:** each label scenario puts its letter first in the hint characters. With the default `asdfghjkl`, labels reach `f` only past 78 targets, and CI's smaller window showed fewer, so the `f` scenario found no label on every platform. With five targets, the default labels reproduce that failure, and the letter-first labels pass.
     - **Unit tests:** `key-capture.test.ts` pins one push and exactly one pop across every exit, and fails if the release guard is removed or the capture never holds the keymap.
     - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new), `test/specs/capture-obsidian-hotkeys.e2e.ts` (new), `test/unit/util/key-capture.test.ts`
+- **`picker-icons.e2e.ts` reads the icons `:files` draws for six real files (#171).**
+    - **Scenarios:**
+        - a distinct mask per type, in its own colour: the PDF in `--color-red`, the unknown extension in the muted fallback;
+        - a colour override variable;
+        - both Style Settings toggles.
+    - **Negative controls:**
+        - rendering no icon element fails all three;
+        - removing the icon CSS fails all three;
+        - removing the `.excalidraw.md` rule fails the first, with `md`.
+    - **Unit tests:** `picker-icons.test.ts` checks that every type's data URI decodes to an SVG and has an overridable colour, that common vault extensions map to their icons, and `pickerFileType`. Corrupting the PDF's data URI fails it.
+    - Tests: `test/specs/picker-icons.e2e.ts` (new), `test/unit/picker-icons.test.ts` (new), `test/unit/picker-style-settings.test.ts`
 - **`easymotion-plug.e2e.ts` maps F-keys to `<Plug>(easymotion-...)` names and presses them (#205).**
     - **Scenarios:** `bd-w` labels words on both sides and jumps back; it still works after `d`; it is reached from a plain `vim.keymap.set` (non-recursive) and from `nmap`.
     - **Fork 6.4.6:** the non-recursive scenario fails, and the other three pass.

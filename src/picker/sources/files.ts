@@ -3,7 +3,7 @@ import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJump } from '../../workspace/navigate';
-import { pickerFileName } from './display-name';
+import { pickerFileName, pickerFileType } from './display-name';
 
 export function createFilesSource(
     getNonMarkdownPreview: () => NonMarkdownPreviewMode,
@@ -20,6 +20,7 @@ export function createFilesSource(
             return app.vault.getFiles().map((file) => ({
                 id: file.path,
                 label: pickerFileName(file.path),
+                fileType: pickerFileType(file.path),
                 description: file.parent?.path ?? '',
                 filterValue: `${pickerFileName(file.path)} ${file.path}`,
                 data: { path: file.path },

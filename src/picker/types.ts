@@ -15,6 +15,11 @@ export interface PickerItem {
      * character positions the match highlights index into.
      */
     depth?: number;
+    /**
+     * The file type an icon is drawn for, as `pickerFileType` returns it.
+     * Left out for items that are not files.
+     */
+    fileType?: string;
 }
 
 export type SplitDirection = 'horizontal' | 'vertical' | 'tab';

@@ -78,6 +78,21 @@ body {
 
 Add the class `vim-motions-picker-truncate` to `body` to end long names with an ellipsis instead of wrapping them. The Style Settings plugin offers all of these, plus that toggle, under **Picker**.
 
+### Picker file icons
+
+`:files`, `:buffers` and `:recent` show an icon for each file's type, painted in a theme colour so it follows light and dark themes. Each type's icon and colour can be replaced:
+
+```css
+body {
+    --vim-motions-icon-pdf-color: var(--color-orange);
+    --vim-motions-icon-markdown: url('data:image/svg+xml,...'); /* any SVG */
+}
+```
+
+The types are `file` (anything not listed), `markdown`, `canvas`, `base`, `excalidraw` (including `.excalidraw.md` drawings), `pdf`, `image`, `svg`, `audio`, `video`, `table`, `json`, `text`, `html`, `css`, `javascript`, `typescript`, `python`, `archive`, `word`, `presentation` and `epub`. An icon is used as a mask, so only its shape counts and the colour variable paints it. Add `vim-motions-picker-mono-icons` to `body` to paint every icon in the muted text colour, or `vim-motions-picker-no-icons` to hide them. Both are toggles under **Picker** in Style Settings.
+
+The icons come from [Material Icon Theme](https://github.com/material-extensions/vscode-material-icon-theme) (MIT), and canvas and base use Obsidian's own Lucide icons (ISC). The licence notices are in `styles.css`.
+
 ## Style Settings plugin
 
 If you have the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin installed, Vim Motions exposes its color properties in the Style Settings panel with separate light and dark mode defaults, and the picker's fonts, sizes and layout under **Picker**. No CSS snippets needed — configure colors directly in the UI.
