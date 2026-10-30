@@ -31,7 +31,9 @@ trap 'rm -rf "$tmpdir"' EXIT
 url="https://github.com/neovim/neovim/releases/download/v${VERSION}/${archive}"
 
 echo "Installing Neovim ${VERSION} from ${url}"
-curl -fsSL "$url" -o "$tmpdir/$archive"
+# GitHub's release download sometimes stalls or drops; a timeout is not an
+# HTTP error, so -f alone does not catch it. Retry like fetch-test-plugins.sh.
+curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 "$url" -o "$tmpdir/$archive"
 tar -xzf "$tmpdir/$archive" -C "$tmpdir"
 extracted=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d -name 'nvim-*' -print -quit)
 if [ -z "$extracted" ]; then
