@@ -116,6 +116,7 @@ Each item below is covered by a test in `test/specs/table-reveal*.e2e.ts` or `te
 - [[hint-mode|Hint mode]] labels a link in the table the way it labels any link shown as source, and opens it
 - The [[animated-cursor|animated cursor]] is painted on the caret inside the table
 - In insert mode, `Tab` and `Shift-Tab` move to the next and previous cell, wrapping across rows and skipping the separator, and `Tab` in the last cell adds an empty row
+- In insert mode, inside a cell, `Enter` moves to the same column in the next row, adding a row from the last one, and `Shift-Enter` inserts a `<br>` line break; at the end of a row both start a new line, so a table can still be typed row by row
 - With `tableautorealign` on, leaving insert mode realigns the table you edited, keeping the cursor on its character; one `u` undoes the edit and the realign together
 - A `|` typed inside `[[…]]` is written as `\|`, and `||` typed under a header with no separator yet becomes the separator
 - The status bar shows the cursor's column and its header, and every cell of that column is highlighted
@@ -130,15 +131,17 @@ The active table is shown in a monospace font with ligatures off, so a realigned
 
 Run `:tablerealign` (or `<Leader>tr`) to pad the columns, or turn on `tableautorealign` to have that happen when you leave insert mode.
 
-### Moving between cells and realigning
+### Moving between cells, line breaks and realigning
 
 In insert mode, `Tab` moves to the start of the next cell's content and `Shift-Tab` to the previous one. Both wrap across rows and skip the separator row. `Tab` in the last cell of the table adds an empty row, with its pipes where the row above has them, and puts the cursor in its first cell. `Shift-Tab` in the very first cell does nothing.
+
+`Enter` moves to the same column in the next row, skipping the separator, and on the last row adds an empty row with the cursor in the same column. `Shift-Enter` inserts `<br>`, which is how Obsidian's cell editor writes a line break typed in a cell; a plain newline would split the row. Both match Obsidian's own table editor, measured at 1.13.7. Outside a table, `Enter` does what it did before. At the end of a row, with nothing after the cursor, `Enter` and `Shift-Enter` start a new line as in plain text instead, so a table can still be typed row by row — once its separator is typed the table is revealed, and the `Enter` that ends the separator must not drop the cursor into a new row's first cell. mkdnflow.nvim makes its own `Enter` navigation opt-in for the same reason.
 
 Obsidian's own table editor moves the same way, but it selects the content of the cell it moves to. Here the cursor lands at the start of that content instead, as it does in mkdnflow.nvim, table-nvim and org-mode, because a selection is not an insert-mode state in Vim. Outside a table, and in normal mode, `Tab` does what it did before. A snippet that can expand or walk its tabstops keeps `Tab`, and so does an insert-mode mapping of your own.
 
 With `tableautorealign` on (**Settings → Vim Motions → General → Realign tables after insert mode**, `set tableautorealign` or `vim.opt.tableautorealign = true`), leaving insert mode realigns each table you edited during that insert, with the same output as `:tablerealign`. The cursor stays on the character it was on, in the same cell, and one `u` undoes the edit and the realign together. `<C-o>` does not count as leaving insert mode. A table is left alone if any of its rows does not both start and end with a pipe, so a row you are still typing is never rebuilt under you, and a quoted table keeps its `>` markers.
 
-Neither applies under the [[neovim-backend|Neovim backend]], where Neovim owns every key and every mode change, so `Tab` is Neovim's.
+None of these keys, nor `tableautorealign`, applies under the [[neovim-backend|Neovim backend]], where Neovim owns every key and every mode change, so `Tab` and `Enter` are Neovim's.
 
 ### Typing pipes, headers and alignment
 
@@ -146,7 +149,7 @@ A `|` typed inside an unclosed `[[` on a revealed row is written as `\|`, so a w
 
 To start a table, type its header row, then `||` as the whole of the next line: it becomes the separator row, one column per header cell, sized to the header's cells. This works only below a header that has no separator yet, so `||` typed as a row of an existing table stays a row.
 
-`<Leader>tal`, `<Leader>tac` and `<Leader>tar` (`:tablealignleft`, `:tablealigncenter`, `:tablealignright`) set the current column's alignment by rewriting its separator cell, then realign the table so the content moves to match. In `native` mode they run Obsidian's own alignment commands.
+`<Leader>tal`, `<Leader>tac` and `<Leader>tar` (`:tablealignleft`, `:tablealigncenter`, `:tablealignright`) set the current column's alignment by rewriting its separator cell, then realign the table so the content moves to match. In `native` mode they run Obsidian's own alignment commands. Under the [[neovim-backend|Neovim backend]], typed text goes to Neovim, so the pipe escape and the `||` separator do not apply there.
 
 ### Which column you are in
 
@@ -237,11 +240,11 @@ Cell editors are Obsidian's native editors with vim injected via `registerEditor
 > When the [[animated-cursor|animated cursor]] is enabled, table cell editors use the native vim cursor as the steady-state renderer. The canvas-based animated cursor cannot reliably render above table cell content due to CSS stacking contexts. Cross-cell navigation (`h`/`j`/`k`/`l`) snaps the cursor to the destination cell. Within a single cell, the native cursor renders normally.
 
 > [!tip] Multi-line cell content
-> Pressing `Enter` inside a cell editor creates a line break. The native editor automatically handles `<br>` ↔ newline conversion so the table structure stays valid.
+> In insert mode, `Shift+Enter` inside a cell editor creates a line break, which Obsidian writes to the source as `<br>`, so the table structure stays valid. `Enter` moves to the cell below and, on the last row, adds a row. Measured in Obsidian 1.13.7.
 
 ### Table row text objects
 
-In raw Markdown mode, you can operate on entire table rows using the `ir` and `ar` text objects:
+Wherever a table is plain text — Source mode, a revealed table in `reveal` mode, or `raw` — you can operate on entire table rows using the `ir` and `ar` text objects:
 
 - `ir`: Selects the **inner row** content (everything between the first and last `|` pipes, excluding the pipes themselves).
 - `ar`: Selects the **around row** content (the entire line including the leading and trailing pipes).
