@@ -2272,6 +2272,18 @@ Normal-mode `<Tab>` is now `<C-i>`, as in Vim and Neovim: it walks forward throu
 
 In Obsidian's own table cell editor (`native` mode), normal-mode `Tab` still moves to the next cell, as [#136](https://github.com/saberzero1/motions/issues/136) relies on: that editor is Obsidian's construct, so the key is handed to its own keymap there. The first version of this change broke that, which `test/specs/table-nav-disabled.e2e.ts` caught. Under Obsidian's own Vim key bindings the plugin registers no mappings, so normal-mode `Tab` still reaches Obsidian and indents the line. Under the Neovim backend, `<Tab>` is Neovim's own.
 
+## ~~Lua function mappings stopped working after a settings change~~ (Fixed)
+
+`reloadFeatures()`, which many settings changes run, tears the vim registration down, and `unregisterAll()` redefines every action it held as a no-op. `applyLuaMaps` then remapped each Lua function mapping but redefined only actions whose names it had not seen. Every `vim.keymap.set(..., function() ... end)` mapping therefore stayed mapped to a no-op until Obsidian restarted. The mapping was still listed by `getKeymap`, and pressing it did nothing. The recorded names are now cleared wherever the registration is rebuilt. Measured in `test/specs/lua-keymap-reload.e2e.ts`, across two reloads.
+
+- Plugin: `src/main.ts`
+
+## ~~`vim.cmd()` from a mapping in a vim-enabled text area ran in the wrong editor~~ (Fixed)
+
+A mapping fired in a text-area overlay ran its `vim.cmd()` in the active note behind the overlay. With no note active, it was skipped with "vim.cmd() called with no active editor". Both the ex path and the `normal` special case resolved the active note. Lua callbacks now record the adapter of the editor their key fired in, and `vim.cmd()` runs there; timers and autocmds keep using the active note. Measured in `test/specs/textarea-vim-lua-cmd.e2e.ts`. ([#211](https://github.com/saberzero1/motions/issues/211))
+
+- Plugin: `src/lua/api.ts` (`getCallbackAdapter`), `src/main.ts`
+
 ## ~~Vim keymaps intermittently stop working~~ (Fixed)
 
 **Status**: Fixed. Multi-layered defense implemented across fork and plugin. ([#18](https://github.com/saberzero1/motions/issues/18))
