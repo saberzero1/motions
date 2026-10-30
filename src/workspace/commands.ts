@@ -9,6 +9,7 @@ import type {
     VimApi,
 } from '../types/vim-api';
 import { VimRegistration } from '../vim/registration';
+import { visualModeEndedThisTask } from '../vim/visual-exit';
 import { VimInfoModal } from '../ui/vim-info-modal';
 import type { GlobalMappingRegistry } from './global-mapping-registry';
 import type { AutocmdManager } from '../lua/autocmd';
@@ -135,21 +136,29 @@ function expandSelectionFromRange(
     cm.cm6.dispatch({ selection: { anchor: from, head: to } });
 }
 
-function getVisualRange(
-    cm: CmAdapter,
-    params: { selectionLine?: number; selectionLineEnd?: number },
-): { startLine: number; endLine: number } | null {
+/** Whole lines for a typed range that spans more than one line. */
+function getTypedLineRange(params: {
+    selectionLine?: number;
+    selectionLineEnd?: number;
+}): { startLine: number; endLine: number } | null {
     const { selectionLine, selectionLineEnd } = params;
     if (
-        selectionLine != null &&
-        selectionLineEnd != null &&
-        selectionLine !== selectionLineEnd
+        selectionLine == null ||
+        selectionLineEnd == null ||
+        selectionLine === selectionLineEnd
     ) {
-        return {
-            startLine: Math.min(selectionLine, selectionLineEnd),
-            endLine: Math.max(selectionLine, selectionLineEnd),
-        };
+        return null;
     }
+    return {
+        startLine: Math.min(selectionLine, selectionLineEnd),
+        endLine: Math.max(selectionLine, selectionLineEnd),
+    };
+}
+
+/** Whole lines between the `'<` and `'>` marks, when they differ. */
+function getMarkLineRange(
+    cm: CmAdapter,
+): { startLine: number; endLine: number } | null {
     const marks = cm.state.vim?.marks;
     if (!marks) return null;
     const lt = marks['<']?.find();
@@ -207,23 +216,27 @@ function restoreSelectionForObCommand(
     cm: CmAdapter,
     params: ExCommandArgs,
 ): void {
-    // A typed numeric or `%` range asks for whole lines; `'<,'>` asks for the
-    // visual selection, so only the former keeps the line-range behaviour.
-    const explicitLineRange =
-        params.line !== undefined && !VISUAL_EX_RANGE.test(params.input ?? '');
-    if (!explicitLineRange) {
-        const offsets = getVisualSelectionOffsets(cm);
-        if (offsets) {
-            cm.cm6.dispatch({
-                selection: { anchor: offsets.from, head: offsets.to },
-            });
-            return;
-        }
+    const visualRange = VISUAL_EX_RANGE.test(params.input ?? '');
+    // A typed numeric or `%` range asks for whole lines.
+    if (params.line !== undefined && !visualRange) {
+        const range = getTypedLineRange(params);
+        if (range) expandSelectionFromRange(cm, range.startLine, range.endLine);
+        return;
     }
-    const range = getVisualRange(cm, params);
-    if (range) {
-        expandSelectionFromRange(cm, range.startLine, range.endLine);
+    // `'<,'>` asks for the last visual selection, and so does a command
+    // whose own dispatch left visual mode. Without either, the selection in
+    // `'<`/`'>` is history: restoring it applied a normal-mode mapping to
+    // text selected long before (#200).
+    if (!visualRange && !visualModeEndedThisTask(cm)) return;
+    const offsets = getVisualSelectionOffsets(cm);
+    if (offsets) {
+        cm.cm6.dispatch({
+            selection: { anchor: offsets.from, head: offsets.to },
+        });
+        return;
     }
+    const range = getMarkLineRange(cm);
+    if (range) expandSelectionFromRange(cm, range.startLine, range.endLine);
 }
 
 function createObCommand(app: App): ExCommandFn {

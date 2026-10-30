@@ -47,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`:obcommand` from a normal-mode mapping acted on an earlier visual selection** ([#200](https://github.com/saberzero1/motions/issues/200)). A mapping such as `vim.keymap.set("n", "<C-b>", function() vim.cmd("obcommand editor:toggle-bold") end)` bolded whatever had last been selected, however long ago. Running **Open configuration in default editor** the same way re-selected that text. The fork leaves visual mode before it runs an ex command, so `:obcommand` restores the selection that exit discarded (#161, #192). It restored `'<`/`'>` whenever they existed, though, and they outlive the selection by any number of keystrokes. It now restores them in two cases only:
+    - the command carries `'<,'>`;
+    - visual mode ended in the same task, which `src/vim/visual-exit.ts` records from the mode-change event, so an `exmap` that dispatches again still counts.
+
+    Without either, the command runs at the cursor. A typed single-line range no longer falls back to the marks either.
+
 - **Lua function mappings stopped working after any settings change that ran `reloadFeatures()`, until Obsidian restarted.** The registration's `unregisterAll()` redefines every action it held as a no-op. `applyLuaMaps` then remapped the keys but redefined only actions whose names it had not seen. Found while testing #211, where enabling text-area vim killed the mappings under test. The recorded names are now cleared wherever the registration is rebuilt.
     - Plugin: `src/main.ts`
 - **`vim.cmd()` from a Lua mapping fired in a vim-enabled text area ran in the note behind it, or was skipped with "no active editor"** ([#211](https://github.com/saberzero1/motions/issues/211)). Both the ex path in the runtime handler and the `normal` special case in `api.ts` resolved the active note. Lua callbacks now record the adapter of the editor their key fired in, saved and restored like the `vim.v` context, and `vim.cmd()` runs there. Timers and autocmds keep using the active note.
@@ -89,6 +95,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`obcommand-stale-selection.e2e.ts` presses the issue's own Lua mappings (#200).** The capture command records the selection Obsidian hands to an editor command.
+    - **Normal mode:** right after Escape, and after moving to another line. Both captured `beta` against the old handler.
+    - **Leaving insert mode:** leaving insert mode and running the command in the same task must not revive the selection.
+    - **Still restored:** a visual-mode mapping, and an explicit `'<,'>` range.
+    - **Negative controls:**
+        - treating every selection as fresh fails both normal-mode scenarios with `beta`;
+        - never marking one fails the visual-mode mapping and all three #161 scenarios in `obcommand-visual-mode.e2e.ts`, exmap included;
+        - never expiring the mark fails both normal-mode scenarios;
+        - marking on an insert exit fails the insert-mode scenario.
+    - Tests: `test/specs/obcommand-stale-selection.e2e.ts` (new)
 - **`lua-keymap-reload.e2e.ts` and `textarea-vim-lua-cmd.e2e.ts`.**
     - **`lua-keymap-reload`:** presses a Lua mapping across two reloads. Without the fix, the register it writes stayed empty.
     - **The `normal! x` scenario:** keeps a note open behind the text area. Against the old path, the text area stayed `area text` and the note lost its first character.
