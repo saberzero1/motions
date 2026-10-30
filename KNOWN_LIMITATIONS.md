@@ -400,6 +400,8 @@ Entries whose file cannot be resolved at navigation time (for example, a note de
 
 `:jumps` ex command displays the jump list in a `VimInfoModal`.
 
+**Obsidian's default hotkeys shadow `<C-o>` and `<C-i>`** ([#206](https://github.com/saberzero1/motions/issues/206)). Ctrl+O is bound to **Quick switcher** and Ctrl+I to **Toggle italics**, and Obsidian's Keymap stops the event on `window` before the editor sees it. Measured: with the italic binding active, Ctrl+I inserted italic markers instead of jumping forward. Both are in the plugin's hotkey-conflict check, which tells you to unbind them under **Settings → Hotkeys**. Normal-mode `<Tab>` is `<C-i>` and is not affected. The test vault unbinds both, which is why the specs never saw this; `test/specs/jump-list.e2e.ts` presses a real Ctrl+I.
+
 **Remaining limitations**:
 
 - **Cross-window (popout) jumps**: The jump list tracks positions across notes within the main Obsidian window but does not yet support jumps between the main window and popout windows.

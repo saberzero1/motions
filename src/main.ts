@@ -2527,7 +2527,7 @@ export default class VimMotionsPlugin extends Plugin {
                 void detectHotkeyConflicts(this.app).then((conflicts) => {
                     if (conflicts.length > 0) {
                         new Notice(
-                            `Vim Motions: ${conflicts.length} hotkey conflict(s) detected — some workspace navigation keys won't work. See Settings → Vim Motions → Navigation.`,
+                            `Vim Motions: ${conflicts.length} hotkey conflict(s) detected — some Vim keys won't work. See Settings → Vim Motions → Navigation.`,
                             10000,
                         );
                         this.settings.conflictNoticeDismissedVersion =

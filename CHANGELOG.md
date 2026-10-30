@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The hotkey-conflict check now covers the jump list: Ctrl+O (Quick switcher) and Ctrl+I (Toggle italics)** ([#206](https://github.com/saberzero1/motions/issues/206)). Obsidian binds both by default, and its Keymap stops the event on `window` before the editor sees it. Measured: with the italic binding active, Ctrl+I inserted italic markers instead of jumping forward. The startup notice and **Check hotkey conflicts** now list them with the same unbinding instructions as the others. The notice says "Vim keys" rather than only "workspace navigation keys", since the jump list is not workspace navigation. Normal-mode `<Tab>` is `<C-i>` and is unaffected. The test vault already unbound Ctrl+O, which is why the specs passed. This addresses the measurable cause; whether it accounts for everything in #206 is for the reporter to confirm.
+    - Plugin: `src/workspace/hotkey-conflicts.ts`, `src/main.ts`
 - **Escape in a nested page preview closed the preview beneath it and left the focused one open** ([#210](https://github.com/saberzero1/motions/issues/210)). The idle-Escape guard hid the active view's `hoverPopover`, which with nested previews is the first one, and Obsidian's `hide()` keeps a child that still holds the focus. The guard now finds the popover holding the focused editor by walking `childHovers`, and hides that one. Whether the preview beneath then stays is Obsidian's own hover logic.
     - Plugin: `src/vim/escape-guard.ts`
 - **Normal-mode `Tab` indented the line; it is now `<C-i>`, as in Vim and Neovim, and walks forward through the jump list**, cross-note entries included. The bundled engine lets functional keys it has no mapping for reach Obsidian, and normal-mode `<Tab>` had none, so Obsidian's editor keymap indented the line. In a table that turned `| aa   | 11    |` into `\t| aa   | 11    |`. In Obsidian's own table cell editor (`native` mode), `Tab` still moves to the next cell, as [#136](https://github.com/saberzero1/motions/issues/136) relies on: the mapping marks itself `fromTab`, and there the key is run through the cell editor's own keymap with CodeMirror's `runScopeHandlers`, rather than reimplementing Obsidian's cell move. Under Obsidian's own Vim key bindings the plugin registers no mappings, so `Tab` still reaches Obsidian there. Related to [#206](https://github.com/saberzero1/motions/issues/206).
@@ -83,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`jump-list.e2e.ts` presses a real Ctrl+I.** The test vault's `hotkeys.json` now unbinds `editor:toggle-italics`, as it already did `switcher:open`. Before that the scenario failed: the cursor stayed on line 0 instead of reaching line 4. The conflict list's unit test pins both new entries.
+    - Tests: `test/specs/jump-list.e2e.ts`, `test/unit/hotkey-conflicts.test.ts`, `test-vault/.obsidian/hotkeys.json`
 - **`hover-popover-escape.e2e.ts` opens page previews by Ctrl-hovering real links**, so Obsidian's popover nesting is real, and clicks into the preview to make it an editor.
     - **Nested preview:** fails against the old guard, with the focused preview, `Deep note text`, still open after Escape.
     - **Single preview:** with `hide()` removed, it fails with one preview still open.

@@ -22,8 +22,16 @@ function filterConflicts(hotkeys: Record<string, unknown[]>): HotkeyConflict[] {
 }
 
 describe('WORKSPACE_NAV_CONFLICTS', () => {
-    it('has 4 conflict entries', () => {
-        expect(WORKSPACE_NAV_CONFLICTS).toHaveLength(4);
+    it('has 6 conflict entries', () => {
+        expect(WORKSPACE_NAV_CONFLICTS).toHaveLength(6);
+    });
+
+    it('includes the jump list keys Obsidian binds by default (#206)', () => {
+        const byCommand = Object.fromEntries(
+            WORKSPACE_NAV_CONFLICTS.map((c) => [c.commandId, c.key]),
+        );
+        expect(byCommand['switcher:open']).toBe('Ctrl+O');
+        expect(byCommand['editor:toggle-italics']).toBe('Ctrl+I');
     });
 
     it('includes workspace:close for Ctrl+W', () => {
@@ -46,7 +54,7 @@ describe('WORKSPACE_NAV_CONFLICTS', () => {
 describe('conflict detection logic', () => {
     it('all defaults active when hotkeys.json is empty', () => {
         const conflicts = filterConflicts({});
-        expect(conflicts).toHaveLength(4);
+        expect(conflicts).toHaveLength(6);
     });
 
     it('no conflicts when all commands have empty arrays', () => {
@@ -55,6 +63,8 @@ describe('conflict detection logic', () => {
             'editor:delete-paragraph': [],
             'editor:open-search': [],
             'editor:toggle-bold': [],
+            'switcher:open': [],
+            'editor:toggle-italics': [],
         });
         expect(conflicts).toHaveLength(0);
     });
@@ -63,6 +73,8 @@ describe('conflict detection logic', () => {
         const conflicts = filterConflicts({
             'workspace:close': [],
             'editor:toggle-bold': [],
+            'switcher:open': [],
+            'editor:toggle-italics': [],
         });
         expect(conflicts).toHaveLength(2);
         expect(conflicts.map((c) => c.commandId)).toContain(
@@ -79,6 +91,8 @@ describe('conflict detection logic', () => {
             'editor:delete-paragraph': [],
             'editor:open-search': [],
             'editor:toggle-bold': [],
+            'switcher:open': [],
+            'editor:toggle-italics': [],
         });
         expect(conflicts).toHaveLength(1);
         expect(conflicts[0]!.commandId).toBe('workspace:close');
@@ -91,6 +105,8 @@ describe('conflict detection logic', () => {
             'editor:delete-paragraph': [],
             'editor:open-search': [],
             'editor:toggle-bold': [],
+            'switcher:open': [],
+            'editor:toggle-italics': [],
         });
         expect(conflicts).toHaveLength(0);
     });

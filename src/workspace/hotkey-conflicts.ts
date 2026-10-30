@@ -33,6 +33,22 @@ export const WORKSPACE_NAV_CONFLICTS: HotkeyConflict[] = [
         feature: 'Ctrl-b full-page scroll',
         description: 'Toggle bold',
     },
+    // Obsidian's Keymap handles its hotkeys on `window` in the capture phase
+    // and stops the event there, so with these bound the jump list's keys
+    // never reach the editor: Ctrl+I toggled italics instead of jumping
+    // forward (#206). Normal-mode <Tab> is <C-i> too, and is unaffected.
+    {
+        key: 'Ctrl+O',
+        commandId: 'switcher:open',
+        feature: '<C-o> jump back',
+        description: 'Open quick switcher',
+    },
+    {
+        key: 'Ctrl+I',
+        commandId: 'editor:toggle-italics',
+        feature: '<C-i> jump forward (normal-mode <Tab> also works)',
+        description: 'Toggle italics',
+    },
 ];
 
 /**
