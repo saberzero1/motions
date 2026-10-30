@@ -81,6 +81,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`lua-plugin-mini-comment` no longer checks the `gc` mapping at a fixed moment, or under only one of its two names.**
+    - **What failed:** "gc mapping is registered after setup" failed once on a macOS runner, 200 ms after the config load. Every later scenario that presses `gc` passed in the same run.
+    - **Why the old check was wrong:** `setup()` maps `gc` twice over: as `lua-action-eager-N` while the config loads, and as `lua-action-N` when `applyLuaMaps` runs on the next `reloadFeatures` or leaf change. The check accepted only the first.
+    - **Ruled out:** a hypothesis that a startup Lua load raced the test's own load was measured and dropped. With the startup path delayed 3 s, `gc` stayed mapped, because Lua is not enabled at startup there.
+    - **New check:** the scenario waits up to 5 s for `gc` mapped to either kind of Lua action.
+    - **Negative control:** with both registration paths disabled, it fails with `setup() never mapped gc to a Lua action`.
+    - Tests: `test/specs/lua-plugin-mini-comment.e2e.ts`
 - **`Enter`, `Shift-Enter`, the row text objects and the rendered table settings.**
     - **`Enter` and `Shift-Enter`:** five `table-reveal-editing.e2e.ts` scenarios, with six sabotages, each failing its own:
         - `Enter` unbound: the header row was split;
