@@ -1043,6 +1043,8 @@ Yank, close, and context menu are not mapped to editor key sequences (they confl
 - `vim-motions:hint-close` — "Hint: close tab or pane"
 - `vim-motions:hint-context-menu` — "Hint: open context menu"
 
+- ~~**Holding Ctrl over a hint label ran Obsidian's hotkey instead**~~: Fixed. Labels start with a home-row letter, and Obsidian binds Ctrl+D (Delete paragraph), Ctrl+F, Ctrl+G, Ctrl+H, Ctrl+K and Ctrl+L by default. Its Keymap runs on `window` in the capture phase, ahead of hint mode's `document` listener, so it took the first letter. Measured: Ctrl on a `d` label deleted a line of the note, and Ctrl on an `f` label opened search. Hint mode now pushes an empty Obsidian `Scope` while labels are showing, the way a modal does. A scope with no parent does not pass unhandled keys down to the app scope, so the key reaches hint mode, and `captureKeys` pops it on every exit. The test vault unbinds most of those hotkeys, which is why the existing Ctrl+label test never saw this.
+
 ### Target classification
 
 Each hint target is classified by type during discovery, before label assignment. The classification determines per-action behavior:
