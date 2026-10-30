@@ -13,12 +13,16 @@ import { loadLuaConfig, setupEditor } from '../helpers';
  * open behind the text area and checks which of the two changed, and the
  * second has no note active at all.
  *
- * Alt chords, because Obsidian binds none of them by default.
+ * Function keys: Obsidian binds none of F7 and F8 by default, and WebDriver
+ * delivers them alike on every platform. Alt chords failed on macOS: the
+ * engine reads a lone Option there as a composed character, and WebDriver
+ * sends Option+y as `y` rather than the `¥` a real keyboard types, so the
+ * mapping never fired.
  */
 
 const LUA = [
-    "vim.keymap.set('n', '<A-y>', function() vim.cmd('normal! x') end)",
-    "vim.keymap.set('n', '<A-u>', function() vim.cmd('obcommand editor:toggle-bold') end)",
+    "vim.keymap.set('n', '<F7>', function() vim.cmd('normal! x') end)",
+    "vim.keymap.set('n', '<F8>', function() vim.cmd('obcommand editor:toggle-bold') end)",
 ].join('\n');
 
 async function setTextareas(enabled: boolean): Promise<void> {
@@ -114,8 +118,7 @@ describe('vim.cmd() from a mapping in a vim-enabled text area (#211)', function 
         await setupEditor('note text', { line: 0, ch: 0 });
         await openTextarea('area text');
 
-        await browser.keys([Key.Alt, 'y']);
-        await browser.keys([Key.Alt]);
+        await browser.keys([Key.F7]);
         await browser.pause(400);
 
         const note = (await browser.executeObsidian(({ app, obsidian }) => {
@@ -149,8 +152,7 @@ describe('vim.cmd() from a mapping in a vim-enabled text area (#211)', function 
         });
         await openTextarea('area text');
 
-        await browser.keys([Key.Alt, 'u']);
-        await browser.keys([Key.Alt]);
+        await browser.keys([Key.F8]);
         await browser.pause(400);
 
         const result = (await browser.executeObsidian(({ app, obsidian }) => {

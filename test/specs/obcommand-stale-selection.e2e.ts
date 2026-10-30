@@ -19,19 +19,24 @@ import {
  * selected long before. Measured before the fix, both normal-mode scenarios
  * below captured `beta`.
  *
- * The mappings are the issue's, on Alt chords because Obsidian binds none of
- * them by default. The capture command records the selection Obsidian hands
- * to an editor command; an empty string is a collapsed cursor.
+ * The mappings are the issue's, on F7 and F8 rather than its `<C-b>`.
+ * Obsidian binds neither by default, and WebDriver delivers them alike on
+ * every platform. Alt chords failed on macOS: the engine reads a lone Option
+ * there as a composed character, and WebDriver sends Option+b as `b` rather
+ * than the `∫` a real keyboard types, so the mapping never fired.
+ *
+ * The capture command records the selection Obsidian hands to an editor
+ * command; an empty string is a collapsed cursor.
  */
 
 const CAPTURE = 'vim-motions-e2e-200-capture-selection';
 
 const LUA = [
-    `vim.keymap.set('n', '<A-b>', function() vim.cmd('obcommand ${CAPTURE}') end)`,
-    `vim.keymap.set('v', '<A-b>', function() vim.cmd('obcommand ${CAPTURE}') end)`,
+    `vim.keymap.set('n', '<F7>', function() vim.cmd('obcommand ${CAPTURE}') end)`,
+    `vim.keymap.set('v', '<F7>', function() vim.cmd('obcommand ${CAPTURE}') end)`,
     // Leaves insert mode and runs the command in one task, so an insert exit
     // that marked the old selection as just ended would be caught here.
-    `vim.keymap.set('i', '<A-n>', function() vim.cmd('stopinsert'); vim.cmd('obcommand ${CAPTURE}') end)`,
+    `vim.keymap.set('i', '<F8>', function() vim.cmd('stopinsert'); vim.cmd('obcommand ${CAPTURE}') end)`,
 ].join('\n');
 
 async function registerCapture(): Promise<void> {
@@ -65,8 +70,7 @@ async function captured(): Promise<string | null> {
 }
 
 async function pressMapping(): Promise<void> {
-    await browser.keys([Key.Alt, 'b']);
-    await browser.keys([Key.Alt]);
+    await browser.keys([Key.F7]);
     await browser.pause(PAUSE.EDITOR_SETTLE);
 }
 
@@ -127,8 +131,7 @@ describe('obcommand and an earlier visual selection (#200)', function () {
         await browser.keys(['A']);
         await browser.pause(PAUSE.MODE_SWITCH);
 
-        await browser.keys([Key.Alt, 'n']);
-        await browser.keys([Key.Alt]);
+        await browser.keys([Key.F8]);
         await browser.pause(PAUSE.EDITOR_SETTLE);
 
         expect(await captured()).toBe('');

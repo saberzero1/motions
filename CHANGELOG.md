@@ -152,8 +152,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **`lua-keymap-reload`:** presses a Lua mapping across two reloads. Without the fix, the register it writes stayed empty.
     - **The `normal! x` scenario:** keeps a note open behind the text area. Against the old path, the text area stayed `area text` and the note lost its first character.
     - **The `obcommand` scenario:** has no note active. Against the old handler, Obsidian's command was never dispatched.
+    - **Keys:** the mappings are on F7 and F8. Alt chords never fired on macOS CI, because the engine reads a lone Option there as a composed character, and WebDriver sends Option+y as `y`. `obcommand-stale-selection.e2e.ts` uses F7 and F8 for the same reason.
     - Tests: `test/specs/lua-keymap-reload.e2e.ts` (new), `test/specs/textarea-vim-lua-cmd.e2e.ts` (new)
-- **`jump-list.e2e.ts` presses a real Ctrl+I.** The test vault's `hotkeys.json` now unbinds `editor:toggle-italics`, as it already did `switcher:open`. Before that the scenario failed: the cursor stayed on line 0 instead of reaching line 4. The conflict list's unit test pins both new entries.
+- **`jump-list.e2e.ts` presses a real Ctrl+I.** The test vault's `hotkeys.json` now unbinds `editor:toggle-italics`, as it already did `switcher:open`. Before that the scenario failed: the cursor stayed on line 0 instead of reaching line 4. The conflict list's unit test pins both new entries. The scenario is skipped on macOS, where Obsidian's modifier is Cmd and the conflict does not exist. WebDriver's synthesized Ctrl+I there also did not reach the jump list, and what it delivers instead was not measured.
     - Tests: `test/specs/jump-list.e2e.ts`, `test/unit/hotkey-conflicts.test.ts`, `test-vault/.obsidian/hotkeys.json`
 - **`hover-popover-escape.e2e.ts` opens page previews by Ctrl-hovering real links**, so Obsidian's popover nesting is real, and clicks into the preview to make it an editor.
     - **Nested preview:** fails against the old guard, with the focused preview, `Deep note text`, still open after Escape.
