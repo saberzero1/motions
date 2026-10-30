@@ -47,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The animated cursor painted the old letter after an edit, and did not follow an edit that moved it** ([#181](https://github.com/saberzero1/motions/issues/181), follow-up reports). There were two faults:
+    - **Stale glyph:** the block cursor repaints the character under it, cached by document position and row. `x` and `r` change that character without moving either, so the deleted or replaced letter was drawn again. This is the "text artifacts while typing and editing" report.
+    - **No wake:** the cursor woke only for a selection change, a scroll or a focus change. Enter on an empty nested bullet outdents it and maps the caret through the change without setting the selection. The cursor stayed a tab stop to the right until the next move.
+
+    A document change now drops the cached glyph and wakes the cursor.
+
 - **Hint mode could not edit properties, press Add property, or type into the backlinks search** ([#207](https://github.com/saberzero1/motions/issues/207)). There were three causes:
     - **No label:** a property value is a `contenteditable` div and **Add property** a plain `div`, so neither matched a hint selector. Editable elements other than the note's own editor are now targets, and so is the add button.
     - **Focus taken back:** a property name and the backlinks search are inputs and did get labels, but 150 ms after the click hint mode handed focus back to the note.
@@ -104,6 +110,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`animated-cursor-edits.e2e.ts` reads the pixels painted on the animated-cursor canvas (#181).** Smoothing and the smear trail are off, so the paint is the resolved caret rect.
+    - **Scenarios:** `x` and `r` under a block cursor, each compared with a fresh paint of the same position; a change that moves the caret without setting the selection; Enter outdenting an empty nested bullet, checked against CodeMirror's caret.
+    - **Before the fix:** the glyph scenarios differed by 32 and 33 pixels, the old letter, and the cursor sat 37.5 and 35.7 px from the caret.
+    - **Negative controls:**
+        - keeping the glyph cache across edits fails only the two glyph scenarios;
+        - not waking on an edit fails only the two position scenarios.
+    - **Why the glyph scenarios paint the position first:** the glyph cache only goes stale when the row top is bit-identical. A first version, without that paint, passed with the invalidation removed.
+    - **The comparison is a glyph mask, not bytes:** two measurements can place the block a fraction of a pixel apart, which changes edge anti-aliasing (alpha 32 against 17 at a corner).
+    - Tests: `test/specs/animated-cursor-edits.e2e.ts` (new)
 - **`hint-mode-properties.e2e.ts` drives real hint labels at the fields around a note (#207).**
     - **Scenarios:** a property value, a property name, **Add property**, and the backlinks search with its filter shown. A task checkbox is the control.
     - **Before the fix:**
