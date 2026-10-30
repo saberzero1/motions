@@ -293,6 +293,25 @@ export interface VimMotionsSettings {
     pluginAutoFetch: boolean;
 }
 
+/**
+ * The table widget dropdown: short option labels, with what each mode does in
+ * the description, shared by both settings implementations.
+ */
+const TABLE_WIDGET_OPTIONS: Record<
+    VimMotionsSettings['tableWidgetMode'],
+    string
+> = {
+    native: 'Native',
+    reveal: 'Reveal (experimental)',
+    raw: 'Raw (deprecated)',
+};
+
+const TABLE_WIDGET_DESCRIPTION =
+    'How tables display in Live Preview. ' +
+    "Native: Obsidian's table editor, with Vim in each cell (recommended). " +
+    "Reveal: Obsidian renders the tables the cursor is not in, and the table holding the cursor becomes its Markdown source, edited directly by Vim. Desktop only; works with Obsidian's own Vim key bindings and with the Neovim backend. " +
+    'Raw: deprecated. It hides the table without showing its source; use Source mode instead.';
+
 export const DEFAULT_SETTINGS: VimMotionsSettings = {
     vimEnabled: true,
     enableOnMobile: false,
@@ -950,10 +969,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 name: 'Table widget in live preview',
                                 desc: this.describeOverride(
                                     'tableWidgetMode',
-                                    'Controls how tables display in Live Preview. ' +
-                                        '"Native" uses Obsidian\'s built-in table editor with vim support (recommended). ' +
-                                        '"Reveal" shows the table holding the cursor as editable Markdown source. ' +
-                                        '"Raw" is deprecated.',
+                                    TABLE_WIDGET_DESCRIPTION,
                                 ),
                                 aliases: [
                                     'table rendering',
@@ -963,11 +979,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'dropdown' as const,
                                     key: 'tableWidgetMode',
-                                    options: {
-                                        native: "Use Obsidian's built-in table editor with vim support (recommended)",
-                                        raw: 'Deprecated: always show raw Markdown table syntax. It hides the table without showing its source; use source mode instead',
-                                        reveal: "Experimental: keep Obsidian's table for tables the cursor is not in, and show the table holding the cursor as its Markdown source, aligned as a grid and edited directly by Vim — one document, one undo history, every motion and operator. Desktop only. Works with Obsidian's own Vim key bindings and with the Neovim backend",
-                                    },
+                                    options: TABLE_WIDGET_OPTIONS,
                                     disabled: () =>
                                         this.isOverridden('tableWidgetMode'),
                                 },
@@ -3591,28 +3603,11 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName('Table widget in Live Preview')
             .setDesc(
-                describeOverride(
-                    'tableWidgetMode',
-                    'Controls how tables display in Live Preview. ' +
-                        '"Native" uses Obsidian\'s built-in table editor with vim support (recommended). ' +
-                        '"Reveal" shows the table holding the cursor as editable Markdown source. ' +
-                        '"Raw" is deprecated.',
-                ),
+                describeOverride('tableWidgetMode', TABLE_WIDGET_DESCRIPTION),
             )
             .addDropdown((dropdown) =>
                 dropdown
-                    .addOption(
-                        'native',
-                        "Use Obsidian's built-in table editor with Vim support (recommended)",
-                    )
-                    .addOption(
-                        'raw',
-                        'Deprecated: always show raw Markdown table syntax. It hides the table without showing its source; use source mode instead',
-                    )
-                    .addOption(
-                        'reveal',
-                        "Experimental: keep Obsidian's table for tables the cursor is not in, and show the table holding the cursor as its Markdown source, aligned as a grid and edited directly by Vim — one document, one undo history, every motion and operator. Desktop only. Works with Obsidian's own Vim key bindings and with the Neovim backend",
-                    )
+                    .addOptions(TABLE_WIDGET_OPTIONS)
                     .setValue(this.plugin.settings.tableWidgetMode)
                     .setDisabled(isOverridden('tableWidgetMode'))
                     .onChange(async (value) => {
