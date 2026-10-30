@@ -1,4 +1,4 @@
-import { App, MarkdownView } from 'obsidian';
+import { App } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
@@ -142,14 +142,10 @@ export function createTasksSource(): PickerSource {
 
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string; line: number };
-            openInSplit(app, data.path, direction);
-            window.setTimeout(() => {
-                const view = app.workspace.getActiveViewOfType(MarkdownView);
-                if (view) {
-                    view.editor.setCursor(data.line, 0);
-                    view.editor.focus();
-                }
-            }, 100);
+            openInSplit(app, data.path, direction, {
+                line: data.line,
+                ch: 0,
+            });
         },
 
         async preview(item, app) {

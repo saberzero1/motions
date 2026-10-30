@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A picker result opened in a new tab or split landed on line 1 instead of its line** ([#201](https://github.com/saberzero1/motions/issues/201)). This affected `:livegrep` (built-in search or ripgrep), `:grep`, `:headings`, `:outline` and `:tasks`. The split and tab paths started the open without waiting for it, then set the cursor 100 ms later on whichever view was active by then. An open slower than that lost the race, which is why it depended on the machine and never showed in the test vault. Opening in the current tab already waited for the open. `openInSplit` now takes the line and applies it once the open has finished, in the leaf it opened. With **Always focus new tabs** off, the cursor used to go to the note the picker was opened from.
+
 - **`:obcommand` from a normal-mode mapping acted on an earlier visual selection** ([#200](https://github.com/saberzero1/motions/issues/200)). A mapping such as `vim.keymap.set("n", "<C-b>", function() vim.cmd("obcommand editor:toggle-bold") end)` bolded whatever had last been selected, however long ago. Running **Open configuration in default editor** the same way re-selected that text. The fork leaves visual mode before it runs an ex command, so `:obcommand` restores the selection that exit discarded (#161, #192). It restored `'<`/`'>` whenever they existed, though, and they outlive the selection by any number of keystrokes. It now restores them in two cases only:
     - the command carries `'<,'>`;
     - visual mode ended in the same task, which `src/vim/visual-exit.ts` records from the mode-change event, so an `exmap` that dispatches again still counts.
@@ -95,6 +97,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`picker-split-cursor.e2e.ts` opens line-bearing picker results with the real picker keys (#201).** Every scenario slows `WorkspaceLeaf.openFile` by 300 ms, the condition the reporter's machine met and this vault did not.
+    - **Scenarios:** `:livegrep` in a new tab and a vertical split; `:grep` and `:headings` in a new tab; `:livegrep` in a background tab with **Always focus new tabs** off; `:livegrep` in the current tab as the control.
+    - **Before the fix:** the four tab and split scenarios landed on line 0, and the control passed.
+    - **Negative controls:**
+        - dropping the line in `openInSplit` fails the same four;
+        - placing the cursor on the active view instead of the opened leaf fails the background-tab scenario: the new tab stayed on line 0 and the note behind it moved.
+    - Tests: `test/specs/picker-split-cursor.e2e.ts` (new)
 - **`obcommand-stale-selection.e2e.ts` presses the issue's own Lua mappings (#200).** The capture command records the selection Obsidian hands to an editor command.
     - **Normal mode:** right after Escape, and after moving to another line. Both captured `beta` against the old handler.
     - **Leaving insert mode:** leaving insert mode and running the command in the same task must not revive the selection.
