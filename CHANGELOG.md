@@ -135,6 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - `captureKeys` not holding the keymap fails the hint, flash and EasyMotion scenarios;
         - the `getcharstr` broker not holding it fails only the `getcharstr` scenario;
         - either owner never releasing it fails the control after its capture.
+    - **Labels:** each label scenario puts its letter first in the hint characters. With the default `asdfghjkl`, labels reach `f` only past 78 targets, and CI's smaller window showed fewer, so the `f` scenario found no label on every platform. With five targets, the default labels reproduce that failure, and the letter-first labels pass.
     - **Unit tests:** `key-capture.test.ts` pins one push and exactly one pop across every exit, and fails if the release guard is removed or the capture never holds the keymap.
     - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new), `test/specs/capture-obsidian-hotkeys.e2e.ts` (new), `test/unit/util/key-capture.test.ts`
 - **`animated-cursor-edits.e2e.ts` reads the pixels painted on the animated-cursor canvas (#181).** Smoothing and the smear trail are off, so the paint is the resolved caret rect.
