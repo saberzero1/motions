@@ -11,11 +11,29 @@ $Archive = 'nvim-win64.zip'
 $Url = "https://github.com/neovim/neovim/releases/download/v$Version/$Archive"
 $TempDir = Join-Path ([System.IO.Path]::GetTempPath()) "vim-motions-nvim-$PID"
 
+# GitHub's release download sometimes never answers, and Invoke-WebRequest's
+# own -MaximumRetryCount retries HTTP error codes only, not a connection that
+# times out: one such timeout failed a whole Windows shard before any test
+# ran ("A connection attempt failed because the connected party did not
+# properly respond"). Retry the request itself, backing off between tries.
+function Get-Archive([string]$Uri, [string]$Path, [int]$Attempts = 4) {
+    for ($Attempt = 1; ; $Attempt++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $Path
+            return
+        } catch {
+            if ($Attempt -ge $Attempts) { throw }
+            Write-Host "::warning::Neovim download attempt $Attempt of $Attempts failed: $($_.Exception.Message)"
+            Start-Sleep -Seconds (5 * $Attempt)
+        }
+    }
+}
+
 try {
     New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
     $ArchivePath = Join-Path $TempDir $Archive
     Write-Host "Installing Neovim $Version from $Url"
-    Invoke-WebRequest -Uri $Url -OutFile $ArchivePath
+    Get-Archive -Uri $Url -Path $ArchivePath
     Expand-Archive -Path $ArchivePath -DestinationPath $TempDir -Force
 
     if (Test-Path $InstallDir) {

@@ -246,6 +246,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **A sabotage that proved nothing:** a first `KK` control written as `focusKeywordPreview(view) && false` still called the function, and passed for that reason. With the call actually removed, the scenario fails.
     - **Unit tests:** `footnote-ref.test.ts` pins footnote detection, including that `[^id]:` at the start of a line is the definition. Removing that rule fails it.
     - Tests: `test/specs/keyword-preview.e2e.ts` (new), `test/unit/workspace/footnote-ref.test.ts` (new)
+- **A Neovim download that times out no longer kills a CI shard.**
+    - **Before:** `scripts/install-neovim.ps1` called `Invoke-WebRequest` once, and a connection to GitHub's release download that never answered failed a whole Windows shard before any test ran ("A connection attempt failed because the connected party did not properly respond"). Its own `-MaximumRetryCount` retries HTTP error codes only, not that.
+    - **Windows now:** it retries the request up to four times, backing off 5, 10 and 15 seconds.
+    - **Linux and macOS:** `scripts/install-neovim.sh` now passes curl `--retry 3 --retry-all-errors`, as `fetch-test-plugins.sh` does.
+    - **Checked locally:**
+        - against a closed port, `Get-Archive`, taken from the script itself, warned, retried and then threw;
+        - the real `nvim-win64.zip` downloaded whole;
+        - `install-neovim.sh` installed Neovim and passed its API-level check.
+    - Scripts: `scripts/install-neovim.ps1`, `scripts/install-neovim.sh`
 - **`animated-cursor-edits.e2e.ts` reads the pixels painted on the animated-cursor canvas (#181).** Smoothing and the smear trail are off, so the paint is the resolved caret rect.
     - **Scenarios:** `x` and `r` under a block cursor, each compared with a fresh paint of the same position; a change that moves the caret without setting the selection; Enter outdenting an empty nested bullet, checked against CodeMirror's caret.
     - **Before the fix:** the glyph scenarios differed by 32 and 33 pixels, the old letter, and the cursor sat 37.5 and 35.7 px from the caret.
