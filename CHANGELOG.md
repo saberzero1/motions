@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Escape in a nested page preview closed the preview beneath it and left the focused one open** ([#210](https://github.com/saberzero1/motions/issues/210)). The idle-Escape guard hid the active view's `hoverPopover`, which with nested previews is the first one, and Obsidian's `hide()` keeps a child that still holds the focus. The guard now finds the popover holding the focused editor by walking `childHovers`, and hides that one. Whether the preview beneath then stays is Obsidian's own hover logic.
+    - Plugin: `src/vim/escape-guard.ts`
 - **Normal-mode `Tab` indented the line; it is now `<C-i>`, as in Vim and Neovim, and walks forward through the jump list**, cross-note entries included. The bundled engine lets functional keys it has no mapping for reach Obsidian, and normal-mode `<Tab>` had none, so Obsidian's editor keymap indented the line. In a table that turned `| aa   | 11    |` into `\t| aa   | 11    |`. In Obsidian's own table cell editor (`native` mode), `Tab` still moves to the next cell, as [#136](https://github.com/saberzero1/motions/issues/136) relies on: the mapping marks itself `fromTab`, and there the key is run through the cell editor's own keymap with CodeMirror's `runScopeHandlers`, rather than reimplementing Obsidian's cell move. Under Obsidian's own Vim key bindings the plugin registers no mappings, so `Tab` still reaches Obsidian there. Related to [#206](https://github.com/saberzero1/motions/issues/206).
     - Plugin: `src/main.ts`, `src/vim/normal-tab.ts` (new), `src/types/vim-api.d.ts`
 - **`:tablerealign` placed the content of right- and centre-aligned columns at the left edge, where Obsidian places it by the separator's colons.** The text fallbacks in `reveal` share the same formatter. Switching a table between `native` and `reveal` therefore rewrote those columns back and forth, because Obsidian's editor realigns its way on every commit. `realignTableLines` now pads exactly as Obsidian's `TableEditor.getTableString()` does: right-aligned against the right edge, centred with the odd space after the content. Widths stay in UTF-16 code units, as Obsidian measures them, so CJK and emoji rows still do not line up in a monospace grid. Matching Obsidian byte for byte was chosen over display width.
@@ -81,6 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`hover-popover-escape.e2e.ts` opens page previews by Ctrl-hovering real links**, so Obsidian's popover nesting is real, and clicks into the preview to make it an editor.
+    - **Nested preview:** fails against the old guard, with the focused preview, `Deep note text`, still open after Escape.
+    - **Single preview:** with `hide()` removed, it fails with one preview still open.
+    - Tests: `test/specs/hover-popover-escape.e2e.ts` (new)
 - **`lua-plugin-mini-comment` no longer checks the `gc` mapping at a fixed moment, or under only one of its two names.**
     - **What failed:** "gc mapping is registered after setup" failed once on a macOS runner, 200 ms after the config load. Every later scenario that presses `gc` passed in the same run.
     - **Why the old check was wrong:** `setup()` maps `gc` twice over: as `lua-action-eager-N` while the config loads, and as `lua-action-N` when `applyLuaMaps` runs on the next `reloadFeatures` or leaf change. The check accepted only the first.
