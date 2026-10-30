@@ -26,6 +26,8 @@ describe('picker Style Settings', () => {
                 'vim-motions-picker-font',
                 'vim-motions-picker-font-size',
                 'vim-motions-picker-height',
+                'vim-motions-picker-mono-icons',
+                'vim-motions-picker-no-icons',
                 'vim-motions-picker-preview-font-size',
                 'vim-motions-picker-results-width',
                 'vim-motions-picker-truncate',
@@ -44,13 +46,17 @@ describe('picker Style Settings', () => {
         expect(unused).toEqual([]);
     });
 
-    it('every picker variable a rule reads has a setting, apart from the internal depth', () => {
+    it('every picker variable a rule reads has a setting, apart from internal ones', () => {
         const read = new Set(
             [...rules.matchAll(/var\(\s*--(vim-motions-picker-[\w-]+)/g)].map(
                 (m) => m[1]!,
             ),
         );
+        // Internal: set per item by the picker, and per file type by the
+        // icon rules, which carry their own --vim-motions-icon-* overrides.
         read.delete('vim-motions-picker-depth');
+        read.delete('vim-motions-picker-icon');
+        read.delete('vim-motions-picker-icon-color');
         const listed = new Set(pickerEntries.map((e) => e.id));
 
         expect([...read].filter((id) => !listed.has(id))).toEqual([]);

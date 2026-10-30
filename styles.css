@@ -1222,6 +1222,371 @@ input.vim-motions-picker-input:focus {
     text-align: center;
 }
 
+/* --- Picker file icons --- */
+
+/* One icon per file type, painted through a mask in a theme colour, so it
+   follows light and dark themes (#171). Override any of them in a snippet:
+     --vim-motions-icon-<type>        the icon, a url() of an SVG
+     --vim-motions-icon-<type>-color  its colour
+   where <type> is file (the fallback), markdown, canvas, base, excalidraw,
+   pdf, image, svg, audio, video, table, json, text, html, css, javascript,
+   typescript, python, archive, word, presentation or epub. The body classes
+   vim-motions-picker-no-icons and vim-motions-picker-mono-icons hide them or
+   paint them all in the muted text colour.
+
+   Icons from Material Icon Theme
+   (https://github.com/material-extensions/vscode-material-icon-theme),
+   which draws on Material Design Icons (https://pictogrammers.com/library/mdi/)
+   and Material Symbols (https://fonts.google.com/icons), both under the
+   Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0):
+
+   The MIT License (MIT)
+   Copyright (c) 2025 Material Extensions
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to
+   deal in the Software without restriction, including without limitation the
+   rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+   sell copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+   IN THE SOFTWARE.
+
+   The canvas and base icons are Lucide's layout-dashboard and layout-list
+   (https://lucide.dev), the icons Obsidian itself shows for them:
+
+   ISC License
+   Copyright (c) 2026 Lucide Icons and Contributors
+
+   Permission to use, copy, modify, and/or distribute this software for any
+   purpose with or without fee is hereby granted, provided that the above
+   copyright notice and this permission notice appear in all copies.
+
+   THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+   WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+   MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+   SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+   OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+   CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
+
+.vim-motions-picker-file-icon {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-file,
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m8.668 6h3.6641l-3.6641-3.668v3.668m-4.668-4.668h5.332l4 4v8c0 0.73828-0.59375 1.3359-1.332 1.3359h-8c-0.73828 0-1.332-0.59766-1.332-1.3359v-10.664c0-0.74219 0.59375-1.3359 1.332-1.3359m3.332 1.3359h-3.332v10.664h8v-6h-4.668z' fill='%2390a4ae' /%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-file-color,
+        var(--text-muted)
+    );
+    display: inline-block;
+    width: 1.1em;
+    height: 1.1em;
+    margin-inline-end: 0.6ch;
+    vertical-align: -0.2em;
+    background-color: var(--vim-motions-picker-icon-color);
+    -webkit-mask: var(--vim-motions-picker-icon) center / contain no-repeat;
+    mask: var(--vim-motions-picker-icon) center / contain no-repeat;
+}
+
+.vim-motions-picker-file-icon[data-ext='md'],
+.vim-motions-picker-file-icon[data-ext='markdown'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-markdown,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%2342a5f5' d='m14 10-4 3.5L6 10H4v12h4v-6l2 2 2-2v6h4V10zm12 6v-6h-4v6h-4l6 8 6-8z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-markdown-color,
+        var(--color-blue)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='canvas'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-canvas,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E%3Crect width='7' height='9' x='3' y='3' rx='1' /%3E%3Crect width='7' height='5' x='14' y='3' rx='1' /%3E%3Crect width='7' height='9' x='14' y='12' rx='1' /%3E%3Crect width='7' height='5' x='3' y='16' rx='1' /%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-canvas-color,
+        var(--color-purple)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='base'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-base,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E%3Crect width='7' height='7' x='3' y='3' rx='1' /%3E%3Crect width='7' height='7' x='3' y='14' rx='1' /%3E%3Cpath d='M14 4h7' /%3E%3Cpath d='M14 9h7' /%3E%3Cpath d='M14 15h7' /%3E%3Cpath d='M14 20h7' /%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-base-color,
+        var(--color-cyan)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='excalidraw'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-excalidraw,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%235c6bc0' d='m15 1-5 1-9 10 3 3 10-9zm-4 3h1v1h-1zm1 5-3 3 4 3 2-2zM7 4 4 7 2 5 1 1l4 1z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-excalidraw-color,
+        var(--color-purple)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='pdf'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-pdf,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ef5350' d='M13 9h5.5L13 3.5zM6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m4.93 10.44c.41.9.93 1.64 1.53 2.15l.41.32c-.87.16-2.07.44-3.34.93l-.11.04.5-1.04c.45-.87.78-1.66 1.01-2.4m6.48 3.81c.18-.18.27-.41.28-.66.03-.2-.02-.39-.12-.55-.29-.47-1.04-.69-2.28-.69l-1.29.07-.87-.58c-.63-.52-1.2-1.43-1.6-2.56l.04-.14c.33-1.33.64-2.94-.02-3.6a.85.85 0 0 0-.61-.24h-.24c-.37 0-.7.39-.79.77-.37 1.33-.15 2.06.22 3.27v.01c-.25.88-.57 1.9-1.08 2.93l-.96 1.8-.89.49c-1.2.75-1.77 1.59-1.88 2.12-.04.19-.02.36.05.54l.03.05.48.31.44.11c.81 0 1.73-.95 2.97-3.07l.18-.07c1.03-.33 2.31-.56 4.03-.75 1.03.51 2.24.74 3 .74.44 0 .74-.11.91-.3m-.41-.71.09.11c-.01.1-.04.11-.09.13h-.04l-.19.02c-.46 0-1.17-.19-1.9-.51.09-.1.13-.1.23-.1 1.4 0 1.8.25 1.9.35M7.83 17c-.65 1.19-1.24 1.85-1.69 2 .05-.38.5-1.04 1.21-1.69zm3.02-6.91c-.23-.9-.24-1.63-.07-2.05l.07-.12.15.05c.17.24.19.56.09 1.1l-.03.16-.16.82z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-pdf-color,
+        var(--color-red)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='png'],
+.vim-motions-picker-file-icon[data-ext='jpg'],
+.vim-motions-picker-file-icon[data-ext='jpeg'],
+.vim-motions-picker-file-icon[data-ext='gif'],
+.vim-motions-picker-file-icon[data-ext='webp'],
+.vim-motions-picker-file-icon[data-ext='bmp'],
+.vim-motions-picker-file-icon[data-ext='avif'],
+.vim-motions-picker-file-icon[data-ext='ico'],
+.vim-motions-picker-file-icon[data-ext='tif'],
+.vim-motions-picker-file-icon[data-ext='tiff'],
+.vim-motions-picker-file-icon[data-ext='heic'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-image,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2326a69a' d='M8.5 6h4l-4-4zM3.875 1H9.5l4 4v8.6c0 .773-.616 1.4-1.375 1.4h-8.25c-.76 0-1.375-.627-1.375-1.4V2.4c0-.777.612-1.4 1.375-1.4M4 13.6h8V8l-2.625 2.8L8 9.4zm1.25-7.7c-.76 0-1.375.627-1.375 1.4s.616 1.4 1.375 1.4c.76 0 1.375-.627 1.375-1.4S6.009 5.9 5.25 5.9'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-image-color,
+        var(--color-green)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='svg'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-svg,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ffb300' d='M29.168 14.03a2.7 2.7 0 0 0-1.968-.83 2.51 2.51 0 0 0-1.929.8h-4.443l3.078-3.078a2.835 2.835 0 0 0 2.857-2.842 2.6 2.6 0 0 0-.831-1.969 2.82 2.82 0 0 0-2.014-.788 2.67 2.67 0 0 0-1.968.788 2.36 2.36 0 0 0-.812 1.922L18 11.17V6.726a2.51 2.51 0 0 0 .8-1.929 2.7 2.7 0 0 0-.832-1.968 2.745 2.745 0 0 0-3.936 0 2.7 2.7 0 0 0-.832 1.968 2.51 2.51 0 0 0 .8 1.93v4.443l-3.138-3.138a2.36 2.36 0 0 0-.812-1.922 2.66 2.66 0 0 0-1.968-.788 2.83 2.83 0 0 0-2.014.788 2.6 2.6 0 0 0-.831 1.969 2.74 2.74 0 0 0 .831 2.013 2.8 2.8 0 0 0 2.026.829l3.078 3.078H6.729a2.51 2.51 0 0 0-1.929-.8 2.7 2.7 0 0 0-1.968.831 2.745 2.745 0 0 0 0 3.937 2.7 2.7 0 0 0 1.968.832 2.51 2.51 0 0 0 1.929-.8h4.443l-3.078 3.077a2.835 2.835 0 0 0-2.857 2.842 2.6 2.6 0 0 0 .831 1.969 2.82 2.82 0 0 0 2.014.788 2.67 2.67 0 0 0 1.968-.788 2.36 2.36 0 0 0 .812-1.922L14 20.827v4.444a2.51 2.51 0 0 0-.8 1.929 2.784 2.784 0 0 0 4.768 1.968A2.7 2.7 0 0 0 18.8 27.2a2.51 2.51 0 0 0-.8-1.929v-4.444l3.138 3.138a2.36 2.36 0 0 0 .812 1.922 2.66 2.66 0 0 0 1.968.788 2.83 2.83 0 0 0 2.014-.788 2.6 2.6 0 0 0 .831-1.969 2.74 2.74 0 0 0-.831-2.013 2.8 2.8 0 0 0-2.026-.829L20.828 18h4.443a2.51 2.51 0 0 0 1.93.8 2.784 2.784 0 0 0 1.967-4.769Z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-svg-color,
+        var(--color-yellow)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='mp3'],
+.vim-motions-picker-file-icon[data-ext='wav'],
+.vim-motions-picker-file-icon[data-ext='ogg'],
+.vim-motions-picker-file-icon[data-ext='m4a'],
+.vim-motions-picker-file-icon[data-ext='flac'],
+.vim-motions-picker-file-icon[data-ext='aac'],
+.vim-motions-picker-file-icon[data-ext='opus'],
+.vim-motions-picker-file-icon[data-ext='3gp'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-audio,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ef5350' d='M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2m6 10h-4v8a4 4 0 1 1-4-4 3.96 3.96 0 0 1 2 .555V8h6Z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-audio-color,
+        var(--color-pink)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='mp4'],
+.vim-motions-picker-file-icon[data-ext='webm'],
+.vim-motions-picker-file-icon[data-ext='mov'],
+.vim-motions-picker-file-icon[data-ext='mkv'],
+.vim-motions-picker-file-icon[data-ext='ogv'],
+.vim-motions-picker-file-icon[data-ext='m4v'],
+.vim-motions-picker-file-icon[data-ext='avi'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-video,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ff9800' d='m24 6 2 6h-4l-2-6h-3l2 6h-4l-2-6h-3l2 6H8L6 6H5a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3V6Z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-video-color,
+        var(--color-orange)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='csv'],
+.vim-motions-picker-file-icon[data-ext='tsv'],
+.vim-motions-picker-file-icon[data-ext='xlsx'],
+.vim-motions-picker-file-icon[data-ext='xls'],
+.vim-motions-picker-file-icon[data-ext='ods'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-table,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%238bc34a' d='M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zm4 7.5h-4v2h1l-2 1.67L10 13h1v-2H7v2h1l3 2.5L8 18H7v2h4v-2h-1l2-1.67L14 18h-1v2h4v-2h-1l-3-2.5 3-2.5h1z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-table-color,
+        var(--color-green)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='json'],
+.vim-motions-picker-file-icon[data-ext='jsonc'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-json,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath fill='%23f9a825' d='M560-160v-80h120q17 0 28.5-11.5T720-280v-80q0-38 22-69t58-44v-14q-36-13-58-44t-22-69v-80q0-17-11.5-28.5T680-720H560v-80h120q50 0 85 35t35 85v80q0 17 11.5 28.5T840-560h40v160h-40q-17 0-28.5 11.5T800-360v80q0 50-35 85t-85 35zm-280 0q-50 0-85-35t-35-85v-80q0-17-11.5-28.5T120-400H80v-160h40q17 0 28.5-11.5T160-600v-80q0-50 35-85t85-35h120v80H280q-17 0-28.5 11.5T240-680v80q0 38-22 69t-58 44v14q36 13 58 44t22 69v80q0 17 11.5 28.5T280-240h120v80z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-json-color,
+        var(--color-yellow)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='txt'],
+.vim-motions-picker-file-icon[data-ext='log'],
+.vim-motions-picker-file-icon[data-ext='text'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-text,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath d='M0 0h24v24H0z'/%3E%3Cpath fill='%2342a5f5' d='M8 16h8v2H8zm0-4h8v2H8zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm4 18H6V4h7v5h5z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-text-color,
+        var(--text-muted)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='html'],
+.vim-motions-picker-file-icon[data-ext='htm'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-html,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23e65100' d='m4 4 2 22 10 2 10-2 2-22Zm19.72 7H11.28l.29 3h11.86l-.802 9.335L15.99 25l-6.635-1.646L8.93 19h3.02l.19 2 3.86.77 3.84-.77.29-4H8.84L8 8h16Z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-html-color,
+        var(--color-orange)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='css'],
+.vim-motions-picker-file-icon[data-ext='scss'],
+.vim-motions-picker-file-icon[data-ext='less'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-css,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%237e57c2' d='M20 18h-2v-2h-2v2c0 .193 0 .703 1.254 1.033A3.345 3.345 0 0 1 20 22h2v2h2v-2c0-.388-.562-.851-1.254-1.034C20.356 20.34 20 18.84 20 18m-3.254 2.966C14.356 20.34 14 18.84 14 18h-2v-2h-2v8h2v-2h4v2h2v-2c0-.388-.562-.851-1.254-1.034'/%3E%3Cpath fill='%237e57c2' d='M24 4H4v20a4 4 0 0 0 4 4h16.16A3.84 3.84 0 0 0 28 24.16V8a4 4 0 0 0-4-4m2 14h-2v-2h-2v2c0 .193 0 .703 1.254 1.033A3.345 3.345 0 0 1 26 22v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1 2-2h2a2 2 0 0 1 2 2Z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-css-color,
+        var(--color-purple)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='js'],
+.vim-motions-picker-file-icon[data-ext='mjs'],
+.vim-motions-picker-file-icon[data-ext='cjs'],
+.vim-motions-picker-file-icon[data-ext='jsx'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-javascript,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23ffca28' d='M2 2v12h12V2zm6 6h1v4a1.003 1.003 0 0 1-1 1H7a1.003 1.003 0 0 1-1-1v-1h1v1h1zm3 0h2v1h-2v1h1a1.003 1.003 0 0 1 1 1v1a1.003 1.003 0 0 1-1 1h-2v-1h2v-1h-1a1.003 1.003 0 0 1-1-1V9a1.003 1.003 0 0 1 1-1'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-javascript-color,
+        var(--color-yellow)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='ts'],
+.vim-motions-picker-file-icon[data-ext='mts'],
+.vim-motions-picker-file-icon[data-ext='cts'],
+.vim-motions-picker-file-icon[data-ext='tsx'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-typescript,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xml:space='preserve' viewBox='0 0 16 16'%3E%3Cpath fill='%230288d1' d='M2 2v12h12V2zm4 6h3v1H8v4H7V9H6zm5 0h2v1h-2v1h1a1.003 1.003 0 0 1 1 1v1a1.003 1.003 0 0 1-1 1h-2v-1h2v-1h-1a1.003 1.003 0 0 1-1-1V9a1.003 1.003 0 0 1 1-1'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-typescript-color,
+        var(--color-blue)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='py'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-python,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230288d1' d='M9.86 2A2.86 2.86 0 0 0 7 4.86v1.68h4.29c.39 0 .71.57.71.96H4.86A2.86 2.86 0 0 0 2 10.36v3.781a2.86 2.86 0 0 0 2.86 2.86h1.18v-2.68a2.85 2.85 0 0 1 2.85-2.86h5.25c1.58 0 2.86-1.271 2.86-2.851V4.86A2.86 2.86 0 0 0 14.14 2zm-.72 1.61c.4 0 .72.12.72.71s-.32.891-.72.891c-.39 0-.71-.3-.71-.89s.32-.711.71-.711'/%3E%3Cpath fill='%23fdd835' d='M17.959 7v2.68a2.85 2.85 0 0 1-2.85 2.859H9.86A2.85 2.85 0 0 0 7 15.389v3.75a2.86 2.86 0 0 0 2.86 2.86h4.28A2.86 2.86 0 0 0 17 19.14v-1.68h-4.291c-.39 0-.709-.57-.709-.96h7.14A2.86 2.86 0 0 0 22 13.64V9.86A2.86 2.86 0 0 0 19.14 7zM8.32 11.513l-.004.004.038-.004zm6.54 7.276c.39 0 .71.3.71.89a.71.71 0 0 1-.71.71c-.4 0-.72-.12-.72-.71s.32-.89.72-.89'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-python-color,
+        var(--color-blue)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='zip'],
+.vim-motions-picker-file-icon[data-ext='gz'],
+.vim-motions-picker-file-icon[data-ext='tar'],
+.vim-motions-picker-file-icon[data-ext='tgz'],
+.vim-motions-picker-file-icon[data-ext='7z'],
+.vim-motions-picker-file-icon[data-ext='rar'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-archive,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23afb42b' d='M14 17h-2v-2h-2v-2h2v2h2m0-6h-2v2h2v2h-2v-2h-2V9h2V7h-2V5h2v2h2m5-4H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-archive-color,
+        var(--color-yellow)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='docx'],
+.vim-motions-picker-file-icon[data-ext='doc'],
+.vim-motions-picker-file-icon[data-ext='odt'],
+.vim-motions-picker-file-icon[data-ext='rtf'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-word,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2301579b' d='M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zM7 13l1.5 7h2l1.5-3 1.5 3h2l1.5-7h1v-2h-4v2h1l-.9 4.2L13 15h-2l-1.1 2.2L9 13h1v-2H6v2z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-word-color,
+        var(--color-blue)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='pptx'],
+.vim-motions-picker-file-icon[data-ext='ppt'],
+.vim-motions-picker-file-icon[data-ext='odp'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-presentation,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23e64a19' d='M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zM8 11v2h1v6H8v1h4v-1h-1v-2h2a3 3 0 0 0 3-3 3 3 0 0 0-3-3zm5 2a1 1 0 0 1 1 1 1 1 0 0 1-1 1h-2v-2z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-presentation-color,
+        var(--color-orange)
+    );
+}
+
+.vim-motions-picker-file-icon[data-ext='epub'] {
+    --vim-motions-picker-icon: var(
+        --vim-motions-icon-epub,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%238bc34a' d='M8 12.401 3.601 8 8 3.601l1.468 1.466L6.534 8 8 9.467l4.4-4.4-3.833-3.832a.8.8 0 0 0-1.133 0L1.235 7.434a.8.8 0 0 0 0 1.133l6.199 6.199a.8.8 0 0 0 1.133 0l6.199-6.199a.803.803 0 0 0 0-1.133l-.9-.899z'/%3E%3C/svg%3E")
+    );
+    --vim-motions-picker-icon-color: var(
+        --vim-motions-icon-epub-color,
+        var(--color-green)
+    );
+}
+
+.vim-motions-picker-mono-icons .vim-motions-picker-file-icon {
+    background-color: var(--text-muted);
+}
+
+.vim-motions-picker-no-icons .vim-motions-picker-file-icon {
+    display: none;
+}
+
 @media (max-width: 600px) {
     .vim-motions-picker-preview {
         display: none;
@@ -1484,6 +1849,17 @@ settings:
         id: vim-motions-picker-truncate
         title: Truncate long names
         description: End long names with an ellipsis instead of wrapping them.
+        type: class-toggle
+        default: false
+    -
+        id: vim-motions-picker-no-icons
+        title: Hide file icons
+        type: class-toggle
+        default: false
+    -
+        id: vim-motions-picker-mono-icons
+        title: One colour for file icons
+        description: Paint every file icon in the muted text colour instead of a colour per file type.
         type: class-toggle
         default: false
 */

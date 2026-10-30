@@ -3,7 +3,7 @@ import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJump } from '../../workspace/navigate';
-import { pickerFileName } from './display-name';
+import { pickerFileName, pickerFileType } from './display-name';
 
 const MAX_RECENTS = 50;
 const recentFiles: string[] = [];
@@ -35,6 +35,7 @@ export function createRecentSource(
             return recentFiles.map((path): PickerItem => ({
                 id: path,
                 label: pickerFileName(path),
+                fileType: pickerFileType(path),
                 description: path,
                 filterValue: path,
                 data: { path },

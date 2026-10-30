@@ -217,7 +217,7 @@ When `pickerLeaderMappings` is enabled (default: on), the following bindings are
 
 `:files` opens the fuzzy picker for all vault files, including canvas, base, and other non-markdown file types.
 
-Notes are listed without `.md`, and any other file with its extension (`report.pdf`, `diagram.canvas`), as Obsidian's quick switcher lists them, so a PDF and a note of the same name stay apart. `:buffers` and `:recent` list files the same way.
+Notes are listed without `.md`, and any other file with its extension (`report.pdf`, `diagram.canvas`), as Obsidian's quick switcher lists them, so a PDF and a note of the same name stay apart. `:buffers` and `:recent` list files the same way. Each file also has an icon for its type, which [[style-settings#Picker file icons]] describes how to restyle.
 
 ### `:outline` and `gO` — headings in the current note
 

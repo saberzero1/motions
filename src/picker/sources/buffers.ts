@@ -4,7 +4,7 @@ import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJumpSetActive } from '../../workspace/navigate';
-import { pickerFileName } from './display-name';
+import { pickerFileName, pickerFileType } from './display-name';
 
 export function createBuffersSource(
     getNonMarkdownPreview: () => NonMarkdownPreviewMode,
@@ -33,6 +33,7 @@ export function createBuffersSource(
                 items.push({
                     id: path || basename,
                     label: basename,
+                    fileType: path ? pickerFileType(path) : undefined,
                     description: `${active}${path}`.trim(),
                     filterValue: `${basename} ${path}`,
                     data: { path },

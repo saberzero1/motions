@@ -454,6 +454,12 @@ export class PickerModal extends Modal {
         const labelEl = itemEl.createDiv({
             cls: 'vim-motions-picker-item-label',
         });
+        if (match.item.fileType !== undefined) {
+            labelEl.createSpan({
+                cls: 'vim-motions-picker-file-icon',
+                attr: { 'data-ext': match.item.fileType },
+            });
+        }
         if (match.item.depth) {
             labelEl.style.setProperty(
                 '--vim-motions-picker-depth',
