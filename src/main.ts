@@ -174,7 +174,10 @@ import {
 } from './vim/visual-line-command-fix';
 import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
 import { createAnimatedCursorExtension } from './vim/animated-cursor/controller';
-import { installEscapeGuard } from './vim/escape-guard';
+import {
+    installEscapeGuard,
+    installHoverPreviewQuit,
+} from './vim/escape-guard';
 import {
     setAnimatedCursorConfig,
     setCursorShapes,
@@ -828,6 +831,8 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async onload() {
+        // Once per load, not per vim toggle: it registers a DOM listener.
+        installHoverPreviewQuit(this.app, this);
         this.neovimConnection = new NeovimConnection(
             this.app,
             () => this.registration,

@@ -113,6 +113,52 @@ function hoverEventAtCursor(cm: CmAdapter, targetEl: HTMLElement): MouseEvent {
     });
 }
 
+/** The id of the footnote reference `[^id]` under `ch`, if there is one. */
+export function findFootnoteRefAtCursor(
+    lineText: string,
+    ch: number,
+): string | null {
+    for (const match of lineText.matchAll(/\[\^([^\]\s]+)\]/g)) {
+        const start = match.index;
+        const end = start + match[0].length;
+        if (ch < start || ch >= end) continue;
+        // `[^id]:` at the start of a line is the definition, not a reference.
+        if (start === 0 && lineText[end] === ':') return null;
+        return match[1] ?? null;
+    }
+    return null;
+}
+
+/** The parts of Obsidian's HoverPopover that a second `K` reads. */
+interface KeywordPopover {
+    hoverEl?: HTMLElement;
+    embed?: { showEditor?: () => void; editor?: { focus(): void } };
+}
+
+/** Where the last `K` opened a preview: a second `K` there focuses it. */
+let lastKeywordPreview: { view: MarkdownView; offset: number } | null = null;
+
+/**
+ * Moves into the preview the previous `K` opened, as Neovim's hover does:
+ * "KK" opens the hover window and focuses it (`:help vim.lsp.buf.hover()`).
+ * Only with the cursor where that `K` left it, since Neovim closes the hover
+ * window when the cursor moves. `showEditor()` is what a click into the
+ * preview does (#208).
+ */
+function focusKeywordPreview(view: MarkdownView, offset: number): boolean {
+    const last = lastKeywordPreview;
+    if (last?.view !== view || last.offset !== offset) return false;
+    const popover = (
+        view as unknown as { hoverPopover?: KeywordPopover | null }
+    ).hoverPopover;
+    if (!popover?.hoverEl?.isConnected) return false;
+    const embed = popover.embed;
+    if (!embed?.showEditor) return false;
+    embed.showEditor();
+    embed.editor?.focus();
+    return true;
+}
+
 function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
     return () => {
         const view = app.workspace.getActiveViewOfType(MarkdownView);
@@ -120,12 +166,30 @@ function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
         const cm = getCmAdapter(view);
         if (!cm) return;
         const cursor = cm.getCursor();
+        const offset = cm.indexFromPos(cursor);
+        if (focusKeywordPreview(view, offset)) return;
+        lastKeywordPreview = null;
         const lineText = cm.getLine(cursor.line);
+        const footnote = findFootnoteRefAtCursor(lineText, cursor.ch);
+        if (footnote) {
+            lastKeywordPreview = { view, offset };
+            // Obsidian's own footnote hover sends exactly this (#209).
+            app.workspace.trigger('hover-link', {
+                event: hoverEventAtCursor(cm, view.contentEl),
+                source: 'preview',
+                hoverParent: view,
+                targetEl: view.contentEl,
+                linktext: `#[^${footnote}]`,
+                sourcePath: view.file?.path ?? '',
+            });
+            return;
+        }
         const link = findLinkAtCursor(lineText, cursor.ch);
         if (link) {
             if (link.isExternal) {
                 window.open(link.target);
             } else {
+                lastKeywordPreview = { view, offset };
                 const sourcePath = view.file?.path ?? '';
                 app.workspace.trigger('hover-link', {
                     event: hoverEventAtCursor(cm, view.contentEl),

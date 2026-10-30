@@ -1,9 +1,11 @@
-import { type App, MarkdownView } from 'obsidian';
+import { type App, type Component, MarkdownView } from 'obsidian';
+import { EditorView } from '@codemirror/view';
 import { Vim } from '@replit/codemirror-vim';
 import type { VimIdleState } from '../editors/embeddable-editor';
 import { isHintModeActive } from '../ui/hint-mode';
 import { isEasyMotionActive } from '../easymotion/register';
 import { isFlashActive } from '../flash/state';
+import { getCmAdapterFromEditorView } from './vim-api';
 
 interface CmAdapter {
     cm6: { dom: Element; contentDOM: HTMLElement };
@@ -77,4 +79,60 @@ export function installEscapeGuard(app: App): void {
             });
         }
     });
+}
+
+/** Engine state read to decide that `q` would start a new command. */
+interface QuitState {
+    insertMode?: boolean;
+    visualMode?: boolean;
+    inputState?: { operator?: string; keyBuffer?: string[] };
+    surroundState?: unknown;
+    expectLiteralNext?: boolean;
+}
+
+function idleNormal(vim: QuitState | undefined): boolean {
+    if (!vim || vim.insertMode || vim.visualMode) return false;
+    if (vim.inputState?.operator) return false;
+    if ((vim.inputState?.keyBuffer?.length ?? 0) > 0) return false;
+    return !vim.surroundState && !vim.expectLiteralNext;
+}
+
+function recordingMacro(): boolean {
+    const state = (
+        Vim as unknown as {
+            getVimGlobalState_?: () => {
+                macroModeState?: { isRecording?: boolean };
+            };
+        }
+    ).getVimGlobalState_?.();
+    return state?.macroModeState?.isRecording === true;
+}
+
+/**
+ * `q` closes the page preview the cursor is in, as `q` dismisses Neovim's
+ * hover window ("all commands and mappings are available as usual, except
+ * that "q" dismisses the window"). Only in normal mode with nothing pending,
+ * and not while recording a macro, so `q` still ends a recording (#208).
+ */
+export function installHoverPreviewQuit(app: App, owner: Component): void {
+    owner.registerDomEvent(
+        document,
+        'keydown',
+        (e: KeyboardEvent) => {
+            if (e.key !== 'q' || e.ctrlKey || e.altKey || e.metaKey) return;
+            const target = e.target instanceof Element ? e.target : null;
+            if (!target?.closest('.hover-popover')) return;
+            const editorEl = target.closest<HTMLElement>('.cm-editor');
+            const view = editorEl ? EditorView.findFromDOM(editorEl) : null;
+            const cm = view ? getCmAdapterFromEditorView(view) : null;
+            const vim = (
+                cm as unknown as { state?: { vim?: QuitState } } | null
+            )?.state?.vim;
+            if (!idleNormal(vim) || recordingMacro()) return;
+            if (!dismissParentPopover(app, target)) return;
+            e.preventDefault();
+            e.stopPropagation();
+        },
+        true,
+    );
 }
