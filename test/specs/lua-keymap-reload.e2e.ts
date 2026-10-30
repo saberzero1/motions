@@ -12,11 +12,15 @@ import { getRegisterContent, loadLuaConfig, setupEditor } from '../helpers';
  * no-op until the next restart. Measured before the fix: the mapping was
  * still listed, and pressing it did nothing.
  *
- * Alt chords, because Obsidian binds none of them by default.
+ * Function keys: Obsidian binds none of F7 and F8 by default, and WebDriver
+ * delivers them alike on every platform. Alt chords failed on macOS: the
+ * engine reads a lone Option there as a composed character, and WebDriver
+ * sends Option+y as `y` rather than the `¥` a real keyboard types, so the
+ * mapping never fired.
  */
 
 const LUA = [
-    "vim.keymap.set('n', '<A-y>', function() vim.fn.setreg('z', 'fired') end)",
+    "vim.keymap.set('n', '<F7>', function() vim.fn.setreg('z', 'fired') end)",
 ].join('\n');
 
 async function reloadFeatures(): Promise<void> {
@@ -50,8 +54,7 @@ async function pressMapping(): Promise<string | null> {
     });
     await browser.keys(['Escape']);
     await browser.pause(200);
-    await browser.keys([Key.Alt, 'y']);
-    await browser.keys([Key.Alt]);
+    await browser.keys([Key.F7]);
     await browser.pause(400);
     return (await getRegisterContent('z'))?.text ?? null;
 }
