@@ -1,12 +1,12 @@
 ---
 title: Style customization
-description: Customize EasyMotion labels, hint mode labels, and powerline colors via CSS custom properties or the Style Settings plugin.
+description: Customize EasyMotion labels, hint mode labels, powerline colors and the picker via CSS custom properties or the Style Settings plugin.
 tags:
     - guide
     - configuration
 ---
 
-Vim Motions' visual elements — EasyMotion labels, hint mode labels, and the powerline status bar — can be customized via CSS custom properties or the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin.
+Vim Motions' visual elements — EasyMotion labels, hint mode labels, the powerline status bar and the fuzzy picker — can be customized via CSS custom properties or the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin.
 
 ## CSS custom properties
 
@@ -59,9 +59,28 @@ body {
 
 All these properties are configurable via the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin with separate light and dark mode defaults.
 
+### Picker
+
+The fuzzy picker's fonts, sizes and layout follow these properties. Leave one unset and it keeps the picker's default:
+
+```css
+body {
+    --vim-motions-picker-font: var(
+        --font-interface
+    ); /* results font, default monospace */
+    --vim-motions-picker-font-size: 14px; /* results label size, default 13px */
+    --vim-motions-picker-preview-font-size: 13px; /* preview text, default 12px */
+    --vim-motions-picker-width: 70vw; /* default: Obsidian's dialog width */
+    --vim-motions-picker-height: 60vh; /* list and preview height, default 50vh */
+    --vim-motions-picker-results-width: 40%; /* results beside the preview, default 25-30% */
+}
+```
+
+Add the class `vim-motions-picker-truncate` to `body` to end long names with an ellipsis instead of wrapping them. The Style Settings plugin offers all of these, plus that toggle, under **Picker**.
+
 ## Style Settings plugin
 
-If you have the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin installed, Vim Motions exposes its color properties in the Style Settings panel with separate light and dark mode defaults. No CSS snippets needed — configure colors directly in the UI.
+If you have the [Style Settings](https://github.com/obsidian-community/obsidian-style-settings) plugin installed, Vim Motions exposes its color properties in the Style Settings panel with separate light and dark mode defaults, and the picker's fonts, sizes and layout under **Picker**. No CSS snippets needed — configure colors directly in the UI.
 
 ## Label font size
 

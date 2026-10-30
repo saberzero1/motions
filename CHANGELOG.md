@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The picker's fonts, sizes and layout can be changed with CSS variables or the Style Settings plugin** ([#171](https://github.com/saberzero1/motions/issues/171)).
+    - **Variables:** `--vim-motions-picker-font`, `--vim-motions-picker-font-size`, `--vim-motions-picker-preview-font-size`, `--vim-motions-picker-width`, `--vim-motions-picker-height` and `--vim-motions-picker-results-width`.
+    - **Truncation:** the body class `vim-motions-picker-truncate` ends long names with an ellipsis instead of wrapping them.
+    - **Style Settings:** all of these appear in a new **Picker** section. Each `var()` falls back to the picker's own default, so leaving one unset changes nothing.
+    - **Padding:** the first result now clears the floating "Results" title it overlapped by 4px.
+
 - **`<C-y>` in a picker yanks the selected item** ([#171](https://github.com/saberzero1/motions/issues/171)).
     - **What it yanks:** from `:commands`, which `:obcommand` with no argument opens, the command id that `:obcommand`, vimrc and Lua take. From `:files`, `:buffers` and `:recent`, the file's path. Elsewhere, the item's label.
     - **How:** it goes through the register controller as `y` does, so the text lands in the unnamed register and register `0`, and in the system clipboard when `clipboard` is `unnamed` or `unnamedplus`. Then the picker closes, so `p` pastes it.
@@ -166,6 +172,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Labels:** each label scenario puts its letter first in the hint characters. With the default `asdfghjkl`, labels reach `f` only past 78 targets, and CI's smaller window showed fewer, so the `f` scenario found no label on every platform. With five targets, the default labels reproduce that failure, and the letter-first labels pass.
     - **Unit tests:** `key-capture.test.ts` pins one push and exactly one pop across every exit, and fails if the release guard is removed or the capture never holds the keymap.
     - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new), `test/specs/capture-obsidian-hotkeys.e2e.ts` (new), `test/unit/util/key-capture.test.ts`
+- **`picker-style.e2e.ts` reads the picker's computed styles (#171).**
+    - **Scenarios:** unset, it matches the previous values and the first result clears the title; the font, size, width and height variables and the truncation class take effect; the preview font size and the results column beside the preview take effect.
+    - **Against the previous CSS:** all three fail. The first result overlapped the title by 4px, and the variables had no effect.
+    - **A slip it caught:** a first edit put the width variable on the prompt modals' rule, which had the same two lines, instead of the picker's.
+    - **Unit tests:** `picker-style-settings.test.ts` pins the Style Settings ids to the variables and class the CSS reads, both ways. A typo in one id fails all three of its tests.
+    - Tests: `test/specs/picker-style.e2e.ts` (new), `test/unit/picker-style-settings.test.ts` (new)
 - **`picker-yank.e2e.ts` presses `<C-y>` in real pickers (#171).**
     - **Scenarios:** a command from `:obcommand` yanks its id into `"` and `0` and closes the picker; a file from `:files` yanks its path; a keymap saved without `yank` still gets it after a reload.
     - **Before the change:** `<C-y>` did nothing and left the picker open.

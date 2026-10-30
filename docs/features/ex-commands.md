@@ -107,7 +107,7 @@ From normal mode, `:ob` runs at the cursor and ignores the last visual selection
 
 ## Picker commands
 
-The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)-style search across vault content. The picker uses a terminal-inspired visual presentation with monospace fonts, compact item density, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables for full theme compatibility. All picker commands are available in both editor and non-editor views.
+The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)-style search across vault content. The picker uses a terminal-inspired visual presentation with monospace fonts, compact item density, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables for full theme compatibility, and its fonts, sizes and layout can be changed with CSS variables or the Style Settings plugin (see [[style-settings#Picker]]). All picker commands are available in both editor and non-editor views.
 
 When the optional Neovim RPC backend is connected, picker leader actions and the commands below are generated in Neovim and dispatched to the same Obsidian picker. Query arguments such as `:grep foo`, named sources such as `:Picker headings`, and `:resume` state are preserved. After the modal opens, its own keymap handles navigation and selection; opening a file then re-seeds Neovim with that note.
 
