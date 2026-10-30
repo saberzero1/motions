@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **EasyMotion motions have vim-easymotion's `<Plug>` names, including the bidirectional ones that had no key** ([#205](https://github.com/saberzero1/motions/issues/205)).
+    - **Names:** `<Plug>(easymotion-bd-w)`, `-bd-e`, `-bd-W`, `-bd-E`, `-bd-jk`, `-bd-t` and `-bd-f`, and one for every motion with a default key (`-f`, `-w`, `-j` and so on) plus `-repeat`. The bidirectional motions existed but were unreachable, and the docs' advice to remap "using the internal command names" led nowhere.
+    - **Use:** a key mapped to a `<Plug>` name keeps the motion's behaviour after an operator, in visual mode, with a count and under dot-repeat. A Lua function mapping would run as an action instead.
+    - **Non-recursive mappings:** `nnoremap` and a plain `vim.keymap.set` are non-recursive, and the engine did not remap a `<Plug>` name from a non-recursive right-hand side, as Vim and Neovim do. It ran the name as literal keys, and their `i` inserted text into the note.
+        - **Measured on Neovim 0.12.5:** `nnoremap Q <Plug>(down)l` with `nmap <Plug>(down) j` runs `j` and then a plain `l`.
+        - **Where it is fixed:** in the codemirror-vim fork, which this needs at 6.4.7.
+
 - **The picker's fonts, sizes and layout can be changed with CSS variables or the Style Settings plugin** ([#171](https://github.com/saberzero1/motions/issues/171)).
     - **Variables:** `--vim-motions-picker-font`, `--vim-motions-picker-font-size`, `--vim-motions-picker-preview-font-size`, `--vim-motions-picker-width`, `--vim-motions-picker-height` and `--vim-motions-picker-results-width`.
     - **Truncation:** the body class `vim-motions-picker-truncate` ends long names with an ellipsis instead of wrapping them.
@@ -172,6 +179,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Labels:** each label scenario puts its letter first in the hint characters. With the default `asdfghjkl`, labels reach `f` only past 78 targets, and CI's smaller window showed fewer, so the `f` scenario found no label on every platform. With five targets, the default labels reproduce that failure, and the letter-first labels pass.
     - **Unit tests:** `key-capture.test.ts` pins one push and exactly one pop across every exit, and fails if the release guard is removed or the capture never holds the keymap.
     - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new), `test/specs/capture-obsidian-hotkeys.e2e.ts` (new), `test/unit/util/key-capture.test.ts`
+- **`easymotion-plug.e2e.ts` maps F-keys to `<Plug>(easymotion-...)` names and presses them (#205).**
+    - **Scenarios:** `bd-w` labels words on both sides and jumps back; it still works after `d`; it is reached from a plain `vim.keymap.set` (non-recursive) and from `nmap`.
+    - **Fork 6.4.6:** the non-recursive scenario fails, and the other three pass.
+    - **Fork with the fix:** all four pass.
+    - **Negative controls:** leaving the `<Plug>` names unregistered fails all four. The fork's `vim_noremap_plug` test fails with its change reverted and the bundle rebuilt.
+    - Tests: `test/specs/easymotion-plug.e2e.ts` (new); fork: `test/vim_test.js` (`vim_noremap_plug`)
 - **`picker-style.e2e.ts` reads the picker's computed styles (#171).**
     - **Scenarios:** unset, it matches the previous values and the first result clears the title; the font, size, width and height variables and the truncation class take effect; the preview font size and the results column beside the preview take effect.
     - **Against the previous CSS:** all three fail. The first result overlapped the title by 4px, and the variables had no effect.
