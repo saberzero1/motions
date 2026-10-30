@@ -192,7 +192,7 @@ import { BufferKeymapManager, VimMapUnmap } from './lua/buffer';
 import type { LuaLoadResult } from './lua/loader';
 import { observeKeyEvent } from './workspace/key-observer';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
-import { injectVimApi } from './lua/api';
+import { getCallbackAdapter, injectVimApi } from './lua/api';
 import { injectVimFn } from './lua/fn';
 import { AutocmdManager } from './lua/autocmd';
 import {
@@ -2301,6 +2301,12 @@ export default class VimMotionsPlugin extends Plugin {
         }
         activateOptionNotifications();
         this.registration = new VimRegistration(vim);
+        // The previous registration's unregisterAll() redefined every Lua
+        // action it held as a no-op. applyLuaMaps only defines an action
+        // whose name it has not seen, so the names must go with it, or every
+        // Lua function mapping stays mapped to a no-op after a settings
+        // change runs reloadFeatures().
+        this.luaActionNames.clear();
 
         this.matcher?.dispose();
         this.matcher = createMatcher(this.settings.pickerMatcherEngine);
@@ -3802,6 +3808,12 @@ export default class VimMotionsPlugin extends Plugin {
             vim.resetKeymap();
         }
         this.registration = new VimRegistration(vim);
+        // The previous registration's unregisterAll() redefined every Lua
+        // action it held as a no-op. applyLuaMaps only defines an action
+        // whose name it has not seen, so the names must go with it, or every
+        // Lua function mapping stays mapped to a no-op after a settings
+        // change runs reloadFeatures().
+        this.luaActionNames.clear();
 
         // :ob must be re-registered unconditionally (unregisterAll noops it)
         registerObCommand(this.registration, this.app, {
@@ -5666,16 +5678,21 @@ export default class VimMotionsPlugin extends Plugin {
         // executes immediately instead of queuing.
         this.luaDeactivateRuntimeEx?.();
         luaResult.activateRuntimeExHandler?.((command: string) => {
-            const rtView = this.app.workspace.getActiveViewOfType(MarkdownView);
-            if (!rtView) {
+            // From a mapping, the editor the key fired in — a text-area
+            // overlay or another embedded editor is not the active note
+            // (#211). From a timer or an autocmd, the active note.
+            const fromMapping = getCallbackAdapter();
+            const rtView = fromMapping
+                ? null
+                : this.app.workspace.getActiveViewOfType(MarkdownView);
+            const rtCm = fromMapping ?? (rtView ? getCmAdapter(rtView) : null);
+            if (!rtCm) {
                 console.warn(
                     'Vim Motions: vim.cmd() called with no active editor — command skipped:',
                     command,
                 );
                 return;
             }
-            const rtCm = getCmAdapter(rtView);
-            if (!rtCm) return;
             try {
                 vim.handleEx(rtCm, command);
             } catch (e) {

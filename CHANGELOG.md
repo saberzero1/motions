@@ -47,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Lua function mappings stopped working after any settings change that ran `reloadFeatures()`, until Obsidian restarted.** The registration's `unregisterAll()` redefines every action it held as a no-op. `applyLuaMaps` then remapped the keys but redefined only actions whose names it had not seen. Found while testing #211, where enabling text-area vim killed the mappings under test. The recorded names are now cleared wherever the registration is rebuilt.
+    - Plugin: `src/main.ts`
+- **`vim.cmd()` from a Lua mapping fired in a vim-enabled text area ran in the note behind it, or was skipped with "no active editor"** ([#211](https://github.com/saberzero1/motions/issues/211)). Both the ex path in the runtime handler and the `normal` special case in `api.ts` resolved the active note. Lua callbacks now record the adapter of the editor their key fired in, saved and restored like the `vim.v` context, and `vim.cmd()` runs there. Timers and autocmds keep using the active note.
+    - Plugin: `src/lua/api.ts` (`getCallbackAdapter`), `src/main.ts`
 - **The hotkey-conflict check now covers the jump list: Ctrl+O (Quick switcher) and Ctrl+I (Toggle italics)** ([#206](https://github.com/saberzero1/motions/issues/206)). Obsidian binds both by default, and its Keymap stops the event on `window` before the editor sees it. Measured: with the italic binding active, Ctrl+I inserted italic markers instead of jumping forward. The startup notice and **Check hotkey conflicts** now list them with the same unbinding instructions as the others. The notice says "Vim keys" rather than only "workspace navigation keys", since the jump list is not workspace navigation. Normal-mode `<Tab>` is `<C-i>` and is unaffected. The test vault already unbound Ctrl+O, which is why the specs passed. This addresses the measurable cause; whether it accounts for everything in #206 is for the reporter to confirm.
     - Plugin: `src/workspace/hotkey-conflicts.ts`, `src/main.ts`
 - **Escape in a nested page preview closed the preview beneath it and left the focused one open** ([#210](https://github.com/saberzero1/motions/issues/210)). The idle-Escape guard hid the active view's `hoverPopover`, which with nested previews is the first one, and Obsidian's `hide()` keeps a child that still holds the focus. The guard now finds the popover holding the focused editor by walking `childHovers`, and hides that one. Whether the preview beneath then stays is Obsidian's own hover logic.
@@ -85,6 +89,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`lua-keymap-reload.e2e.ts` and `textarea-vim-lua-cmd.e2e.ts`.**
+    - **`lua-keymap-reload`:** presses a Lua mapping across two reloads. Without the fix, the register it writes stayed empty.
+    - **The `normal! x` scenario:** keeps a note open behind the text area. Against the old path, the text area stayed `area text` and the note lost its first character.
+    - **The `obcommand` scenario:** has no note active. Against the old handler, Obsidian's command was never dispatched.
+    - Tests: `test/specs/lua-keymap-reload.e2e.ts` (new), `test/specs/textarea-vim-lua-cmd.e2e.ts` (new)
 - **`jump-list.e2e.ts` presses a real Ctrl+I.** The test vault's `hotkeys.json` now unbinds `editor:toggle-italics`, as it already did `switcher:open`. Before that the scenario failed: the cursor stayed on line 0 instead of reaching line 4. The conflict list's unit test pins both new entries.
     - Tests: `test/specs/jump-list.e2e.ts`, `test/unit/hotkey-conflicts.test.ts`, `test-vault/.obsidian/hotkeys.json`
 - **`hover-popover-escape.e2e.ts` opens page previews by Ctrl-hovering real links**, so Obsidian's popover nesting is real, and clicks into the preview to make it an editor.

@@ -100,6 +100,28 @@ const DEFAULT_VIM_V: VimVContext = {
 let currentVimV: VimVContext = { ...DEFAULT_VIM_V };
 
 /**
+ * The vim adapter of the editor whose mapping is running a Lua callback, or
+ * null outside one. `vim.cmd()` runs its command there, so a mapping that
+ * fires in a text-area overlay or another embedded editor acts on that
+ * editor rather than on the active note — or on nothing, when no note is
+ * active (#211). Saved and restored around each callback, like the `vim.v`
+ * context, so a nested callback does not clobber an outer one.
+ */
+let callbackAdapter: CmAdapter | null = null;
+
+export function getCallbackAdapter(): CmAdapter | null {
+    return callbackAdapter;
+}
+
+function asAdapter(cm: unknown): CmAdapter | null {
+    return cm &&
+        typeof cm === 'object' &&
+        typeof (cm as Record<string, unknown>).state === 'object'
+        ? (cm as CmAdapter)
+        : null;
+}
+
+/**
  * Install a vim.v context for the duration of a callback, returning the one it
  * displaced. Pass that value to `restoreVimVContext` when the callback ends.
  *
@@ -1900,7 +1922,8 @@ export function injectVimApi(
         }
         if (command.startsWith('normal! ') || command.startsWith('normal ')) {
             const keys = command.replace(/^normal!?\s+/, '');
-            const adapter = callbacks.getCmAdapter?.();
+            // The mapping's editor first, as for every other vim.cmd (#211).
+            const adapter = callbackAdapter ?? callbacks.getCmAdapter?.();
             const vimApi = callbacks.getVimApi?.();
             if (adapter && vimApi?.feedKeys) {
                 vimApi.feedKeys(adapter, keys, {
@@ -2209,11 +2232,18 @@ export function injectVimApi(
                         });
                     }
                     lua.lua_rawgeti(L, lua.LUA_REGISTRYINDEX, ref);
-                    const status = withInstructionGuard(
-                        L,
-                        EXPR_INSTRUCTION_LIMIT,
-                        () => lua.lua_pcall(L, 0, 1, 0),
-                    );
+                    const savedAdapter = callbackAdapter;
+                    callbackAdapter = asAdapter(cm) ?? savedAdapter;
+                    let status: number;
+                    try {
+                        status = withInstructionGuard(
+                            L,
+                            EXPR_INSTRUCTION_LIMIT,
+                            () => lua.lua_pcall(L, 0, 1, 0),
+                        );
+                    } finally {
+                        callbackAdapter = savedAdapter;
+                    }
                     if (savedVimV) restoreVimVContext(savedVimV);
                     if (status !== lua.LUA_OK) {
                         const message = lua.lua_tolstring(L, -1);
@@ -2255,11 +2285,18 @@ export function injectVimApi(
                         });
                     }
                     lua.lua_rawgeti(L, lua.LUA_REGISTRYINDEX, ref);
-                    const status = withInstructionGuard(
-                        L,
-                        CALLBACK_INSTRUCTION_LIMIT,
-                        () => lua.lua_pcall(L, 0, 0, 0),
-                    );
+                    const savedAdapter = callbackAdapter;
+                    callbackAdapter = asAdapter(cm) ?? savedAdapter;
+                    let status: number;
+                    try {
+                        status = withInstructionGuard(
+                            L,
+                            CALLBACK_INSTRUCTION_LIMIT,
+                            () => lua.lua_pcall(L, 0, 0, 0),
+                        );
+                    } finally {
+                        callbackAdapter = savedAdapter;
+                    }
                     if (savedVimV) restoreVimVContext(savedVimV);
                     if (status !== lua.LUA_OK) {
                         const message = lua.lua_tolstring(L, -1);
