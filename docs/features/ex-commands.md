@@ -147,6 +147,9 @@ When [Omnisearch](https://github.com/scambier/obsidian-omnisearch), [Obsidian Ta
 | `<C-v>`              | Open in vertical split   | `vim.obsidian.pick_keymap` |
 | `<C-t>`              | Open in new tab          | `vim.obsidian.pick_keymap` |
 | `<C-d>` / `<C-u>`    | Scroll preview down/up   | `vim.obsidian.pick_keymap` |
+| `<C-y>`              | Yank command id or path  | `vim.obsidian.pick_keymap` |
+
+`<C-y>` yanks the selected item as `y` would, into the unnamed register and register `0`, and the system clipboard when `clipboard` is `unnamed` or `unnamedplus`. It then closes the picker, so `p` pastes it. From `:commands`, which `:ob` with no argument opens, it yanks the command id that `:ob`, vimrc and Lua take. From `:files`, `:buffers` and `:recent` it yanks the file's path, and from other pickers the item's label.
 
 Picker keybindings can be customized via Lua:
 
@@ -161,6 +164,7 @@ vim.obsidian.pick_keymap({
     scroll_down = { 'C-d' },
     scroll_up = { 'C-u' },
     close = { 'Escape', 'C-c' },
+    yank = { 'C-y' },
 })
 ```
 

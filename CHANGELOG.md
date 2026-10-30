@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`<C-y>` in a picker yanks the selected item** ([#171](https://github.com/saberzero1/motions/issues/171)).
+    - **What it yanks:** from `:commands`, which `:obcommand` with no argument opens, the command id that `:obcommand`, vimrc and Lua take. From `:files`, `:buffers` and `:recent`, the file's path. Elsewhere, the item's label.
+    - **How:** it goes through the register controller as `y` does, so the text lands in the unnamed register and register `0`, and in the system clipboard when `clipboard` is `unnamed` or `unnamedplus`. Then the picker closes, so `p` pastes it.
+    - **Keys:** configurable as `yank` in `vim.obsidian.pick_keymap`.
+    - **Upgrades:** settings saved before this kept their whole `pickerKeymap` through the shallow settings merge, without `yank`, and vim setup would have thrown on the first load. Saved picker keymaps are now merged with the defaults on load.
+
 - **One Escape closes Obsidian's link suggestions and leaves insert mode, as one `<Esc>` closes Neovim's completion menu** ([#196](https://github.com/saberzero1/motions/issues/196)).
     - **Before:** the suggestion menu handled Escape on `window` in the capture phase and stopped it, so the engine stayed in insert mode, and a second Escape was needed. A user `imap <Esc>` could not help, since the engine never saw the key. Ctrl+[ left insert mode but left the menu open.
     - **Now:** the plugin notices Obsidian took the key (`defaultPrevented` on the same event) and sends `<Esc>` to the editor afterwards, if it is still in insert mode. That `<Esc>` goes through user `<Esc>` mappings, as Neovim's would.
@@ -160,6 +166,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Labels:** each label scenario puts its letter first in the hint characters. With the default `asdfghjkl`, labels reach `f` only past 78 targets, and CI's smaller window showed fewer, so the `f` scenario found no label on every platform. With five targets, the default labels reproduce that failure, and the letter-first labels pass.
     - **Unit tests:** `key-capture.test.ts` pins one push and exactly one pop across every exit, and fails if the release guard is removed or the capture never holds the keymap.
     - Tests: `test/specs/hint-mode-ctrl-hotkeys.e2e.ts` (new), `test/specs/capture-obsidian-hotkeys.e2e.ts` (new), `test/unit/util/key-capture.test.ts`
+- **`picker-yank.e2e.ts` presses `<C-y>` in real pickers (#171).**
+    - **Scenarios:** a command from `:obcommand` yanks its id into `"` and `0` and closes the picker; a file from `:files` yanks its path; a keymap saved without `yank` still gets it after a reload.
+    - **Before the change:** `<C-y>` did nothing and left the picker open.
+    - **Negative controls:**
+        - removing the key handler fails all three;
+        - removing the commands source's `yankText` fails the command scenario with the label `Toggle bold`;
+        - removing the keymap merge fails all three, since the test vault's own saved settings predate `yank`.
+    - Tests: `test/specs/picker-yank.e2e.ts` (new)
 - **`picker-names-outline.e2e.ts` reads the real pickers and the `gO` modal (#171).**
     - **Scenarios:** `:files` and `:buffers` with a note, a PNG and a PDF of the same name; `gO` and `:outline` on a note with headings at three levels; the `:outline` match highlight.
     - **Before the change:** all five failed. The file pickers showed `Pick171` three times, the outlines showed `#` marks, and the highlight covered three spaces.

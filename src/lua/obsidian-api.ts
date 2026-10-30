@@ -102,6 +102,7 @@ export function injectObsidianApi(
             'scroll_down',
             'scroll_up',
             'close',
+            'yank',
         ];
         for (const field of fields) {
             lua.lua_getfield(state, 1, to_luastring(field));

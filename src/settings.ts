@@ -256,6 +256,7 @@ export interface VimMotionsSettings {
         scrollDown: string[];
         scrollUp: string[];
         close: string[];
+        yank: string[];
     };
 
     imEnabled: boolean;
@@ -421,6 +422,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
         scrollDown: ['C-d'],
         scrollUp: ['C-u'],
         close: ['Escape', 'C-c'],
+        yank: ['C-y'],
     },
 
     imEnabled: false,

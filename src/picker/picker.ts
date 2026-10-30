@@ -8,6 +8,7 @@ import {
 } from 'obsidian';
 import { isEasyMotionActive } from '../easymotion/register';
 import { isHintModeActive } from '../ui/hint-mode';
+import { getVimApi } from '../vim/vim-api';
 import type { FrecencyStore } from './frecency';
 import {
     DEFAULT_PICKER_KEYMAP,
@@ -215,6 +216,11 @@ export class PickerModal extends Modal {
             if (matchesPickerKey(event, km.openTab)) {
                 event.preventDefault();
                 this.confirmSelection('tab');
+                return;
+            }
+            if (matchesPickerKey(event, km.yank)) {
+                event.preventDefault();
+                this.yankSelection();
                 return;
             }
             if (matchesPickerKey(event, km.scrollDown)) {
@@ -497,6 +503,31 @@ export class PickerModal extends Modal {
         if (cursor < text.length) {
             container.appendText(text.slice(cursor));
         }
+    }
+
+    /**
+     * Yanks the selected item, as `y` would: into the unnamed register and
+     * register 0, and the system clipboard when `clipboard` is `unnamed` or
+     * `unnamedplus`, which the register controller handles. Then closes the
+     * picker, so `p` pastes it where the cursor was (#171).
+     */
+    private yankSelection(): void {
+        const match = this.currentMatches[this.selectedIndex];
+        if (!match) return;
+        const text = this.source.yankText?.(match.item) ?? match.item.label;
+        const registers = getVimApi()?.getRegisterController() as
+            | {
+                  pushText?(
+                      register: string | undefined,
+                      operator: string,
+                      text: string,
+                  ): void;
+              }
+            | undefined;
+        if (!registers?.pushText) return;
+        registers.pushText(undefined, 'yank', text);
+        new Notice(`Yanked ${text}`);
+        this.close();
     }
 
     private confirmSelection(split?: 'horizontal' | 'vertical' | 'tab'): void {

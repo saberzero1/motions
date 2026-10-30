@@ -60,6 +60,11 @@ export interface PickerSource {
         item: PickerItem,
         app: App,
     ): PreviewReturn | Promise<PreviewReturn>;
+    /**
+     * What the yank key copies for an item: a command's id, a file's path.
+     * Without it, the item's label.
+     */
+    yankText?(item: PickerItem): string;
 }
 
 export interface PickerOptions {
@@ -98,6 +103,7 @@ export interface PickerKeymap {
     scrollDown: string[];
     scrollUp: string[];
     close: string[];
+    yank: string[];
 }
 
 export const DEFAULT_PICKER_KEYMAP: PickerKeymap = {
@@ -110,6 +116,7 @@ export const DEFAULT_PICKER_KEYMAP: PickerKeymap = {
     scrollDown: ['C-d'],
     scrollUp: ['C-u'],
     close: ['Escape', 'C-c'],
+    yank: ['C-y'],
 };
 
 const MODIFIER_PREFIXES = ['C-', 'A-', 'S-', 'M-'] as const;
