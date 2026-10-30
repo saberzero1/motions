@@ -889,6 +889,19 @@
 
 /* --- Picker modal --- */
 
+/* Customisable through the Style Settings plugin (the "Picker" section of the
+   @settings block below) or a CSS snippet setting these variables on body.
+   Each var() falls back to the picker's own default, so leaving a variable
+   unset changes nothing (#171):
+     --vim-motions-picker-font                results list font family
+     --vim-motions-picker-font-size           results label size
+     --vim-motions-picker-preview-font-size   preview text size
+     --vim-motions-picker-width               picker width
+     --vim-motions-picker-height              list and preview height
+     --vim-motions-picker-results-width       results column beside the preview
+   and the body class vim-motions-picker-truncate ends long names with an
+   ellipsis instead of wrapping them. */
+
 .vim-motions-picker.modal {
     border-radius: 2px;
     background: transparent;
@@ -896,8 +909,11 @@
     border: none;
     margin: 0;
     padding: 0;
-    width: min(var(--dialog-max-width), calc(var(--dialog-width) * 2));
-    max-width: var(--dialog-max-width);
+    width: var(
+        --vim-motions-picker-width,
+        min(var(--dialog-max-width), calc(var(--dialog-width) * 2))
+    );
+    max-width: var(--vim-motions-picker-width, var(--dialog-max-width));
 }
 
 .modal-container.mod-dim .vim-motions-picker.modal {
@@ -909,7 +925,7 @@
 .vim-motions-picker .modal-content {
     padding: 0;
     width: 100%;
-    max-width: var(--dialog-max-width);
+    max-width: var(--vim-motions-picker-width, var(--dialog-max-width));
 }
 
 .vim-motions-picker .modal-header {
@@ -923,7 +939,7 @@
 .vim-motions-picker-container {
     display: flex;
     flex-direction: column;
-    max-height: 60vh;
+    max-height: calc(var(--vim-motions-picker-height, 50vh) + 10vh);
 }
 
 .vim-motions-picker-section {
@@ -983,7 +999,9 @@ input.vim-motions-picker-input:focus {
 
 .vim-motions-picker-results {
     overflow-y: auto;
-    max-height: 50vh;
+    max-height: var(--vim-motions-picker-height, 50vh);
+    /* Clears the floating "Results" title, which the first item touched. */
+    padding-top: 6px;
     border: 1px solid var(--color-accent);
     background-color: var(--modal-background);
 }
@@ -1017,14 +1035,14 @@ input.vim-motions-picker-input:focus {
 }
 
 .vim-motions-picker-item-label {
-    font-family: var(--font-monospace);
-    font-size: 13px;
+    font-family: var(--vim-motions-picker-font, var(--font-monospace));
+    font-size: var(--vim-motions-picker-font-size, 13px);
     color: var(--text-normal);
 }
 
 .vim-motions-picker-item-description {
-    font-family: var(--font-monospace);
-    font-size: 12px;
+    font-family: var(--vim-motions-picker-font, var(--font-monospace));
+    font-size: calc(var(--vim-motions-picker-font-size, 13px) - 1px);
     color: var(--text-muted);
     text-align: end;
 }
@@ -1060,7 +1078,7 @@ input.vim-motions-picker-input:focus {
     display: flex;
     flex-direction: row;
     overflow: hidden;
-    height: 50vh;
+    height: var(--vim-motions-picker-height, 50vh);
     gap: 12px;
 }
 
@@ -1071,14 +1089,14 @@ input.vim-motions-picker-input:focus {
 }
 
 .vim-motions-picker-with-preview .vim-motions-picker-results {
-    height: 50vh;
+    height: var(--vim-motions-picker-height, 50vh);
 }
 
 .vim-motions-picker-body > .vim-motions-picker-section:first-child {
     flex: 0 1 auto;
-    width: max(25%, 200px);
+    width: max(var(--vim-motions-picker-results-width, 25%), 200px);
     min-width: 200px;
-    max-width: max(30%, 200px);
+    max-width: max(var(--vim-motions-picker-results-width, 30%), 200px);
 }
 
 .vim-motions-picker-body > .vim-motions-picker-section:last-child {
@@ -1087,7 +1105,7 @@ input.vim-motions-picker-input:focus {
 }
 
 .vim-motions-picker-preview {
-    height: 50vh;
+    height: var(--vim-motions-picker-height, 50vh);
     overflow-y: auto;
     border: 1px solid var(--color-accent);
     border-radius: 0;
@@ -1103,7 +1121,7 @@ input.vim-motions-picker-input:focus {
     margin: 0;
     padding: 8px 12px;
     font-family: var(--font-monospace);
-    font-size: 12px;
+    font-size: var(--vim-motions-picker-preview-font-size, 12px);
     color: var(--text-muted);
     white-space: pre-wrap;
     word-break: break-word;
@@ -1111,7 +1129,14 @@ input.vim-motions-picker-input:focus {
 
 .vim-motions-picker-preview-content {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: var(--vim-motions-picker-preview-font-size, 12px);
+}
+
+.vim-motions-picker-truncate .vim-motions-picker-item-label,
+.vim-motions-picker-truncate .vim-motions-picker-item-description {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .vim-motions-picker-preview-content.markdown-rendered {
@@ -1396,6 +1421,71 @@ settings:
         format: hex
         default-light: '#ffffff'
         default-dark: '#ffffff'
+    -
+        id: picker
+        title: Picker
+        description: Fonts, sizes and layout of the fuzzy picker. Unset, each keeps the picker's default.
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: vim-motions-picker-font
+        title: Results font
+        description: Font family for the results list, for example var(--font-interface).
+        type: variable-text
+        default: var(--font-monospace)
+    -
+        id: vim-motions-picker-font-size
+        title: Results font size
+        type: variable-number-slider
+        default: 13
+        min: 10
+        max: 20
+        step: 1
+        format: px
+    -
+        id: vim-motions-picker-preview-font-size
+        title: Preview font size
+        type: variable-number-slider
+        default: 12
+        min: 10
+        max: 20
+        step: 1
+        format: px
+    -
+        id: vim-motions-picker-width
+        title: Picker width
+        description: Share of the window. Unset, the picker follows Obsidian's dialog width.
+        type: variable-number-slider
+        default: 80
+        min: 30
+        max: 100
+        step: 5
+        format: vw
+    -
+        id: vim-motions-picker-height
+        title: List and preview height
+        type: variable-number-slider
+        default: 50
+        min: 20
+        max: 85
+        step: 5
+        format: vh
+    -
+        id: vim-motions-picker-results-width
+        title: Results width beside the preview
+        type: variable-number-slider
+        default: 25
+        min: 15
+        max: 70
+        step: 5
+        format: '%'
+    -
+        id: vim-motions-picker-truncate
+        title: Truncate long names
+        description: End long names with an ellipsis instead of wrapping them.
+        type: class-toggle
+        default: false
 */
 
 /* --- Oil view --- */
