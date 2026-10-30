@@ -23,6 +23,9 @@ const STANDARD_SELECTORS = [
     'input:not([type="hidden"]):not([disabled])',
     'textarea:not([disabled])',
     'select:not([disabled])',
+    // A property value, the inline title. The note's own editor is reached
+    // through its pane instead (#207).
+    '[contenteditable="true"]:not(.cm-content)',
     '[role="button"]',
     '[role="tab"]',
     '[data-href]',
@@ -51,6 +54,7 @@ const OBSIDIAN_SELECTORS = [
     '.checkbox-container',
     '.modal-header-button',
     '.workspace-drawer-vault-switcher',
+    '.metadata-add-button',
 ];
 
 export const TARGET_SELECTOR = [
@@ -634,12 +638,37 @@ function hintContextMenu(_app: App, target: HintTarget): boolean {
     return true;
 }
 
+/** Input types that take no typed text, so focus can go back to the note. */
+const NON_TEXT_INPUT_TYPES = new Set([
+    'button',
+    'checkbox',
+    'color',
+    'file',
+    'image',
+    'radio',
+    'range',
+    'reset',
+    'submit',
+]);
+
+function acceptsTyping(el: Element): boolean {
+    if (el.instanceOf(HTMLTextAreaElement)) return true;
+    if (el.instanceOf(HTMLInputElement)) {
+        return !NON_TEXT_INPUT_TYPES.has(el.type);
+    }
+    return el.instanceOf(HTMLElement) && el.isContentEditable;
+}
+
 function refocusEditor(app: App): void {
     window.setTimeout(() => {
         const view = app.workspace.getActiveViewOfType(MarkdownView);
-        if (view) {
-            view.editor.focus();
-        }
+        if (!view) return;
+        // A hinted field — a property, the backlinks search — or one a click
+        // opened, like the name of a property Add property just created,
+        // keeps the cursor. Taking it back left nothing to type into (#207).
+        const focused = activeDocument.activeElement;
+        if (focused && acceptsTyping(focused)) return;
+        view.editor.focus();
     }, 150);
 }
 

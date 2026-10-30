@@ -47,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Hint mode could not edit properties, press Add property, or type into the backlinks search** ([#207](https://github.com/saberzero1/motions/issues/207)). There were three causes:
+    - **No label:** a property value is a `contenteditable` div and **Add property** a plain `div`, so neither matched a hint selector. Editable elements other than the note's own editor are now targets, and so is the add button.
+    - **Focus taken back:** a property name and the backlinks search are inputs and did get labels, but 150 ms after the click hint mode handed focus back to the note.
+    - **The fix for that:** it now leaves focus alone when it is on a field you can type into, so the field hinted keeps the cursor. So does the name field **Add property** opens.
+
+    After a checkbox or a button, focus still returns to the note.
+
 - **A picker result opened in a new tab or split landed on line 1 instead of its line** ([#201](https://github.com/saberzero1/motions/issues/201)). This affected `:livegrep` (built-in search or ripgrep), `:grep`, `:headings`, `:outline` and `:tasks`. The split and tab paths started the open without waiting for it, then set the cursor 100 ms later on whichever view was active by then. An open slower than that lost the race, which is why it depended on the machine and never showed in the test vault. Opening in the current tab already waited for the open. `openInSplit` now takes the line and applies it once the open has finished, in the leaf it opened. With **Always focus new tabs** off, the cursor used to go to the note the picker was opened from.
 
 - **`:obcommand` from a normal-mode mapping acted on an earlier visual selection** ([#200](https://github.com/saberzero1/motions/issues/200)). A mapping such as `vim.keymap.set("n", "<C-b>", function() vim.cmd("obcommand editor:toggle-bold") end)` bolded whatever had last been selected, however long ago. Running **Open configuration in default editor** the same way re-selected that text. The fork leaves visual mode before it runs an ex command, so `:obcommand` restores the selection that exit discarded (#161, #192). It restored `'<`/`'>` whenever they existed, though, and they outlive the selection by any number of keystrokes. It now restores them in two cases only:
@@ -97,6 +104,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`hint-mode-properties.e2e.ts` drives real hint labels at the fields around a note (#207).**
+    - **Scenarios:** a property value, a property name, **Add property**, and the backlinks search with its filter shown. A task checkbox is the control.
+    - **Before the fix:**
+        - the value and the add button got no label;
+        - the name and the search lost the cursor to the note;
+        - the control passed.
+    - **Negative controls:**
+        - removing the focus guard fails all four;
+        - removing the `contenteditable` selector fails the value;
+        - removing the add-button selector fails **Add property**.
+    - **Unverified exclusion:** excluding checkboxes from "fields you can type into" survives its sabotage. A toggled checkbox does not keep focus in Live Preview, which re-renders it, nor in reading view (measured), so no scenario reaches it.
+    - Tests: `test/specs/hint-mode-properties.e2e.ts` (new)
 - **`picker-split-cursor.e2e.ts` opens line-bearing picker results with the real picker keys (#201).** Every scenario slows `WorkspaceLeaf.openFile` by 300 ms, the condition the reporter's machine met and this vault did not.
     - **Scenarios:** `:livegrep` in a new tab and a vertical split; `:grep` and `:headings` in a new tab; `:livegrep` in a background tab with **Always focus new tabs** off; `:livegrep` in the current tab as the control.
     - **Before the fix:** the four tab and split scenarios landed on line 0, and the control passed.

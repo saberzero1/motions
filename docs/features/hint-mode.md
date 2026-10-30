@@ -42,8 +42,8 @@ The plugin classifies targets during discovery to ensure context-appropriate beh
 - **Panes**: Workspace leaf content. Activating (`f`) focuses the pane. Opening new (`F`) duplicates the pane into a new tab.
 - **Tabs**: Workspace tab headers. Can be closed via `df`.
 - **Links**: Wikilinks, Markdown links, and external URLs. Opened via Obsidian's internal link resolver.
-- **Inputs**: Text fields, textareas, and dropdowns. Activating focuses the element.
-- **Buttons**: UI buttons and clickable icons.
+- **Inputs**: Text fields, textareas, dropdowns, and editable fields such as property values and the inline title. Activating focuses the element, and the cursor stays there so you can type. This covers property names and values, and the backlinks search once its filter is shown.
+- **Buttons**: UI buttons and clickable icons, including **Add property**. When a click opens a field, as **Add property** does, the cursor goes into it. After any other click the cursor returns to the note.
 - **Generic**: Any other clickable element identified by the plugin.
 
 Smart label assignment prioritizes the home row. Single-character labels are used when few targets are visible, while two-character labels are generated for denser views.
