@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The hotkey-conflict check now covers Ctrl+E, Ctrl+T and Ctrl+G.** Obsidian binds them by default to Toggle reading view, New tab and Open graph view, which took `<C-e>` scrolling, insert-mode `<C-t>` indenting and `<C-g>`. Pressing Ctrl+E to scroll left the editor for reading view. The startup notice and **Check hotkey conflicts** list them with the same unbinding instructions as the others. Ctrl+N, Ctrl+P and Ctrl+6 also collide, but are left to Obsidian: `j`, `k` and `:e #` do the same. The test vault unbinds the two new defaults it had left bound, as it does the others.
+
 - **Holding Ctrl over a hint label could run an Obsidian command, such as Delete paragraph, instead of opening the label in a new pane.** Labels start with a home-row letter, and Obsidian binds Ctrl+D, Ctrl+F, Ctrl+G, Ctrl+H, Ctrl+K and Ctrl+L by default. Its Keymap handles a key before hint mode's listener does. Measured with Obsidian's defaults: Ctrl on a `d` label deleted a line of the note, and Ctrl on an `f` label opened search. Hint mode now pauses Obsidian's hotkeys while labels are showing, the way a modal does, and restores them on every exit.
 
 - **The animated cursor painted the old letter after an edit, and did not follow an edit that moved it** ([#181](https://github.com/saberzero1/motions/issues/181), follow-up reports). There were two faults:
@@ -112,6 +114,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`hotkey-collisions.e2e.ts` keeps the plugin's keys and Obsidian's default hotkeys accounted for.** It reads Obsidian's _default_ hotkeys, so the test vault's unbinding hides nothing, and asks the engine whether it would take each one, in normal, visual and insert mode. Measured on 1.13.7: 12 of 43 collide with Mod as Ctrl, none with Mod as Cmd. Collisions with the global mappings used outside the editor count too.
+    - **What it enforces:** every collision is classified in `test/fixtures/hotkey-collisions.ts`, either in the conflict check or as a deliberate "Obsidian wins" with a reason. A row that no longer collides fails it too. `hotkey-collision-table.test.ts` pins the conflict-check rows to `WORKSPACE_NAV_CONFLICTS`.
+    - **Built-in controls:** binding `<C-k>`, and separately `<M-k>`, must surface as a collision with Insert link.
+    - **Negative controls:**
+        - dropping the Mod+P row fails it, naming the unclassified collision;
+        - adding a Mod+K row fails it as stale;
+        - a detector that never sees a claimed key fails the table check and both controls, leaving only the four global-mapping collisions;
+        - marking Mod+E "Obsidian wins" fails the unit pin.
+    - Tests: `test/specs/hotkey-collisions.e2e.ts` (new), `test/fixtures/hotkey-collisions.ts` (new), `test/unit/hotkey-collision-table.test.ts` (new), `test/unit/hotkey-conflicts.test.ts`
 - **`hint-mode-ctrl-hotkeys.e2e.ts` presses Ctrl-held labels with Obsidian's default hotkeys restored for the session.** The test vault unbinds most of the colliding hotkeys, which is why the existing Ctrl+label test, pressing the first label (`a`), never saw it.
     - **Scenarios:** a `d` label and an `f` label; a control in which Ctrl+D is Obsidian's again once hint mode ends.
     - **Before the fix:** the note lost a line (1149 to 1121 characters) and search opened. The control passed.

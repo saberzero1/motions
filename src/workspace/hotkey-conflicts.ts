@@ -49,6 +49,27 @@ export const WORKSPACE_NAV_CONFLICTS: HotkeyConflict[] = [
         feature: '<C-i> jump forward (normal-mode <Tab> also works)',
         description: 'Toggle italics',
     },
+    // Found by comparing Obsidian's default hotkeys with the keys the engine
+    // binds (`hotkey-collisions.e2e.ts`). Ctrl+N, Ctrl+P and Ctrl+6 collide
+    // too and are left to Obsidian on purpose; that spec records why.
+    {
+        key: 'Ctrl+E',
+        commandId: 'markdown:toggle-preview',
+        feature: '<C-e> scroll down a line, and insert-mode <C-e>',
+        description: 'Toggle reading view',
+    },
+    {
+        key: 'Ctrl+T',
+        commandId: 'workspace:new-tab',
+        feature: 'insert-mode <C-t> indent, and <C-t> tag stack back',
+        description: 'New tab',
+    },
+    {
+        key: 'Ctrl+G',
+        commandId: 'graph:open',
+        feature: '<C-g> file info, and insert-mode <C-g>u/j/k',
+        description: 'Open graph view',
+    },
 ];
 
 /**
@@ -96,7 +117,7 @@ export function showConflictsModal(
             [{ header: 'Status' }],
             [
                 [
-                    'No conflicts detected \u2014 all workspace navigation keys are available.',
+                    'No conflicts detected \u2014 none of the checked keys is bound in Obsidian.',
                 ],
             ],
         ).open();

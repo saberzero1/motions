@@ -942,6 +942,8 @@ Obsidian's default "Close current tab" hotkey is bound to Ctrl+W. Users must unb
 
 **Conflict detection**: The plugin now detects active hotkey conflicts on load (desktop only, when workspace nav is enabled). A one-time Notice per plugin version alerts users to conflicts. A "Check hotkey conflicts" button in **Settings → Vim Motions → Navigation** lists each active conflict with step-by-step unbinding instructions. Detection reads `hotkeys.json` — if a command ID is absent (default binding active) or has a non-empty array (custom binding), it's a conflict. An empty array `[]` means the user explicitly unbound it (no conflict).
 
+**Which keys collide**: Obsidian 1.13.7 ships 43 default hotkeys, and 12 of them are keys the plugin also binds on Windows and Linux; with Mod as Cmd, on macOS, none are. Nine are in the conflict check: Ctrl+W, Ctrl+D, Ctrl+F, Ctrl+B, Ctrl+O, Ctrl+I, Ctrl+E (Toggle reading view, which takes `<C-e>` scrolling), Ctrl+T (New tab, which takes insert-mode `<C-t>` indenting) and Ctrl+G (Open graph view). Three are left to Obsidian on purpose: Ctrl+N and Ctrl+P, whose Vim meanings only repeat `j` and `k`, and Ctrl+6, which Obsidian takes only with six tabs open, and whose alternate file `:e #` also reaches. `test/specs/hotkey-collisions.e2e.ts` measures this on a real Obsidian from the _default_ hotkeys, so the test vault's unbinding hides nothing. It fails on a collision missing from `test/fixtures/hotkey-collisions.ts`, or on a row there that no longer collides.
+
 ## Global workspace navigation
 
 **Status**: Working. Workspace commands work across all Obsidian views (PDF, graph, canvas, image, backlinks, etc.), not just markdown editors. ([#35](https://github.com/saberzero1/motions/issues/35))
