@@ -142,7 +142,7 @@ describe('Table reveal editing assists', function () {
         await setPluginSettingAndReload('tableWidgetMode', 'native');
     });
 
-    describe('Tab and Shift-Tab in insert mode', function () {
+    describe('Tab, Shift-Tab, Enter and Shift-Enter in insert mode', function () {
         it('moves to the start of the next cell, then wraps past the separator', async function () {
             await moveTo(4, 2);
             await keys('i');
@@ -193,6 +193,72 @@ describe('Table reveal editing assists', function () {
             expect(lines[7]).toBe('');
             expect(lines[8]).toBe('Below the table here');
             expect((await surface()).widgets).toBe(0);
+        });
+
+        it('moves down a row with Enter, skipping the separator, keeping the column', async function () {
+            await moveTo(2, 9);
+            await keys('i');
+            await keys('Enter');
+            const firstRow = await getCursorPos();
+            await keys('Enter');
+            const secondRow = await getCursorPos();
+
+            expect(firstRow).toEqual({ line: 4, ch: 9 });
+            expect(secondRow).toEqual({ line: 5, ch: 9 });
+            expect(await getEditorValue()).toBe(DOC);
+            expect(await getVimMode()).toBe('insert');
+        });
+
+        it('adds a row with Enter on the last row, in the same column', async function () {
+            await moveTo(5, 9);
+            await keys('i');
+            await keys('Enter');
+            const pos = await getCursorPos();
+            const lines = (await getEditorValue()).split('\n');
+
+            expect(pos).toEqual({ line: 6, ch: 9 });
+            expect(lines[6]).toBe('|      |       |');
+            expect(lines[8]).toBe('Below the table here');
+        });
+
+        it('starts a new line with Enter at the end of a row, as in plain text', async function () {
+            // How a table is typed row by row: the row after a separator must
+            // not land in a new row's first cell.
+            await moveTo(5, 0);
+            await keys('A');
+            await keys('Enter');
+            await typeText('| cc | 33 |');
+            const lines = (await getEditorValue()).split('\n');
+
+            expect(lines[5]).toBe('| bb   | 22    |');
+            expect(lines[6]).toBe('| cc | 33 |');
+            expect(lines[7]).toBe('');
+            expect(lines[8]).toBe('Below the table here');
+        });
+
+        it('inserts <br> with Shift-Enter, as Obsidian writes a line break in a cell', async function () {
+            await moveTo(4, 3);
+            await keys('a');
+            await browser.keys(['Shift', 'Enter', 'NULL']);
+            await browser.pause(300);
+            await typeText('x');
+
+            expect((await getEditorValue()).split('\n')[4]).toBe(
+                '| aa<br>x   | 11    |',
+            );
+            expect(await getVimMode()).toBe('insert');
+        });
+
+        it('leaves Enter alone outside a table', async function () {
+            await moveTo(0, 0);
+            await keys('A');
+            await keys('Enter');
+            const lines = (await getEditorValue()).split('\n');
+
+            expect(lines[0]).toBe('Line above');
+            expect(lines[1]).toBe('');
+            expect(lines.length).toBe(DOC.split('\n').length + 1);
+            expect(await getCursorPos()).toEqual({ line: 1, ch: 0 });
         });
 
         it('does not move between cells in normal mode', async function () {
@@ -385,6 +451,25 @@ describe('Table reveal editing assists', function () {
             expect(yanked?.text).toBe(' aa   ');
             expect(inner).toBe('|| 11    |');
             expect(around).toBe('| 11    |');
+        });
+    });
+
+    describe('row text objects', function () {
+        it('operates on a row with ir and ar', async function () {
+            await moveTo(4, 2);
+            await keys('y', 'i', 'r');
+            const yanked = await getRegisterContent('"');
+            await keys('d', 'i', 'r');
+            const inner = (await getEditorValue()).split('\n')[4];
+            await keys('u');
+            await moveTo(4, 2);
+            await keys('d', 'a', 'r');
+            const around = (await getEditorValue()).split('\n');
+
+            expect(yanked?.text).toBe(' aa   | 11    ');
+            expect(inner).toBe('||');
+            expect(around[4]).toBe('');
+            expect(around[5]).toBe('| bb   | 22    |');
         });
     });
 

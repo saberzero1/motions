@@ -82,3 +82,22 @@ passed all **3543** unit tests.
 The new unit expectations are literals harvested from Obsidian's live output
 rather than from our own function, and the e2e spec re-derives them from
 `rebuildTable()` on every run, so the two cannot drift together.
+
+## Control 3 — the separator's colons
+
+Every specimen above sits in a `|---|---|` table, so none exercised content
+placement, and `realignTableLines` left-aligned every cell while Obsidian
+places right-aligned content against the right edge and centres centred
+content. Two aligned tables were added and run **before** the fix, against
+Obsidian's live `rebuildTable()`:
+
+| Table                                    | Obsidian                             | `realignTableLines` before the fix   |
+| ---------------------------------------- | ------------------------------------ | ------------------------------------ |
+| left, right, centre and unmarked columns | `\| apple \|   3 \|  ok  \| z    \|` | `\| apple \| 3   \| ok   \| z    \|` |
+| centred columns with odd and even slack  | `\| ccc \|  d   \|`                  | `\| ccc \| d    \|`                  |
+
+Both pass with alignment-aware padding. In the unit suite, ignoring the
+alignment again fails three cases: `places content by the separator row, as
+Obsidian does`, `puts the odd space of a centred cell after its content`, and
+`keeps each column with its own marker when a column moves` in
+`structural.test.ts`.

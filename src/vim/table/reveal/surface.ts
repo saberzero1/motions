@@ -23,7 +23,7 @@ import {
 import { rowRanges, tablesTouchedBy } from './table-extent';
 import { revealGridDecorations } from './grid-decorations';
 import { releaseNativeCellEditor, revealWidgetInput } from './widget-input';
-import { revealCellTab } from './cell-tab';
+import { revealCellKeys } from './cell-keys';
 import { realignOnInsertLeave } from './realign-on-leave';
 import { revealTypingAssists } from './typing';
 import { revealColumnStatus, type TableColumnInfo } from './column-status';
@@ -146,7 +146,7 @@ export function createTableReveal(options: TableRevealOptions): Extension {
         revealStateExtension(),
         revealGridDecorations(),
         revealWidgetInput(),
-        revealCellTab(),
+        revealCellKeys(),
         revealTypingAssists(),
         revealColumnStatus(options.columnStatus),
         realignOnInsertLeave(options.autoRealign),
