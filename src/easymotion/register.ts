@@ -300,6 +300,8 @@ const EASYMOTION_DEFS: EasyMotionDef[] = [
 
 interface ExtraEasyMotionDef {
     name: string;
+    /** vim-easymotion's name for it: `<Plug>(easymotion-<plug>)`. */
+    plug: string;
     createTrigger: MotionTriggerFactory;
     motionArgs?: Record<string, unknown>;
 }
@@ -307,29 +309,35 @@ interface ExtraEasyMotionDef {
 const EXTRA_DEFS: ExtraEasyMotionDef[] = [
     {
         name: 'easyMotionBdWord',
+        plug: 'bd-w',
         createTrigger: wordTrigger('bidirectional', false),
     },
     {
         name: 'easyMotionBdEndWord',
+        plug: 'bd-e',
         createTrigger: wordEndTrigger('bidirectional', false),
         motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionBdWORD',
+        plug: 'bd-W',
         createTrigger: wordTrigger('bidirectional', true),
     },
     {
         name: 'easyMotionBdEndWORD',
+        plug: 'bd-E',
         createTrigger: wordEndTrigger('bidirectional', true),
         motionArgs: { inclusive: true },
     },
     {
         name: 'easyMotionBdLine',
+        plug: 'bd-jk',
         createTrigger: lineTrigger('bidirectional'),
         motionArgs: { linewise: true },
     },
     {
         name: 'easyMotionBdTill',
+        plug: 'bd-t',
         createTrigger: tillTrigger('bidirectional'),
         motionArgs: { inclusive: true },
     },
@@ -381,7 +389,14 @@ export function registerEasyMotion(
         const keys = leader + leader + def.keySuffix;
         reg.mapCommand(keys, 'motion', def.name, defArgs);
         leaderRegistry.addBinding(keys, def.description, 'builtin');
+        // The suffixes are vim-easymotion's motion names, so its <Plug>
+        // names follow from them: <Plug>(easymotion-w) and so on.
+        reg.mapCommand(plugName(def.keySuffix), 'motion', def.name, defArgs);
     }
+    // vim-easymotion's bd-f is its s.
+    reg.mapCommand(plugName('bd-f'), 'motion', 'easyMotionBdFind', {
+        inclusive: true,
+    });
 
     leaderRegistry.addGroupLabel(leader, 'EasyMotion', true, 'zap', 'yellow');
 
@@ -396,6 +411,9 @@ export function registerEasyMotion(
             }
             return recordJumpOnResolve(app, cm, motionFactory);
         });
+        // No default key, as in vim-easymotion: these are reached by
+        // mapping a key to the <Plug> name (#205).
+        reg.mapCommand(plugName(def.plug), 'motion', def.name, defArgs);
     }
 
     reg.defineMotion('easyMotionRepeat', (cm, _head, motionArgs) => {
@@ -408,4 +426,15 @@ export function registerEasyMotion(
     const repeatKeys = leader + leader + '.';
     reg.mapCommand(repeatKeys, 'motion', 'easyMotionRepeat', {});
     leaderRegistry.addBinding(repeatKeys, 'EasyMotion: repeat last', 'builtin');
+    reg.mapCommand(plugName('repeat'), 'motion', 'easyMotionRepeat', {});
+}
+
+/**
+ * vim-easymotion's entry point for a motion. A user maps a key to it, from
+ * vimrc (`nmap <leader>w <Plug>(easymotion-bd-w)`) or Lua, and keeps the
+ * motion's behaviour after an operator, with a count and under dot-repeat,
+ * which a Lua function mapping would not.
+ */
+function plugName(motion: string): string {
+    return `<Plug>(easymotion-${motion})`;
 }

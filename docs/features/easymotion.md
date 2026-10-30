@@ -56,6 +56,42 @@ Dot-repeat (`.`) works with operator-pending EasyMotion — the fork stores the 
 
 `<leader><leader>.` repeats the most recent EasyMotion motion, showing a fresh label overlay. This works in operator-pending mode — for example, after using `<leader><leader>j` to jump to a line, `d<leader><leader>.` deletes to a new line target chosen from the same motion type. The repeat inherits the original motion's `motionArgs` (linewise, inclusive, forward), so operators behave correctly.
 
+## Mapping your own keys
+
+Every EasyMotion motion has vim-easymotion's `<Plug>` name, so a key mapped to it behaves exactly like the built-in trigger: it works after an operator, in visual mode, and with dot-repeat. The bidirectional motions have no default key, as in vim-easymotion, and are reached this way:
+
+```vim
+" .obsidian.vimrc
+nmap <leader>w <Plug>(easymotion-bd-w)
+```
+
+```lua
+-- init.lua
+vim.keymap.set({ 'n', 'x', 'o' }, '<leader>w', '<Plug>(easymotion-bd-w)')
+```
+
+| `<Plug>` name                  | Motion                            |
+| ------------------------------ | --------------------------------- |
+| `<Plug>(easymotion-f)` / `-F`  | Find character forward / backward |
+| `<Plug>(easymotion-s)`         | Find character in both directions |
+| `<Plug>(easymotion-bd-f)`      | Same as `easymotion-s`            |
+| `<Plug>(easymotion-t)` / `-T`  | Till character forward / backward |
+| `<Plug>(easymotion-bd-t)`      | Till character in both directions |
+| `<Plug>(easymotion-w)` / `-b`  | Word start forward / backward     |
+| `<Plug>(easymotion-bd-w)`      | Word start in both directions     |
+| `<Plug>(easymotion-e)` / `-ge` | Word end forward / backward       |
+| `<Plug>(easymotion-bd-e)`      | Word end in both directions       |
+| `<Plug>(easymotion-W)` / `-B`  | WORD start forward / backward     |
+| `<Plug>(easymotion-bd-W)`      | WORD start in both directions     |
+| `<Plug>(easymotion-E)` / `-gE` | WORD end forward / backward       |
+| `<Plug>(easymotion-bd-E)`      | WORD end in both directions       |
+| `<Plug>(easymotion-j)` / `-k`  | Line below / above                |
+| `<Plug>(easymotion-bd-jk)`     | Line in both directions           |
+| `<Plug>(easymotion-n)` / `-N`  | Next / previous search match      |
+| `<Plug>(easymotion-repeat)`    | Repeat the last EasyMotion motion |
+
+A `<Plug>` name is reached from `nnoremap` and from a plain `vim.keymap.set`, which are non-recursive, as in Vim and Neovim; the keys after it in the mapping stay non-recursive.
+
 ## Label positioning
 
 EasyMotion labels appear **after** the target character (one character to the right), matching the label positioning used by [[flash|Flash motions]]. This prevents labels from obscuring the character they target. Match highlights also render behind each label for visual consistency.
@@ -78,7 +114,7 @@ You can customize EasyMotion behavior in **Settings → Vim Motions → Jump nav
 - **Font size**: Adjust the size of the jump labels.
 - **Scale labels to line height**: When enabled (`set labelmatchfontsize`), labels scale to match the font size of the target line — labels on headings are larger than labels on body text.
 
-To remap EasyMotion triggers in your `.obsidian.vimrc`, use the internal command names. See [[settings#Jump navigation]] for details.
+To put an EasyMotion motion on another key, map the key to its `<Plug>` name; see [[#Mapping your own keys]].
 
 ---
 
