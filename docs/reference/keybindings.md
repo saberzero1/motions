@@ -13,28 +13,28 @@ Operate on Markdown structures with standard Vim operators (`d`, `c`, `y`, `v`).
 
 The Neovim RPC backend supports the tree-backed objects below in operator-pending and visual modes. `i=` / `a=` remains fork-only because Neovim's bundled Markdown grammar has no highlight node.
 
-| Keybinding          | Description                                                          |
-| ------------------- | -------------------------------------------------------------------- |
-| `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`)             |
-| `i_` / `a_`         | Inside/around _italic_ (`_..._`)                                     |
-| `` i` `` / `` a` `` | Inside/around `inline code`                                          |
-| `i$` / `a$`         | Inside/around math (`$...$` or `$$...$$`), with smart disambiguation |
-| `i~` / `a~`         | Inside/around ~~strikethrough~~ (`~~...~~`)                          |
-| `i=` / `a=`         | Inside/around ==highlight== (`==...==`)                              |
-| `il` / `al`         | Inside/around links (`[[wikilink]]` or `[text](url)`)                |
-| `iC` / `aC`         | Inside/around fenced code blocks                                     |
-| `iB` / `aB`         | Inside/around blockquotes (`>`)                                      |
-| `io` / `ao`         | Inside/around callouts (`> [!type]`)                                 |
-| `it` / `at`         | Inside/around HTML/XML tags                                          |
-| `ir` / `ar`         | Inside/around table row (raw markdown only)                          |
-| `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                        |
-| `iS` / `aS`         | Subword                                                              | camelCase/snake_case segment. Around includes trailing separator                       |
-| `in` / `an`         | Number                                                               | Numeric literal (sign + decimal). Around includes surrounding space                    |
-| `iq` / `aq`         | Any quote                                                            | Nearest `"`/`'`/`` ` `` pair on same line                                              |
-| `iD` / `aD`         | Double brackets                                                      | Wikilink `[[...]]` content. Handles nesting                                            |
-| `gL`                | URL                                                                  | Forward-seeking URL selection (`https://...`)                                          |
-| `i,` / `a,`         | Argument                                                             | Comma-separated argument with nesting support                                          |
-| `ii` / `ai`         | Indentation                                                          | Lines with same-or-greater indentation level; around includes parent + trailing blanks |
+| Keybinding          | Description                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `i*` / `a*`         | Inside/around **bold** (`**...**`) or _italic_ (`*...*`)                            |
+| `i_` / `a_`         | Inside/around _italic_ (`_..._`)                                                    |
+| `` i` `` / `` a` `` | Inside/around `inline code`                                                         |
+| `i$` / `a$`         | Inside/around math (`$...$` or `$$...$$`), with smart disambiguation                |
+| `i~` / `a~`         | Inside/around ~~strikethrough~~ (`~~...~~`)                                         |
+| `i=` / `a=`         | Inside/around ==highlight== (`==...==`)                                             |
+| `il` / `al`         | Inside/around links (`[[wikilink]]` or `[text](url)`)                               |
+| `iC` / `aC`         | Inside/around fenced code blocks                                                    |
+| `iB` / `aB`         | Inside/around blockquotes (`>`)                                                     |
+| `io` / `ao`         | Inside/around callouts (`> [!type]`)                                                |
+| `it` / `at`         | Inside/around HTML/XML tags                                                         |
+| `ir` / `ar`         | Inside/around table row (where the table is plain text, including a revealed table) |
+| `i\|` / `a\|`       | Inside/around table cell (between `\|` pipes)                                       |
+| `iS` / `aS`         | Subword                                                                             | camelCase/snake_case segment. Around includes trailing separator                       |
+| `in` / `an`         | Number                                                                              | Numeric literal (sign + decimal). Around includes surrounding space                    |
+| `iq` / `aq`         | Any quote                                                                           | Nearest `"`/`'`/`` ` `` pair on same line                                              |
+| `iD` / `aD`         | Double brackets                                                                     | Wikilink `[[...]]` content. Handles nesting                                            |
+| `gL`                | URL                                                                                 | Forward-seeking URL selection (`https://...`)                                          |
+| `i,` / `a,`         | Argument                                                                            | Comma-separated argument with nesting support                                          |
+| `ii` / `ai`         | Indentation                                                                         | Lines with same-or-greater indentation level; around includes parent + trailing blanks |
 
 ## Structural navigation
 
@@ -61,14 +61,16 @@ Jump between document structures. Works with counts (e.g., `3]h` jumps 3 heading
 
 Navigate Markdown table cells without leaving Vim mode.
 
-| Keybinding    | Description                                                                   |
-| ------------- | ----------------------------------------------------------------------------- |
-| `]\|` or `]c` | Move to the next table cell                                                   |
-| `[\|` or `[c` | Move to the previous table cell                                               |
-| `]r`          | Move to same column in next row                                               |
-| `[r`          | Move to same column in previous row                                           |
-| `<Tab>`       | In insert mode in a revealed table: next cell, adding a row from the last one |
-| `<S-Tab>`     | In insert mode in a revealed table: previous cell                             |
+| Keybinding    | Description                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| `]\|` or `]c` | Move to the next table cell                                                                              |
+| `[\|` or `[c` | Move to the previous table cell                                                                          |
+| `]r`          | Move to same column in next row                                                                          |
+| `[r`          | Move to same column in previous row                                                                      |
+| `<Tab>`       | In insert mode in a revealed table: next cell, adding a row from the last one                            |
+| `<S-Tab>`     | In insert mode in a revealed table: previous cell                                                        |
+| `<CR>`        | In insert mode in a revealed table, inside a cell: same column, next row, adding a row from the last one |
+| `<S-CR>`      | In insert mode in a revealed table, inside a cell: insert a `<br>` line break                            |
 
 ## Table text objects
 

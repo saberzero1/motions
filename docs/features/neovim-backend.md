@@ -213,7 +213,7 @@ These bindings are provided in RPC mode, by Neovim companion mappings or by the 
 
 With **Settings → Vim Motions → General → Table widget in live preview** set to `reveal`, nothing about a table is special to the backend. The table holding Neovim's cursor becomes ordinary lines of the buffer Neovim already mirrors, so the editor's cursor sits on Neovim's row inside the table, edits land there, and Neovim's extmarks, flash labels, diagnostics and signs render inside it like anywhere else. Tables the cursor is not in keep Obsidian's own rendering. See [[tables#Reveal mode]].
 
-Reveal's insert-mode `Tab` cell navigation and `tableautorealign` do not apply here, because Neovim owns every key and every mode change. A revealed table is plain buffer text to Neovim, so a Neovim table plugin in your configuration, such as vim-table-mode, should be able to act on it instead; that combination is not tested.
+Reveal's insert-mode `Tab`/`Enter` cell keys, its typing assists (the wikilink pipe escape and the `||` separator) and `tableautorealign` do not apply here, because Neovim owns every key and every mode change. A revealed table is plain buffer text to Neovim, so a Neovim table plugin in your configuration, such as vim-table-mode, should be able to act on it instead; that combination is not tested.
 
 `native` remains the default and is unaffected.
 
