@@ -1,4 +1,4 @@
-import { App, MarkdownView, Platform } from 'obsidian';
+import { App, Platform } from 'obsidian';
 import type { PickerItem, PickerSource, SplitDirection } from '../types';
 import { readLinesAroundPosition } from './preview-utils';
 import { openInSplit } from './split-open';
@@ -143,17 +143,12 @@ export function createLiveGrepSource(
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string; line: number };
-            openInSplit(app, data.path, direction);
-            if (data.line > 0) {
-                window.setTimeout(() => {
-                    const view =
-                        app.workspace.getActiveViewOfType(MarkdownView);
-                    if (view) {
-                        view.editor.setCursor(data.line - 1, 0);
-                        view.editor.focus();
-                    }
-                }, 100);
-            }
+            openInSplit(
+                app,
+                data.path,
+                direction,
+                data.line > 0 ? { line: data.line - 1, ch: 0 } : undefined,
+            );
         },
         async preview(item, app) {
             const data = item.data as { path: string; line: number };

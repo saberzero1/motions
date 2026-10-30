@@ -81,14 +81,6 @@ function buildHeadingItems(headings: HeadingItem[], includeFilename: boolean) {
     }));
 }
 
-function jumpToLine(app: App, line: number): void {
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
-    if (view) {
-        view.editor.setCursor(line, 0);
-        view.editor.focus();
-    }
-}
-
 export function createHeadingsSource(): PickerSource {
     return {
         name: 'headings',
@@ -111,8 +103,10 @@ export function createHeadingsSource(): PickerSource {
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string; line: number };
-            openInSplit(app, data.path, direction);
-            window.setTimeout(() => jumpToLine(app, data.line), 100);
+            openInSplit(app, data.path, direction, {
+                line: data.line,
+                ch: 0,
+            });
         },
         async preview(item, app) {
             const data = item.data as { path: string; line: number };
@@ -148,8 +142,10 @@ export function createOutlineSource(): PickerSource {
         },
         onSelectSplit(item, app, direction: SplitDirection) {
             const data = item.data as { path: string; line: number };
-            openInSplit(app, data.path, direction);
-            window.setTimeout(() => jumpToLine(app, data.line), 100);
+            openInSplit(app, data.path, direction, {
+                line: data.line,
+                ch: 0,
+            });
         },
         async preview(item, app) {
             const data = item.data as { path: string; line: number };

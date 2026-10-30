@@ -41,10 +41,14 @@ async function applyCursorAfterNavigation(
     app: App,
     line?: number,
     ch?: number,
+    leaf?: WorkspaceLeaf,
 ): Promise<void> {
     if (line === undefined && ch === undefined) return;
     await new Promise((resolve) => window.setTimeout(resolve, 50));
-    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    const view =
+        leaf?.view instanceof MarkdownView
+            ? leaf.view
+            : app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) return;
     clampCursorInView(view, line ?? 0, ch ?? 0);
 }
@@ -112,7 +116,7 @@ export async function navigateWithJumpFile(
     } catch {
         return;
     }
-    await applyCursorAfterNavigation(app, options?.line, options?.ch);
+    await applyCursorAfterNavigation(app, options?.line, options?.ch, leaf);
     if (jumpList && source) {
         const dest = getCurrentJumpEntry(app);
         if (dest) recordCrossNoteJump(jumpList, source, dest);
