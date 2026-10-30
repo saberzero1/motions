@@ -12,11 +12,6 @@ interface HeadingItem {
     filename: string;
 }
 
-function formatHeadingLabel(level: number, heading: string): string {
-    const indent = '  '.repeat(Math.max(0, level - 1));
-    return `${indent}${'#'.repeat(level)} ${heading}`;
-}
-
 function getOutlineHeadings(app: App): HeadingItem[] {
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     if (!view?.file) return [];
@@ -72,7 +67,11 @@ function getVaultHeadings(app: App): HeadingItem[] {
 function buildHeadingItems(headings: HeadingItem[], includeFilename: boolean) {
     return headings.map((heading): PickerItem => ({
         id: `${heading.path}:${heading.line}:${heading.heading}`,
-        label: formatHeadingLabel(heading.level, heading.heading),
+        // Indented by level, without `#` marks, as Neovim's `gO` lists
+        // headings; the label stays the bare heading the matcher sees, so
+        // match highlights land on the right characters.
+        label: heading.heading,
+        depth: heading.level - 1,
         description: includeFilename ? heading.filename : undefined,
         filterValue: includeFilename
             ? `${heading.heading} ${heading.filename}`
@@ -119,7 +118,8 @@ export function createOutlineSource(): PickerSource {
     return {
         name: 'outline',
         placeholder: 'Jump to heading…',
-        frecencySource: true,
+        // Document order, as Neovim's outline lists headings.
+        frecencySource: false,
         displayName: 'Document outline',
         icon: 'list-tree',
         description: 'Jump to a heading in the current file',

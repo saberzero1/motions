@@ -48,9 +48,11 @@ export class OutlineModal extends SuggestModal<HeadingItem> {
     }
 
     renderSuggestion(item: HeadingItem, el: HTMLElement): void {
+        // Two spaces per level and no `#` marks, as Neovim's `gO` lists
+        // headings (measured on 0.12.5: `Top`, `  Second`, `    Third`).
         const indent = '\u00A0\u00A0'.repeat(item.level - 1);
         el.createDiv({
-            text: indent + '#'.repeat(item.level) + ' ' + item.heading,
+            text: indent + item.heading,
             cls: 'vim-motions-prompt-modal-suggestion-label',
         });
         el.createDiv({

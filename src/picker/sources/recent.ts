@@ -3,6 +3,7 @@ import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJump } from '../../workspace/navigate';
+import { pickerFileName } from './display-name';
 
 const MAX_RECENTS = 50;
 const recentFiles: string[] = [];
@@ -33,7 +34,7 @@ export function createRecentSource(
         items() {
             return recentFiles.map((path): PickerItem => ({
                 id: path,
-                label: path.replace(/\.md$/, '').split('/').pop() ?? path,
+                label: pickerFileName(path),
                 description: path,
                 filterValue: path,
                 data: { path },
