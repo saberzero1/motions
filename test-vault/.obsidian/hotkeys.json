@@ -9,5 +9,7 @@
   "editor:open-search": [],
   "editor:toggle-bold": [],
   "editor:delete-paragraph": [],
-  "editor:toggle-italics": []
+  "editor:toggle-italics": [],
+  "markdown:toggle-preview": [],
+  "workspace:new-tab": []
 }

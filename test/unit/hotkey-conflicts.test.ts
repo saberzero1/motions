@@ -22,8 +22,17 @@ function filterConflicts(hotkeys: Record<string, unknown[]>): HotkeyConflict[] {
 }
 
 describe('WORKSPACE_NAV_CONFLICTS', () => {
-    it('has 6 conflict entries', () => {
-        expect(WORKSPACE_NAV_CONFLICTS).toHaveLength(6);
+    it('has 9 conflict entries', () => {
+        expect(WORKSPACE_NAV_CONFLICTS).toHaveLength(9);
+    });
+
+    it('includes the keys the hotkey collision survey found', () => {
+        const byCommand = Object.fromEntries(
+            WORKSPACE_NAV_CONFLICTS.map((c) => [c.commandId, c.key]),
+        );
+        expect(byCommand['markdown:toggle-preview']).toBe('Ctrl+E');
+        expect(byCommand['workspace:new-tab']).toBe('Ctrl+T');
+        expect(byCommand['graph:open']).toBe('Ctrl+G');
     });
 
     it('includes the jump list keys Obsidian binds by default (#206)', () => {
@@ -54,7 +63,7 @@ describe('WORKSPACE_NAV_CONFLICTS', () => {
 describe('conflict detection logic', () => {
     it('all defaults active when hotkeys.json is empty', () => {
         const conflicts = filterConflicts({});
-        expect(conflicts).toHaveLength(6);
+        expect(conflicts).toHaveLength(9);
     });
 
     it('no conflicts when all commands have empty arrays', () => {
@@ -65,6 +74,9 @@ describe('conflict detection logic', () => {
             'editor:toggle-bold': [],
             'switcher:open': [],
             'editor:toggle-italics': [],
+            'markdown:toggle-preview': [],
+            'workspace:new-tab': [],
+            'graph:open': [],
         });
         expect(conflicts).toHaveLength(0);
     });
@@ -75,6 +87,9 @@ describe('conflict detection logic', () => {
             'editor:toggle-bold': [],
             'switcher:open': [],
             'editor:toggle-italics': [],
+            'markdown:toggle-preview': [],
+            'workspace:new-tab': [],
+            'graph:open': [],
         });
         expect(conflicts).toHaveLength(2);
         expect(conflicts.map((c) => c.commandId)).toContain(
@@ -93,6 +108,9 @@ describe('conflict detection logic', () => {
             'editor:toggle-bold': [],
             'switcher:open': [],
             'editor:toggle-italics': [],
+            'markdown:toggle-preview': [],
+            'workspace:new-tab': [],
+            'graph:open': [],
         });
         expect(conflicts).toHaveLength(1);
         expect(conflicts[0]!.commandId).toBe('workspace:close');
@@ -107,6 +125,9 @@ describe('conflict detection logic', () => {
             'editor:toggle-bold': [],
             'switcher:open': [],
             'editor:toggle-italics': [],
+            'markdown:toggle-preview': [],
+            'workspace:new-tab': [],
+            'graph:open': [],
         });
         expect(conflicts).toHaveLength(0);
     });
