@@ -102,7 +102,9 @@ describe(':files and :buffers with non-markdown files (#169)', function () {
             expect(await isPickerOpen()).toBe(true);
 
             const labels = await getPickerItemLabels();
-            expect(labels).toContain('TestCanvas');
+            // A file that is not a note keeps its extension, as Obsidian's
+            // quick switcher lists it (#171).
+            expect(labels).toContain('TestCanvas.canvas');
         });
     });
 
@@ -128,7 +130,7 @@ describe(':files and :buffers with non-markdown files (#169)', function () {
             expect(await isPickerOpen()).toBe(true);
 
             const labels = await getPickerItemLabels();
-            expect(labels).toContain('TestCanvas');
+            expect(labels).toContain('TestCanvas.canvas');
         });
     });
 

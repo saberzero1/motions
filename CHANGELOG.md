@@ -223,7 +223,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Negative controls:**
         - putting `:outline` back on frecency fails only its order;
         - removing the indent rule from `styles.css` fails only its indentation.
-    - Tests: `test/specs/picker-names-outline.e2e.ts` (new)
+    - **Updated spec:** `files-buffers-non-md.e2e.ts` (#169) expected the stripped `TestCanvas`, and now expects `TestCanvas.canvas`. Its two assertions fail when the old stripping is restored.
+    - Tests: `test/specs/picker-names-outline.e2e.ts` (new), `test/specs/files-buffers-non-md.e2e.ts`
 - **`escape-leaves-insert.e2e.ts` presses Escape with real link suggestions open (#196).**
     - **Scenarios:** one Escape closes them and leaves insert mode, keeping the text; with the option off, the first Escape only closes them; a user `inoremap <Esc> X` that stays in insert mode is left alone; a plain Escape still leaves insert mode (control).
     - **Before the change:** the first scenario stayed in insert mode.
