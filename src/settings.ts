@@ -225,6 +225,7 @@ export interface VimMotionsSettings {
     pcre: boolean;
     insertmodeescape: string;
     insertmodeescapetimeout: number;
+    escapeLeavesInsert: boolean;
     operatorshadowtimeout: number;
     textwidth: number;
     whichKeyMode: 'off' | 'leader' | 'all';
@@ -389,6 +390,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     pcre: true,
     insertmodeescape: '',
     insertmodeescapetimeout: 1000,
+    escapeLeavesInsert: true,
     operatorshadowtimeout: 1000,
     textwidth: 80,
     whichKeyMode: 'off',
@@ -1379,6 +1381,24 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                             return 'Must be between 100 and 5000';
                                         return undefined;
                                     },
+                                },
+                            },
+                            {
+                                name: 'Escape always leaves insert mode',
+                                desc: this.describeOverride(
+                                    'escapeLeavesInsert',
+                                    'When link suggestions or another Obsidian popup takes Escape, also leave insert mode, as Neovim does with its completion menu. Off: the first Escape only closes the popup.',
+                                ),
+                                aliases: [
+                                    'escapeleavesinsert',
+                                    'suggestion escape',
+                                    'popup escape',
+                                ],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'escapeLeavesInsert',
+                                    disabled: () =>
+                                        this.isOverridden('escapeLeavesInsert'),
                                 },
                             },
                             {
@@ -4076,6 +4096,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     this.plugin.clearSettingOverride('insertmodeescapetimeout');
                 });
             });
+
+        new Setting(containerEl)
+            .setName('Escape always leaves insert mode')
+            .setDesc(
+                describeOverride(
+                    'escapeLeavesInsert',
+                    'When link suggestions or another Obsidian popup takes Escape, also leave insert mode, as Neovim does with its completion menu. Off: the first Escape only closes the popup.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.escapeLeavesInsert)
+                    .setDisabled(isOverridden('escapeLeavesInsert'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.escapeLeavesInsert = value;
+                        this.plugin.clearSettingOverride('escapeLeavesInsert');
+                        await this.plugin.saveSettings();
+                    }),
+            );
 
         new Setting(containerEl)
             .setName('Operator shadow timeout')

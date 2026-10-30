@@ -166,6 +166,15 @@ export function registerVimOptions(
         const enabled = !!value;
         notify('enableTableNav', enabled, `set ${enabled ? '' : 'no'}tablenav`);
     });
+    vim.defineOption('escapeleavesinsert', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'escapeLeavesInsert',
+            enabled,
+            `set ${enabled ? '' : 'no'}escapeleavesinsert`,
+        );
+    });
     vim.defineOption('tableautorealign', false, 'boolean', [], (value) => {
         if (value === undefined) return;
         const enabled = !!value;

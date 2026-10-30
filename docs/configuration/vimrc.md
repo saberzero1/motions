@@ -217,6 +217,7 @@ Use `set <option>=<value>`.
 | `shiftwidth`                 | `sw`                      | Indent width                                                                                             | 4       | 1-8      |
 | `textwidth`                  | `tw`                      | Line wrap width for `gq`/`gw`                                                                            | 80      | 0-200    |
 | `insertmodeescapetimeout`    | `imet`                    | Timeout (ms) for insert escape sequence                                                                  | 1000    | 100-5000 |
+| `escapeleavesinsert`         | —                         | Escape leaves insert mode even when a popup such as link suggestions takes it                            | on      | —        |
 | `operatorshadowtimeout`      | `ost`, `timeoutlen`, `tm` | Timeout (ms) for operator-prefix and mapping-prefix disambiguation (equivalent to Neovim's `timeoutlen`) | 1000    | 0-5000   |
 | `numberwidth`                | `nuw`                     | Minimum line number column width                                                                         | 2       | 1-20     |
 | `jumplistsize`               | —                         | Maximum jump list entries                                                                                | 200     | 1-1000   |

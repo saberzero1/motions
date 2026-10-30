@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **One Escape closes Obsidian's link suggestions and leaves insert mode, as one `<Esc>` closes Neovim's completion menu** ([#196](https://github.com/saberzero1/motions/issues/196)).
+    - **Before:** the suggestion menu handled Escape on `window` in the capture phase and stopped it, so the engine stayed in insert mode, and a second Escape was needed. A user `imap <Esc>` could not help, since the engine never saw the key. Ctrl+[ left insert mode but left the menu open.
+    - **Now:** the plugin notices Obsidian took the key (`defaultPrevented` on the same event) and sends `<Esc>` to the editor afterwards, if it is still in insert mode. That `<Esc>` goes through user `<Esc>` mappings, as Neovim's would.
+    - **Neovim 0.12.5, measured:** `A` `<C-n>` `<Esc>` ends in normal mode with the selected word kept.
+    - **Option:** on by default. **Settings → Vim Motions → General → Escape always leaves insert mode**, `set noescapeleavesinsert` or `vim.opt.escapeleavesinsert = false` turns it off.
+    - **Not covered:** pop-out windows, where listener order is not guaranteed, and the Neovim backend. Both are recorded in `KNOWN_LIMITATIONS.md`.
+
 - **`K` previews footnotes, a second `K` moves into the preview, and `q` closes it** ([#209](https://github.com/saberzero1/motions/issues/209), [#208](https://github.com/saberzero1/motions/issues/208)).
     - **Footnotes:** `K` on a footnote reference (`[^1]`) used to show character info. It now sends the same `hover-link` Obsidian's own footnote hover sends, `linktext: "#[^1]"`, so the footnote opens in a preview.
     - **`KK`:** a second `K`, with the cursor where the first left it, moves into the preview, as Neovim's hover does ("KK" opens the hover window and focuses it, `:help vim.lsp.buf.hover()`). After a motion, `K` starts over, since Neovim closes its hover window when the cursor moves. It uses the preview's `showEditor()`, which is what a click into the preview does.
@@ -115,6 +122,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`escape-leaves-insert.e2e.ts` presses Escape with real link suggestions open (#196).**
+    - **Scenarios:** one Escape closes them and leaves insert mode, keeping the text; with the option off, the first Escape only closes them; a user `inoremap <Esc> X` that stays in insert mode is left alone; a plain Escape still leaves insert mode (control).
+    - **Before the change:** the first scenario stayed in insert mode.
+    - **Negative controls:**
+        - not installing the listener fails the first scenario;
+        - ignoring the option fails the second;
+        - dropping the `defaultPrevented` check fails the mapping scenario with `abXX`, because the injected `<Esc>` ran the user's mapping a second time.
+    - Tests: `test/specs/escape-leaves-insert.e2e.ts` (new)
 - **`keyword-preview.e2e.ts` presses `K`, `KK` and `q` against real page previews (#209, #208).**
     - **Scenarios:** `K` on a footnote; `K` on a link (control); `KK` focusing the preview and `q` closing it; `K` after a motion not focusing; `q` typing in insert mode; `q` ending a recording; `q` in the note still recording a macro (control).
     - **Before the change:** `K` on `[^1]` showed character info.

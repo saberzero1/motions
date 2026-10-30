@@ -109,6 +109,10 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     tablenav: { type: 'boolean', settingsKey: 'enableTableNav' },
     tn: { type: 'boolean', settingsKey: 'enableTableNav' },
     tableautorealign: { type: 'boolean', settingsKey: 'tableAutoRealign' },
+    escapeleavesinsert: {
+        type: 'boolean',
+        settingsKey: 'escapeLeavesInsert',
+    },
     workspacenav: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
     wn: { type: 'boolean', settingsKey: 'enableWorkspaceNav' },
     workspacenavviewtypes: {

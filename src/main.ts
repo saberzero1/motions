@@ -178,6 +178,7 @@ import {
     installEscapeGuard,
     installHoverPreviewQuit,
 } from './vim/escape-guard';
+import { installEscapeLeavesInsert } from './vim/escape-leaves-insert';
 import {
     setAnimatedCursorConfig,
     setCursorShapes,
@@ -831,8 +832,13 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async onload() {
-        // Once per load, not per vim toggle: it registers a DOM listener.
+        // Once per load, not per vim toggle: these register DOM listeners.
         installHoverPreviewQuit(this.app, this);
+        installEscapeLeavesInsert(
+            this.app,
+            this,
+            () => this.settings.escapeLeavesInsert,
+        );
         this.neovimConnection = new NeovimConnection(
             this.app,
             () => this.registration,
