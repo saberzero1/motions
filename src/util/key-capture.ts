@@ -17,6 +17,42 @@
  * need.
  */
 
+import { Scope, type Keymap } from 'obsidian';
+
+type ScopeStack = Pick<Keymap, 'pushScope' | 'popScope'>;
+
+let obsidianKeymap: ScopeStack | null = null;
+
+/** Set at plugin load, cleared at unload; see `holdObsidianKeymap`. */
+export function setCaptureKeymap(keymap: ScopeStack | null): void {
+    obsidianKeymap = keymap;
+}
+
+/**
+ * Keeps Obsidian's hotkeys from running while a capture holds the keyboard,
+ * and returns the release, which is idempotent.
+ *
+ * Obsidian's Keymap handles its hotkeys on `window` in the capture phase and
+ * stops the event, ahead of any `document` listener here. With its default
+ * Ctrl+D bound, Ctrl+D while flash or EasyMotion labels were up, or while
+ * `getcharstr()` waited, deleted a paragraph and the capture never saw the
+ * key. An empty scope with no parent on top of the keymap is what a modal
+ * does: Obsidian finds no handler there and does not fall through to the app
+ * scope, so the key carries on to the capture.
+ */
+export function holdObsidianKeymap(): () => void {
+    const keymap = obsidianKeymap;
+    if (!keymap) return () => {};
+    const scope = new Scope();
+    keymap.pushScope(scope);
+    let held = true;
+    return () => {
+        if (!held) return;
+        held = false;
+        keymap.popScope(scope);
+    };
+}
+
 /** The part of `Document` this needs, so tests can supply a fake. */
 export interface KeyCaptureTarget {
     addEventListener(
@@ -77,11 +113,13 @@ export function captureKeys<T>(
         if (settled) return;
         settled = true;
         target.removeEventListener('keydown', handler, true);
+        releaseKeymap();
         release?.();
         resolveFn(value);
     }
 
     acquire?.();
+    const releaseKeymap = holdObsidianKeymap();
     target.addEventListener('keydown', handler, true);
 
     return { promise, abort: () => finish(abortValue) };

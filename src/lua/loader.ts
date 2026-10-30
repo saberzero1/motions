@@ -52,6 +52,7 @@ import { CoroutineRunner } from './coroutine-runner';
 import { injectPackageAndRequire } from './package';
 import { LuaModuleSnapshot, type SnapshotAdapter } from './module-snapshot';
 import { KeyBroker } from './key-broker';
+import { holdObsidianKeymap } from '../util/key-capture';
 import { injectIoShim } from './io-shim';
 import { getTarballUrl, fetchPluginTarball } from './plugin-fetch';
 import {
@@ -461,9 +462,14 @@ export async function loadInitLua(
                 if (e.key.length !== 1 && e.key !== 'Escape') return;
                 handler(e.key === 'Escape' ? null : e.key);
             };
+            // Without this, Obsidian's hotkeys took the key first: Ctrl+D
+            // deleted a paragraph instead of reaching getcharstr().
+            const releaseKeymap = holdObsidianKeymap();
             activeDocument.addEventListener('keydown', domHandler, true);
-            return () =>
+            return () => {
                 activeDocument.removeEventListener('keydown', domHandler, true);
+                releaseKeymap();
+            };
         },
         setInterceptActive: setKeyInterceptActive,
     });

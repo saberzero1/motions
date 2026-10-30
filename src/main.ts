@@ -193,6 +193,7 @@ import type { LuaLoadResult } from './lua/loader';
 import { observeKeyEvent } from './workspace/key-observer';
 import { createSandboxedState, destroyState, evalLua } from './lua/engine';
 import { getCallbackAdapter, injectVimApi } from './lua/api';
+import { setCaptureKeymap } from './util/key-capture';
 import { injectVimFn } from './lua/fn';
 import { AutocmdManager } from './lua/autocmd';
 import {
@@ -828,6 +829,10 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     async onload() {
+        // Modal key captures (hint, flash, EasyMotion, getcharstr) hold
+        // Obsidian's keymap while they run, so its hotkeys cannot take keys.
+        setCaptureKeymap(this.app.keymap);
+        this.register(() => setCaptureKeymap(null));
         this.neovimConnection = new NeovimConnection(
             this.app,
             () => this.registration,
