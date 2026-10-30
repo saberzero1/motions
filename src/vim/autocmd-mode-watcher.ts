@@ -7,6 +7,7 @@ import {
 import type { Extension } from '@codemirror/state';
 import { getCmAdapterFromEditorView } from './vim-api';
 import type { CmAdapter, VimModeChange } from '../types/vim-api';
+import { noteModeChange } from './visual-exit';
 
 type ModeChangeCallback = (mode: VimModeChange) => void;
 
@@ -49,8 +50,12 @@ class AutocmdModeWatcher implements PluginValue {
 
     private bind(): void {
         if (!this.adapter) return;
+        const adapter = this.adapter;
         this.handler = (mode: VimModeChange) => {
             if (this.destroyed) return;
+            // Installed in every vim editor whether or not Lua is configured,
+            // so it is also where `:obcommand` learns of a visual exit.
+            noteModeChange(adapter, mode);
             onModeChange?.(mode);
         };
         this.adapter.on('vim-mode-change', this.handler);

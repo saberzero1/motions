@@ -32,6 +32,7 @@ type ModeHandler = (mode: { mode: string; subMode?: string }) => void;
 
 function createMockAdapter(): {
     adapter: {
+        state: { vim: Record<string, unknown> };
         on: (event: string, handler: ModeHandler) => void;
         off: (event: string, handler: ModeHandler) => void;
     };
@@ -39,6 +40,7 @@ function createMockAdapter(): {
 } {
     const handlers = new Set<ModeHandler>();
     const adapter = {
+        state: { vim: {} },
         on: (event: string, handler: ModeHandler) => {
             if (event === 'vim-mode-change') handlers.add(handler);
         },
