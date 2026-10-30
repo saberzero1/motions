@@ -4,6 +4,7 @@ import { openInSplit } from './split-open';
 import { readFilePreview } from './preview-utils';
 import type { NonMarkdownPreviewMode } from './preview-utils';
 import { navigateWithJumpSetActive } from '../../workspace/navigate';
+import { pickerFileName } from './display-name';
 
 export function createBuffersSource(
     getNonMarkdownPreview: () => NonMarkdownPreviewMode,
@@ -25,7 +26,9 @@ export function createBuffersSource(
                 if (leaf.getRoot() !== rootSplit) return;
                 const file = leaf.view.file;
                 const path = file?.path ?? '';
-                const basename = file?.basename ?? '(untitled)';
+                const basename = file
+                    ? pickerFileName(file.path)
+                    : '(untitled)';
                 const active = leaf === activeLeaf ? '% ' : '';
                 items.push({
                     id: path || basename,

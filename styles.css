@@ -1007,6 +1007,8 @@ input.vim-motions-picker-input:focus {
 .vim-motions-picker-item .vim-motions-picker-item-label:before {
     content: '> ';
     opacity: 0;
+    /* Two characters per level, after the marker: Neovim's gO indent. */
+    margin-inline-end: calc(var(--vim-motions-picker-depth, 0) * 2ch);
 }
 
 .vim-motions-picker-item.is-selected .vim-motions-picker-item-label:before {

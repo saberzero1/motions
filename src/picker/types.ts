@@ -9,6 +9,12 @@ export interface PickerItem {
     filterValue?: string;
     data?: unknown;
     group?: string;
+    /**
+     * Indentation in levels, two characters each, the way Neovim's `gO`
+     * outline indents a heading by its level. Kept out of `label`, whose
+     * character positions the match highlights index into.
+     */
+    depth?: number;
 }
 
 export type SplitDirection = 'horizontal' | 'vertical' | 'tab';

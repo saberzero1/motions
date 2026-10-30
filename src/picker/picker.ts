@@ -448,6 +448,12 @@ export class PickerModal extends Modal {
         const labelEl = itemEl.createDiv({
             cls: 'vim-motions-picker-item-label',
         });
+        if (match.item.depth) {
+            labelEl.style.setProperty(
+                '--vim-motions-picker-depth',
+                String(match.item.depth),
+            );
+        }
         this.renderHighlighted(labelEl, match.item.label, match.highlights);
 
         if (match.item.description) {

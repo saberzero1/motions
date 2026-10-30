@@ -213,6 +213,12 @@ When `pickerLeaderMappings` is enabled (default: on), the following bindings are
 
 `:files` opens the fuzzy picker for all vault files, including canvas, base, and other non-markdown file types.
 
+Notes are listed without `.md`, and any other file with its extension (`report.pdf`, `diagram.canvas`), as Obsidian's quick switcher lists them, so a PDF and a note of the same name stay apart. `:buffers` and `:recent` list files the same way.
+
+### `:outline` and `gO` — headings in the current note
+
+`:outline` and `gO` list the note's headings in document order, each indented two characters per level below the first, without `#` marks, as Neovim's `gO` lists them.
+
 ### `:commands` — run commands
 
 `:commands` opens the fuzzy picker for Obsidian commands. Use `:ob` for a raw command list by ID.

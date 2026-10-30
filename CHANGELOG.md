@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Picker file names keep non-Markdown extensions, and outlines indent headings by level instead of showing `#` marks** ([#171](https://github.com/saberzero1/motions/issues/171)).
+    - **File names:** `:files`, `:buffers` and `:recent` list a note without `.md` and any other file with its extension, as Obsidian's quick switcher does. Measured: the switcher lists `Pick171`, `Pick171.png` and `Pick171.pdf`, where `:files` listed all three as `Pick171`. `:recent` already did this.
+    - **Outlines:** `gO`, `:outline` and `:headings` show each heading indented two characters per level, without `#` marks, as Neovim's `gO` does (measured on 0.12.5: `Top`, `  Second`, `    Third level`, from level 1 even when a note starts at level 2). `:outline` now lists headings in document order instead of by frecency: with no history, the label tie-break had listed them deepest first.
+
 - **The table widget dropdown shows short labels: Native, Reveal (experimental), Raw (deprecated).** Each option used to be a full sentence; the Reveal one ran past 250 characters, and Obsidian sizes a dropdown to fit its label. What each mode does is now the setting's description. Both settings implementations read the same `TABLE_WIDGET_OPTIONS` and `TABLE_WIDGET_DESCRIPTION`, and the deprecated option is listed last.
     - Plugin: `src/settings.ts` (both implementations)
 - **`tableWidgetMode: raw` is deprecated**, with a one-time notice, ahead of removal in a later release. It does not do what its name implies — measured, it hides Obsidian's widget with CSS while Obsidian still block-replaces the table's range, so the table renders as **nothing**, which is why Source mode is the recommended replacement. The value keeps working: it is a documented vimrc and Lua option, and a deprecation that breaks configs is not a deprecation. The legacy shapes that used to resolve to it now retarget to `native` instead — `suppressTableWidget: true` and `tablewidget=always`, in both the stored-settings migration and the separate vimrc/Lua option mapping — while an **explicitly** chosen `raw` is deliberately left alone. `docs/configuration/vimrc.md` and `docs/configuration/lua-config.md` also omitted a value and now list every one. The table-widget migration moved out of `main.ts` into `src/settings-migration.ts`, where its siblings already live, so it is unit-testable.
@@ -58,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: deleted `src/vim/table/{nested-view,key-router,sync-up,selection-mirror,surface-field,surface-widget,click-to-place,cell-decorations,native-cell-suppressor,renderable-ranges}.ts`; `src/settings-migration.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`, `src/settings.ts` (both implementations), `src/main.ts`, `styles.css`
 
 ### Fixed
+
+- **`:outline` and `:headings` highlighted the wrong characters for a match.** Highlights index into the label, but the label carried an indent and `#` marks the matcher never saw. Typing `thi` highlighted three characters of indent instead of `Thi`. The depth is now rendered as spacing beside the label, and the label is the bare heading.
 
 - **The animated cursor painted the old letter after an edit, and did not follow an edit that moved it** ([#181](https://github.com/saberzero1/motions/issues/181), follow-up reports). There were two faults:
     - **Stale glyph:** the block cursor repaints the character under it, cached by document position and row. `x` and `r` change that character without moving either, so the deleted or replaced letter was drawn again. This is the "text artifacts while typing and editing" report.
@@ -122,6 +128,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- **`picker-names-outline.e2e.ts` reads the real pickers and the `gO` modal (#171).**
+    - **Scenarios:** `:files` and `:buffers` with a note, a PNG and a PDF of the same name; `gO` and `:outline` on a note with headings at three levels; the `:outline` match highlight.
+    - **Before the change:** all five failed. The file pickers showed `Pick171` three times, the outlines showed `#` marks, and the highlight covered three spaces.
+    - **Negative controls:**
+        - putting `:outline` back on frecency fails only its order;
+        - removing the indent rule from `styles.css` fails only its indentation.
+    - Tests: `test/specs/picker-names-outline.e2e.ts` (new)
 - **`escape-leaves-insert.e2e.ts` presses Escape with real link suggestions open (#196).**
     - **Scenarios:** one Escape closes them and leaves insert mode, keeping the text; with the option off, the first Escape only closes them; a user `inoremap <Esc> X` that stays in insert mode is left alone; a plain Escape still leaves insert mode (control).
     - **Before the change:** the first scenario stayed in insert mode.
