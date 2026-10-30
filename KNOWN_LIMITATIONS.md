@@ -2381,6 +2381,13 @@ Fixed by adding `attributeOldValue: true` to the `MutationObserver` config and c
 
 **Test coverage**: `test/specs/properties-fold-scroll.e2e.ts` — 4 regression tests: non-fold class mutation preserves scroll, no-op class re-assignment preserves scroll, fold toggle triggers scroll, unfold toggle triggers scroll.
 
+## Escape with an Obsidian popup open
+
+One Escape closes Obsidian's link suggestions, or any popup that registers Escape on its keymap scope, and leaves insert mode, as one `<Esc>` closes Neovim's completion menu and leaves insert mode (`escapeleavesinsert`, on by default; [#196](https://github.com/saberzero1/motions/issues/196)). The popup handles the key on `window` in the capture phase and stops it, so the engine never sees it. A listener registered after Obsidian's keymap sees the same event with `defaultPrevented` set and sends `<Esc>` to the editor once the event has finished, if it is still in insert mode. Two limits remain:
+
+- **Pop-out windows:** Obsidian attaches its keymap to each new window, and the plugin's listener there is not guaranteed to run after it. Where it does not, the first Escape only closes the popup, as before.
+- **The Neovim backend:** insert mode lives in Neovim, which never receives the Escape the popup took, so it stays in insert mode.
+
 ## ~~Insert mode escape (`set insertmodeescape=jk`) not working~~ (Fixed)
 
 **Status**: Fixed. `InsertEscapeHandler` rewritten to use DOM `keydown` events; timeout made configurable. ([#31](https://github.com/saberzero1/motions/issues/31))
