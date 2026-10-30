@@ -39,6 +39,28 @@ async function loadMiniComment(luaConfig: string): Promise<void> {
     await browser.pause(200);
 }
 
+/** The actions of every normal-mode mapping of `gc`. */
+async function gcLuaActions(): Promise<string[]> {
+    return (await browser.executeObsidian(() => {
+        const Vim = (
+            window as unknown as {
+                CodeMirrorAdapter?: {
+                    Vim?: {
+                        getKeymap: (ctx?: string) => Array<{
+                            keys: string;
+                            action?: string;
+                        }>;
+                    };
+                };
+            }
+        ).CodeMirrorAdapter?.Vim;
+        if (!Vim) return [];
+        return Vim.getKeymap('normal')
+            .filter((m) => m.keys === 'gc')
+            .map((m) => m.action ?? '');
+    })) as string[];
+}
+
 describe('mini.comment plugin integration', function () {
     after(async function () {
         await setPluginSetting('pluginAutoFetch', false);
@@ -103,29 +125,25 @@ describe('mini.comment plugin integration', function () {
         it('gc mapping is registered after setup', async function () {
             await loadMiniComment(`require('mini.comment').setup({})`);
 
-            const result = await browser.executeObsidian(() => {
-                const Vim = (
-                    window as unknown as Record<string, unknown> & {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                getKeymap: (ctx?: string) => Array<{
-                                    keys: string;
-                                    type?: string;
-                                    action?: string;
-                                }>;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (!Vim) return false;
-                const maps = Vim.getKeymap('normal');
-                return maps.some(
-                    (m: { keys: string; action?: string }) =>
-                        m.keys === 'gc' &&
-                        m.action?.startsWith('lua-action-eager'),
-                );
-            });
-            expect(result).toBe(true);
+            // setup() maps `gc` twice over: as `lua-action-eager-N` while the
+            // config loads, and again as `lua-action-N` when applyLuaMaps runs
+            // on the next reloadFeatures or leaf change. Either is the mapping
+            // this scenario is about. It used to accept only the first, read a
+            // fixed 200 ms after the load, and a macOS runner found neither
+            // there while every later scenario that presses `gc` passed.
+            await browser.waitUntil(
+                async () =>
+                    (await gcLuaActions()).some((a) =>
+                        a.startsWith('lua-action-'),
+                    ),
+                {
+                    timeout: 5000,
+                    interval: 100,
+                    timeoutMsg: 'setup() never mapped gc to a Lua action',
+                },
+            );
+            const actions = await gcLuaActions();
+            expect(actions.some((a) => a.startsWith('lua-action-'))).toBe(true);
         });
 
         it('g@ operator with manual operatorfunc works', async function () {
