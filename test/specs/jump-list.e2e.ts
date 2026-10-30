@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
@@ -113,6 +114,24 @@ describe('Jump list', function () {
             // A real key: <Tab> used to fall through to Obsidian, which
             // indented the line instead of jumping.
             await browser.keys(['Tab']);
+            await browser.pause(PAUSE.EDITOR_SETTLE * 2);
+            expect((await getCursorPos()).line).toBe(4);
+            expect(await getEditorValue()).toBe(doc);
+        });
+
+        it("real Ctrl+I goes forward once Obsidian's italic hotkey is unbound (#206)", async function () {
+            // Obsidian binds Ctrl+I to "Toggle italics" by default, and its
+            // Keymap stops the event on `window` before the editor sees it:
+            // measured with the binding active, Ctrl+I inserted italic
+            // markers instead of jumping. The test vault's hotkeys.json
+            // unbinds it, as the hotkey-conflict check tells users to.
+            const doc = 'line1\nline2\nline3\nline4\nline5';
+            await setupEditor(doc, { line: 0, ch: 0 });
+            await vimKeys('G');
+            await sendCtrlJump('<C-o>');
+            expect((await getCursorPos()).line).toBe(0);
+            await browser.keys([Key.Ctrl, 'i']);
+            await browser.keys([Key.Ctrl]);
             await browser.pause(PAUSE.EDITOR_SETTLE * 2);
             expect((await getCursorPos()).line).toBe(4);
             expect(await getEditorValue()).toBe(doc);

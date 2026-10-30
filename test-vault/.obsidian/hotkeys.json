@@ -8,5 +8,6 @@
   "graph:open": [],
   "editor:open-search": [],
   "editor:toggle-bold": [],
-  "editor:delete-paragraph": []
+  "editor:delete-paragraph": [],
+  "editor:toggle-italics": []
 }
