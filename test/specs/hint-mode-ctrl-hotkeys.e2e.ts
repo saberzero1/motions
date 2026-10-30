@@ -1,7 +1,7 @@
 import { browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
 import { obsidianPage } from 'wdio-obsidian-service';
-import { PAUSE, setupEditor } from '../helpers';
+import { PAUSE, setPluginSettingAndReload, setupEditor } from '../helpers';
 
 /**
  * Holding Ctrl over a hint label opens it in a new pane, even where Obsidian
@@ -79,8 +79,19 @@ async function overlayOpen(): Promise<boolean> {
     )) as boolean;
 }
 
-/** Shows hints and returns the first label starting with `letter`. */
+const DEFAULT_HINT_LABELS = 'asdfghjkl';
+
+/**
+ * Shows hints and returns the first label starting with `letter`. The letter
+ * is put first in the hint characters, so the first labels start with it
+ * however few targets are visible: with the default `asdfghjkl`, labels
+ * reach `f` only past 78 targets, which CI's smaller window did not show.
+ */
 async function showHintsAndFind(letter: string): Promise<string> {
+    await setPluginSettingAndReload(
+        'hintModeLabels',
+        letter + DEFAULT_HINT_LABELS.replace(letter, ''),
+    );
     await browser.executeObsidian(({ app, obsidian }) => {
         const Vim = (
             window as unknown as {
@@ -154,6 +165,7 @@ describe('hint mode and Obsidian Ctrl hotkeys', function () {
     });
 
     after(async function () {
+        await setPluginSettingAndReload('hintModeLabels', DEFAULT_HINT_LABELS);
         await browser.executeObsidian(async ({ app }) => {
             if (await app.vault.adapter.exists('HintCtrlTarget.md')) {
                 await app.vault.adapter.remove('HintCtrlTarget.md');
