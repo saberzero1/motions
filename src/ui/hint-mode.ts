@@ -1,4 +1,4 @@
-import { MarkdownView, Notice, type WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Notice, Scope, type WorkspaceLeaf } from 'obsidian';
 import type { App } from 'obsidian';
 import type { EditorView } from '@codemirror/view';
 import { setKeyInterceptActive } from '@replit/codemirror-vim';
@@ -228,19 +228,30 @@ interface HintResult {
     shiftKey: boolean;
 }
 
-function waitForHintKey(targets: HintTarget[]): KeyCaptureHandle<HintResult> {
+function waitForHintKey(
+    app: App,
+    targets: HintTarget[],
+): KeyCaptureHandle<HintResult> {
     let firstChar = '';
+    // An empty scope with no parent, on top of Obsidian's keymap: a hotkey it
+    // does not handle is not passed down to the app scope, so the key reaches
+    // the listener below. Without it Obsidian ran Ctrl+<letter> first, and a
+    // Ctrl-held label beginning with `d` deleted a paragraph.
+    const scope = new Scope();
 
     return captureKeys<HintResult>({
         // Balanced by construction: captureKeys runs `release` on every exit
-        // path, so the intercept lease cannot outlive the listener.
+        // path, so neither the intercept lease nor the scope can outlive the
+        // listener.
         acquire: () => {
             hintModeActive = true;
             setKeyInterceptActive(true);
+            app.keymap.pushScope(scope);
         },
         release: () => {
             hintModeActive = false;
             setKeyInterceptActive(false);
+            app.keymap.popScope(scope);
         },
         abortValue: {
             target: null,
@@ -759,7 +770,7 @@ function createHintAction(
         const originalLeaf =
             count && count > 1 ? app.workspace.getMostRecentLeaf() : null;
 
-        void waitForHintKey(targets).promise.then(async (result) => {
+        void waitForHintKey(app, targets).promise.then(async (result) => {
             container.remove();
             if (!result.target) return;
             if (!result.target.element.isConnected) {

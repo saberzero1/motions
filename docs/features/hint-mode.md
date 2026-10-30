@@ -29,7 +29,7 @@ Hint actions support count prefixes. For example, `3f` allows you to activate th
 In the Markdown editor, hint mode is triggered via `<leader><leader>h` or a configured global hotkey.
 
 - **Activate**: Type the label to click or focus the target.
-- **Open in new pane**: Hold `Ctrl` (Windows/Linux) or `Cmd` (macOS) while typing the final character of the label.
+- **Open in new pane**: Hold `Ctrl` (Windows/Linux) or `Cmd` (macOS) while typing the final character of the label. Obsidian's own hotkeys are paused while labels are showing, so this works even where Obsidian binds the key, as it does `Ctrl+D` and `Ctrl+F`.
 - **Context menu**: Hold `Shift` while typing the final character of the label to open the right-click context menu on the target.
 
 > [!note]
