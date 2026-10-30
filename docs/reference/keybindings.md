@@ -373,7 +373,7 @@ Navigate Obsidian panes, tabs, and history following Neovim conventions.
 | `<C-w>gd`             | Open link under cursor in a horizontal split                  | —      |
 | `<C-w>gD`             | Open link under cursor in a vertical split                    | —      |
 | `gx`                  | Open URL under cursor in browser                              | —      |
-| `K`                   | Keyword lookup — hover preview on links, char info on text    | —      |
+| `K`                   | Preview links/footnotes, else char info; `KK` focuses it      | —      |
 | `gf`                  | Open file switcher (quick open)                               | —      |
 | `]f` / `[f`           | Alias for `gf` (go to file)                                   | —      |
 | `gO`                  | Open document outline (searchable heading list)               | —      |
@@ -695,7 +695,7 @@ Enhanced Vim behavior and Obsidian-specific improvements.
 | `&`        | Repeat last `:s` substitution on current line                       |
 | `g&`       | Repeat last `:s` substitution on all lines                          |
 | `gM`       | Go to middle character of text line                                 |
-| `K`        | Keyword lookup (hover preview on links, char info)                  |
+| `K`        | Preview links and footnotes, char info; `KK` focuses the preview    |
 | `]<Space>` | Add N blank lines below cursor                                      |
 | `[<Space>` | Add N blank lines above cursor                                      |
 | `ZZ`       | Write current file and close tab (`:wq`)                            |
