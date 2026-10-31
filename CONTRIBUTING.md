@@ -268,6 +268,7 @@ src/
     dial-rules.ts          # Dial rules (checkbox, boolean, hex, date, CSS, integer)
     register-dial.ts       # Dial action override registration
   workspace/
+    leaf-settle.ts         # Window and tab commands wait for a pane still loading its note (isActiveLeafLoading, whenActiveLeafSettled); shared with the Neovim bridge
     navigation.ts          # registerCoreVimActions (always-on: gd/gD/gx/gO/gf/ga/g8/K/P/gp/gP/zs/ze/zH/zL/]Space/[Space/fold commands/alternate file/<leader>r* note actions) + registerWorkspaceNavigation (gated by enableWorkspaceNav: <C-w>h/j/k/l/v/s/c/q/o/w/W/p/T, gt/gT/g<C-t>) — gt uses repeatIsExplicit for Ngt count support, gotoNthTab filters to rootSplit
     navigate.ts            # Cross-note navigation wrappers (navigateWithJump, navigateWithJumpFile, navigateWithJumpSetActive)
     commands.ts            # Ex commands (:w, :q, :ob, :reg, :marks, :grep, :backlinks, etc.)

@@ -18,6 +18,8 @@ Manage your workspace layout using standard Vim window commands. The plugin supp
 
 The `<C-w>` prefix allows for intuitive movement between splits. Use `<C-w>h`, `<C-w>j`, `<C-w>k`, and `<C-w>l` to move focus to the left, bottom, top, or right pane respectively.
 
+Obsidian activates a new split before it has loaded the note into it, and focuses the pane once it has. A window or tab command that arrives in between, as the second half of a mapping like `<C-w>v<C-w>h` does, waits for the load, up to 1.5 s, so the move is not undone by it.
+
 ### Pane cycling
 
 - `<C-w>w`: Cycle to the next pane.

@@ -2,6 +2,7 @@ import { MarkdownView, Notice, type App } from 'obsidian';
 import type { CmAdapter } from '../types/vim-api';
 import type { VimRegistration } from '../vim/registration';
 import { getCmAdapter } from '../vim/vim-api';
+import { isActiveLeafLoading } from '../workspace/leaf-settle';
 import { utf16ToNeovimByte, type NeovimDocumentSync } from './document-sync';
 import type { MsgpackRpcClient } from './msgpack-rpc';
 
@@ -489,8 +490,7 @@ export class NeovimObsidianFeatureBridge {
      */
     private async resolveActiveEditor(): Promise<ActiveEditor | null> {
         for (let attempt = 0; attempt < 60; attempt++) {
-            const leaf = this.app.workspace.getMostRecentLeaf();
-            if (!leaf?.working && !leaf?.isDeferred) {
+            if (!isActiveLeafLoading(this.app)) {
                 const view =
                     this.app.workspace.getActiveViewOfType(MarkdownView);
                 const cm = view ? getCmAdapter(view) : null;

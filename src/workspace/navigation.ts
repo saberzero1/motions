@@ -36,6 +36,7 @@ import { createContextActionsAction } from '../ui/context-actions';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
 import { executeCommand } from '../util/commands';
+import { whenActiveLeafSettled } from './leaf-settle';
 
 export { executeCommand } from '../util/commands';
 
@@ -43,6 +44,12 @@ function createCommandAction(app: App, commandId: string): ActionFn {
     return () => {
         executeCommand(app, commandId);
     };
+}
+
+/** A window or tab action that waits for a pane still loading its note. */
+function settled(app: App, action: ActionFn): ActionFn {
+    return (cm, actionArgs, vim) =>
+        whenActiveLeafSettled(app, () => action(cm, actionArgs, vim));
 }
 
 function createCloseOthersAction(app: App): ActionFn {
@@ -984,49 +991,70 @@ export function registerWorkspaceNavigation(
     getPreviousLeafId: () => string | null = () => null,
     getAlternateFilePath: () => string | null = () => null,
 ): void {
-    const focusLeft = createCommandAction(app, 'editor:focus-left');
+    const focusLeft = settled(
+        app,
+        createCommandAction(app, 'editor:focus-left'),
+    );
     reg.defineAction('focusPaneLeft', focusLeft);
     reg.mapCommand('<C-w>h', 'action', 'focusPaneLeft', {});
     exCommandFromAction(reg, 'focuspaneleft', 'focuspanel', focusLeft);
 
-    const focusDown = createCommandAction(app, 'editor:focus-bottom');
+    const focusDown = settled(
+        app,
+        createCommandAction(app, 'editor:focus-bottom'),
+    );
     reg.defineAction('focusPaneDown', focusDown);
     reg.mapCommand('<C-w>j', 'action', 'focusPaneDown', {});
     exCommandFromAction(reg, 'focuspanedown', 'focuspaned', focusDown);
 
-    const focusUp = createCommandAction(app, 'editor:focus-top');
+    const focusUp = settled(app, createCommandAction(app, 'editor:focus-top'));
     reg.defineAction('focusPaneUp', focusUp);
     reg.mapCommand('<C-w>k', 'action', 'focusPaneUp', {});
     exCommandFromAction(reg, 'focuspaneup', '', focusUp);
 
-    const focusRight = createCommandAction(app, 'editor:focus-right');
+    const focusRight = settled(
+        app,
+        createCommandAction(app, 'editor:focus-right'),
+    );
     reg.defineAction('focusPaneRight', focusRight);
     reg.mapCommand('<C-w>l', 'action', 'focusPaneRight', {});
     exCommandFromAction(reg, 'focuspaneright', 'focuspaner', focusRight);
 
-    const splitV = createCommandAction(app, 'workspace:split-vertical');
+    const splitV = settled(
+        app,
+        createCommandAction(app, 'workspace:split-vertical'),
+    );
     reg.defineAction('splitVertical', splitV);
     reg.mapCommand('<C-w>v', 'action', 'splitVertical', {});
     exCommandFromAction(reg, 'splitvertical', 'splitv', splitV);
 
-    const splitH = createCommandAction(app, 'workspace:split-horizontal');
+    const splitH = settled(
+        app,
+        createCommandAction(app, 'workspace:split-horizontal'),
+    );
     reg.defineAction('splitHorizontal', splitH);
     reg.mapCommand('<C-w>s', 'action', 'splitHorizontal', {});
     reg.mapCommand('<C-w>n', 'action', 'splitHorizontal', {});
     exCommandFromAction(reg, 'splithorizontal', 'splith', splitH);
 
-    const closeTabAction = createCommandAction(app, 'workspace:close');
+    const closeTabAction = settled(
+        app,
+        createCommandAction(app, 'workspace:close'),
+    );
     reg.defineAction('closeTab', closeTabAction);
     reg.mapCommand('<C-w>c', 'action', 'closeTab', {});
     reg.mapCommand('<C-w>q', 'action', 'closeTab', {});
     exCommandFromAction(reg, 'closetab', 'closet', closeTabAction);
 
-    const closeOthers = createCloseOthersAction(app);
+    const closeOthers = settled(app, createCloseOthersAction(app));
     reg.defineAction('closeOtherTabs', closeOthers);
     reg.mapCommand('<C-w>o', 'action', 'closeOtherTabs', {});
     exCommandFromAction(reg, 'closeothertabs', 'closeo', closeOthers);
 
-    const nextTabAction = createCommandAction(app, 'workspace:next-tab');
+    const nextTabAction = settled(
+        app,
+        createCommandAction(app, 'workspace:next-tab'),
+    );
     reg.defineAction('nextTab', nextTabAction);
     exCommandFromAction(reg, 'nexttab', '', nextTabAction);
 
@@ -1048,28 +1076,34 @@ export function registerWorkspaceNavigation(
             executeCommand(app, 'workspace:next-tab');
         }
     };
-    reg.defineAction('gt', gtAction);
+    reg.defineAction('gt', settled(app, gtAction));
     reg.mapCommand('gt', 'action', 'gt', {});
 
-    const prevTabAction = createCommandAction(app, 'workspace:previous-tab');
+    const prevTabAction = settled(
+        app,
+        createCommandAction(app, 'workspace:previous-tab'),
+    );
     reg.defineAction('prevTab', prevTabAction);
     reg.mapCommand('gT', 'action', 'prevTab', {});
     exCommandFromAction(reg, 'prevtab', '', prevTabAction);
 
-    const gotoTabAction = createGotoTabAction(app);
+    const gotoTabAction = settled(app, createGotoTabAction(app));
     reg.defineAction('gotoTab', gotoTabAction);
     reg.mapCommand('g<C-t>', 'action', 'gotoTab', {});
     exCommandFromAction(reg, 'gototab', 'gotot', gotoTabAction);
 
-    const cyclePaneNext = createCyclePaneAction(app, false);
+    const cyclePaneNext = settled(app, createCyclePaneAction(app, false));
     reg.defineAction('cyclePaneNext', cyclePaneNext);
     reg.mapCommand('<C-w>w', 'action', 'cyclePaneNext', {});
 
-    const cyclePanePrev = createCyclePaneAction(app, true);
+    const cyclePanePrev = settled(app, createCyclePaneAction(app, true));
     reg.defineAction('cyclePanePrev', cyclePanePrev);
     reg.mapCommand('<C-w>W', 'action', 'cyclePanePrev', {});
 
-    const focusPrevPane = createFocusPreviousPaneAction(app, getPreviousLeafId);
+    const focusPrevPane = settled(
+        app,
+        createFocusPreviousPaneAction(app, getPreviousLeafId),
+    );
     reg.defineAction('focusPreviousPane', focusPrevPane);
     reg.mapCommand('<C-w>p', 'action', 'focusPreviousPane', {});
     reg.mapCommand('g<Tab>', 'action', 'focusPreviousPane', {});
@@ -1082,7 +1116,7 @@ export function registerWorkspaceNavigation(
         const sourcePath = app.workspace.getActiveFile()?.path ?? '';
         void app.workspace.openLinkText(target, sourcePath, false);
     };
-    reg.defineAction('splitAlternateFile', splitAlternateFile);
+    reg.defineAction('splitAlternateFile', settled(app, splitAlternateFile));
     reg.mapCommand('<C-w><C-^>', 'action', 'splitAlternateFile', {});
 
     // <C-W>T — move current pane to a new tab
@@ -1098,7 +1132,7 @@ export function registerWorkspaceNavigation(
             leaf.detach();
         });
     };
-    reg.defineAction('moveToNewTab', moveToNewTab);
+    reg.defineAction('moveToNewTab', settled(app, moveToNewTab));
     reg.mapCommand('<C-w>T', 'action', 'moveToNewTab', {});
 
     const noop: ActionFn = () => {};
