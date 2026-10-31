@@ -166,6 +166,9 @@ src/
     options.ts             # Vim option registration (clipboard, tabstop, etc.) — registerVimOptions() returns activation function to defer notify callbacks until after initial settings sync
     neovim-options.ts      # Comprehensive registry of ALL Neovim options with tier classification (hardcoded, noop-platform, noop-deferred, rejected, not-applicable) — used by vimrc loader and Lua vim.opt for tiered logging and typo detection
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
+    image-embed.ts         # Obsidian 1.13's image controller, reached through its adapter class's livePreview getter; runImageAction() selects the image under the cursor when none is (#218)
+    image-command.ts       # :image grow|shrink|reset|edit, with the count from the address or an argument; afterEdit sends the change on to Neovim
+    image-select-keys.ts   # h/l select and leave an image in idle normal mode, from a window capture listener ahead of the editor's own
     changelist.ts          # Change list tracking
     undo-tree.ts           # Undo tree data structure (shadow tree, branching, serialize/deserialize)
     undo-tree-view.ts      # Undo tree sidebar view (DOM rendering, keyboard nav, click-to-navigate)

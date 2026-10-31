@@ -108,6 +108,8 @@ const EX_COMMAND_NAMES = new Set([
     'hintyank',
     'hintclose',
     'hintcontextmenu',
+    // Writes its edit to Neovim, which owns the buffer (mirrorHostEdit).
+    'image',
 ]);
 
 // Shown by `:map`, `:command`, and any which-key plugin the user runs, so it

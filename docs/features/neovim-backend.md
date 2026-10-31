@@ -171,6 +171,8 @@ vim.keymap.set('n', '<leader>td', function() vim.cmd('Ob theme:use-dark') end)
 
 Bridged actions run in the order Neovim sent them. If one arrives while the active pane is still loading its note, it waits for the load, up to 1.5 s. Obsidian activates a new split before loading the note into it, so without the wait a mapping such as `<C-w>v<C-w>h` lost its second half. A cross-note jump (`<C-o>`, `<C-i>`, Harpoon) puts the cursor at the remembered position and keeps it there until Neovim's cursor has been moved to match.
 
+`:image` resizes the image under the cursor from Neovim's command line, as `:image grow 2` and so on (see [[images]]). Obsidian rewrites the embed in the editor, and the plugin writes that change into Neovim's buffer as one edit, so `u` undoes it and later edits on the line build on it. Other edits Obsidian makes directly to the editor are not sent to Neovim yet; see [[known-limitations]].
+
 Run `:ob` with no arguments for the command picker. The plugin's `exmap` and `gmap` are bundled-engine constructs and do not apply here — use `vim.keymap.set` as above instead.
 
 ## Plugin compatibility

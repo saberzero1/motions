@@ -922,7 +922,10 @@ export async function setPluginSettingAndReload(
 export interface ExCommandResult {
     /** No exception crossed the `Vim.handleEx` boundary. */
     ok: boolean;
-    /** Set when the driver could not reach the ex handler at all. */
+    /**
+     * Set when the driver could not reach the ex handler, or when the command
+     * threw; its message is then in `messages` too, as the fork shows it.
+     */
     error?: string;
     /**
      * The fork reported `Not an editor command ":<input>"` — i.e. nothing was
@@ -950,7 +953,7 @@ export interface ExCommandResult {
  * assertion about the state the command is responsible for producing.
  */
 export async function handleEx(input: string): Promise<ExCommandResult> {
-    return (await browser.executeObsidian(
+    const result = (await browser.executeObsidian(
         ({ app, obsidian }, cmdStr: string) => {
             const readMessages = (): string[] =>
                 Array.from(document.querySelectorAll('.cm-vim-message')).map(
@@ -974,7 +977,7 @@ export async function handleEx(input: string): Promise<ExCommandResult> {
                 if (!Vim)
                     return {
                         ok: false,
-                        error: 'handleEx: no Vim API',
+                        failure: 'handleEx: no Vim API',
                         unknownCommand: false,
                         messages: [],
                         dispatchedCommands,
@@ -985,7 +988,7 @@ export async function handleEx(input: string): Promise<ExCommandResult> {
                 if (!view)
                     return {
                         ok: false,
-                        error: 'handleEx: no MarkdownView',
+                        failure: 'handleEx: no MarkdownView',
                         unknownCommand: false,
                         messages: [],
                         dispatchedCommands,
@@ -996,7 +999,7 @@ export async function handleEx(input: string): Promise<ExCommandResult> {
                 if (!adapter)
                     return {
                         ok: false,
-                        error: 'handleEx: no CodeMirror adapter',
+                        failure: 'handleEx: no CodeMirror adapter',
                         unknownCommand: false,
                         messages: [],
                         dispatchedCommands,
@@ -1027,7 +1030,7 @@ export async function handleEx(input: string): Promise<ExCommandResult> {
                 commands.executeCommandById = realExecute;
                 return {
                     ok: false,
-                    error: String(e),
+                    failure: String(e),
                     unknownCommand: readMessages().some((m) =>
                         m.startsWith('Not an editor command'),
                     ),
@@ -1037,7 +1040,11 @@ export async function handleEx(input: string): Promise<ExCommandResult> {
             }
         },
         input,
-    )) as ExCommandResult;
+    )) as Omit<ExCommandResult, 'error'> & { failure?: string };
+    // A script result carrying an `error` key is read by WebdriverIO as a
+    // WebDriver error response and thrown, so the page reports `failure`.
+    const { failure, ...rest } = result;
+    return failure === undefined ? rest : { ...rest, error: failure };
 }
 
 export interface WorkspaceSnapshot {

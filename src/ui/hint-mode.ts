@@ -55,6 +55,8 @@ const OBSIDIAN_SELECTORS = [
     '.modal-header-button',
     '.workspace-drawer-vault-switcher',
     '.metadata-add-button',
+    // An embed's top-right buttons: an image's Zoom in and Edit this block (#218).
+    '.embed-action',
 ];
 
 export const TARGET_SELECTOR = [
@@ -120,6 +122,17 @@ function isVisible(el: Element): boolean {
         ancestor = ancestor.parentElement;
     }
     return true;
+}
+
+/**
+ * An embed's button row sits at opacity 0 until the embed is hovered or, for
+ * an image, selected. The geometry `isVisible` measures is the same either
+ * way, so the row's opacity decides whether its buttons are on screen.
+ */
+function isShownEmbedAction(el: Element): boolean {
+    if (!el.classList.contains('embed-action')) return true;
+    const row = el.closest('.embed-actions') ?? el;
+    return activeWindow.getComputedStyle(row).opacity !== '0';
 }
 
 interface HintTarget {
@@ -703,6 +716,7 @@ function createHintAction(
                     el.classList.contains('checkbox-container'),
             )
             .filter((el) => !el.classList.contains('is-measuring'))
+            .filter(isShownEmbedAction)
             .filter(
                 (el) =>
                     !(

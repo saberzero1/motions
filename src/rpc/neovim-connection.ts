@@ -428,6 +428,12 @@ export class NeovimConnection {
         return this.rpc.request(method, args);
     }
 
+    /** Sends an edit Obsidian made to the active note on to Neovim. */
+    async mirrorHostEdit(): Promise<void> {
+        if (!this.connected) return;
+        await this.documentSync?.mirrorHostEdit();
+    }
+
     async setEditorOptions(options: NeovimEditorOptions): Promise<void> {
         await this.documentSync?.setEditorOptions(options);
     }
