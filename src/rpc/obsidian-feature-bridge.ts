@@ -1,4 +1,5 @@
 import { MarkdownView, Notice, type App } from 'obsidian';
+import type { CmAdapter } from '../types/vim-api';
 import type { VimRegistration } from '../vim/registration';
 import { getCmAdapter } from '../vim/vim-api';
 import { utf16ToNeovimByte, type NeovimDocumentSync } from './document-sync';
@@ -215,14 +216,28 @@ type BridgeAction =
           name: string;
           keys: string;
           mode: string;
-          run: (payload: DispatchPayload) => Promise<void>;
+          run: ActionRun;
       }
     | {
           id: string;
           kind: 'command';
           name: string;
-          run: (payload: DispatchPayload) => Promise<void>;
+          run: ActionRun;
       };
+
+/**
+ * `started` opens the next action's turn; it is called once the action itself
+ * has run, so only the cursor settling that follows overlaps the next one.
+ */
+type ActionRun = (
+    payload: DispatchPayload,
+    started: () => void,
+) => Promise<void>;
+
+interface ActiveEditor {
+    view: MarkdownView;
+    cm: CmAdapter;
+}
 
 type NotificationPayload = DispatchPayload & { id?: unknown };
 
@@ -251,6 +266,7 @@ export class NeovimObsidianFeatureBridge {
     private installedMappings: Array<{ mode: string; keys: string }> = [];
     private installedCommands: string[] = [];
     private installedAbbreviations: string[] = [];
+    private turn: Promise<void> = Promise.resolve();
 
     constructor(
         private readonly app: App,
@@ -343,12 +359,11 @@ export class NeovimObsidianFeatureBridge {
                 mapping.name === 'jumpListWalk'
                     ? `mapping:${mapping.name}:${mapping.keys}`
                     : `mapping:${mapping.name}`;
-            const run = async (payload: DispatchPayload): Promise<void> => {
-                const view =
-                    this.app.workspace.getActiveViewOfType(MarkdownView);
-                const cm = view ? getCmAdapter(view) : null;
-                if (!cm) return;
-                const initialFile = view?.file?.path ?? null;
+            const run: ActionRun = async (payload, started) => {
+                const editor = await this.resolveActiveEditor();
+                if (!editor) return;
+                const { view, cm } = editor;
+                const initialFile = view.file?.path ?? null;
                 const initialCursor = cm.getCursor();
                 const count =
                     typeof payload.count === 'number' && payload.count > 0
@@ -361,25 +376,44 @@ export class NeovimObsidianFeatureBridge {
                         typeof payload.count === 'number' && payload.count > 0,
                 };
                 if (mapping.actionFn) {
-                    mapping.actionFn(cm, actionArgs, cm.state.vim ?? {});
-                    if (CURSOR_NAV_MAPPING_NAMES.has(mapping.name)) {
-                        await this.syncHostCursorAfterNavigation(
-                            initialFile,
-                            initialCursor,
-                            mapping.name,
-                        );
+                    const navigates = CURSOR_NAV_MAPPING_NAMES.has(
+                        mapping.name,
+                    );
+                    // Held from before the action, so no cursor copy from
+                    // Neovim can land between the action's own write into
+                    // CodeMirror and the restore that brings Neovim level.
+                    const release = navigates
+                        ? this.documentSync.holdHostCursor()
+                        : null;
+                    try {
+                        mapping.actionFn(cm, actionArgs, cm.state.vim ?? {});
+                        started();
+                        if (navigates) {
+                            await this.syncHostCursorAfterNavigation(
+                                initialFile,
+                                initialCursor,
+                                mapping.name,
+                                release ?? undefined,
+                            );
+                        }
+                    } finally {
+                        release?.();
                     }
                     return;
                 }
                 if (!mapping.motionFn) return;
                 const head = cm.getCursor();
-                const result = await mapping.motionFn(
+                const pending = mapping.motionFn(
                     cm,
                     head,
                     actionArgs,
                     cm.state.vim ?? {},
                     null,
                 );
+                // Before the await, so an asynchronous motion cannot hold up
+                // every bridged action behind it.
+                started();
+                const result = await pending;
                 const target = Array.isArray(result) ? result[1] : result;
                 if (!target) return;
                 const line = cm.getLine(target.line);
@@ -405,27 +439,38 @@ export class NeovimObsidianFeatureBridge {
                 id,
                 kind: 'command',
                 name: command.name,
-                run: async (payload: DispatchPayload) => {
-                    const view =
-                        this.app.workspace.getActiveViewOfType(MarkdownView);
-                    const cm = view ? getCmAdapter(view) : null;
-                    if (!cm) return;
-                    const initialFile = view?.file?.path ?? null;
+                run: async (payload, started) => {
+                    const editor = await this.resolveActiveEditor();
+                    if (!editor) return;
+                    const { view, cm } = editor;
+                    const initialFile = view.file?.path ?? null;
                     const initialCursor = cm.getCursor();
                     const args =
                         typeof payload.args === 'string' ? payload.args : '';
-                    command.fn(cm, {
-                        args: args ? args.split(/\s+/) : [],
-                        argString: args,
-                        commandName: command.name,
-                        input: `${command.name}${args ? ` ${args}` : ''}`,
-                    });
-                    if (CURSOR_NAV_COMMAND_NAMES.has(command.name)) {
-                        await this.syncHostCursorAfterNavigation(
-                            initialFile,
-                            initialCursor,
-                            command.name,
-                        );
+                    const navigates = CURSOR_NAV_COMMAND_NAMES.has(
+                        command.name,
+                    );
+                    const release = navigates
+                        ? this.documentSync.holdHostCursor()
+                        : null;
+                    try {
+                        command.fn(cm, {
+                            args: args ? args.split(/\s+/) : [],
+                            argString: args,
+                            commandName: command.name,
+                            input: `${command.name}${args ? ` ${args}` : ''}`,
+                        });
+                        started();
+                        if (navigates) {
+                            await this.syncHostCursorAfterNavigation(
+                                initialFile,
+                                initialCursor,
+                                command.name,
+                                release ?? undefined,
+                            );
+                        }
+                    } finally {
+                        release?.();
                     }
                 },
             });
@@ -433,10 +478,32 @@ export class NeovimObsidianFeatureBridge {
         return actions;
     }
 
+    /**
+     * The active Markdown editor, once its pane can take an action. A split
+     * activates its new pane before the note in it has loaded — Obsidian
+     * defers the load — so the second half of `<C-w>v<C-w>h` found no editor
+     * and was dropped, leaving focus in the new pane. Only a pane that is
+     * still loading is waited for, and not past the cursor sync's 1.5 s.
+     */
+    private async resolveActiveEditor(): Promise<ActiveEditor | null> {
+        for (let attempt = 0; attempt < 60; attempt++) {
+            const leaf = this.app.workspace.getMostRecentLeaf();
+            if (!leaf?.working && !leaf?.isDeferred) {
+                const view =
+                    this.app.workspace.getActiveViewOfType(MarkdownView);
+                const cm = view ? getCmAdapter(view) : null;
+                return view && cm ? { view, cm } : null;
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 25));
+        }
+        return null;
+    }
+
     private async syncHostCursorAfterNavigation(
         initialFile: string | null,
         initialCursor: { line: number; ch: number },
         actionName: string,
+        releaseHostCursor?: () => void,
     ): Promise<void> {
         for (let attempt = 0; attempt < 60; attempt++) {
             await new Promise((resolve) => window.setTimeout(resolve, 25));
@@ -447,8 +514,13 @@ export class NeovimObsidianFeatureBridge {
                 view.file?.path === initialFile &&
                 cursor.line === initialCursor.line &&
                 cursor.ch === initialCursor.ch
-            )
+            ) {
+                // Nothing moved within 300 ms, such as <C-o> with no older
+                // entry: stop holding the cursor, so keys typed meanwhile
+                // keep moving it, rather than stalling for the loop's 1.5 s.
+                if (attempt === 11) releaseHostCursor?.();
                 continue;
+            }
             await this.documentSync.waitForActivation();
             await new Promise((resolve) => window.setTimeout(resolve, 25));
             const currentView =
@@ -522,10 +594,18 @@ export class NeovimObsidianFeatureBridge {
         if (typeof id !== 'string') return;
         const action = this.actions.get(id);
         if (!action) return;
-        void action.run(payload ?? {}).catch((error: unknown) => {
-            const message =
-                error instanceof Error ? error.message : String(error);
-            new Notice(`Vim Motions: Obsidian action failed: ${message}`);
-        });
+        // Actions start in the order Neovim sent them: one that waits for a
+        // loading pane must not be overtaken by the keys typed after it.
+        const previous = this.turn;
+        let started!: () => void;
+        this.turn = new Promise((resolve) => (started = resolve));
+        void previous
+            .then(() => action.run(payload ?? {}, started))
+            .catch((error: unknown) => {
+                const message =
+                    error instanceof Error ? error.message : String(error);
+                new Notice(`Vim Motions: Obsidian action failed: ${message}`);
+            })
+            .finally(started);
     }
 }

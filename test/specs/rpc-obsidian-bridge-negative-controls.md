@@ -79,3 +79,32 @@ Suppressing the `onMarksChanged` callback removed `a` from the Vim mark table bu
 `normalizeBufferName` was introduced because `nvim_buf_get_name` returns Windows paths with backslashes, so the `endsWith('/<file>')` comparison in `waitForMirror` could never match and every row that awaited the mirror timed out after 5000 ms. CI showed the product working — the failing payload carried the correct `neovimText` — while 6 rows failed on the path comparison alone.
 
 To confirm the comparison is still load-bearing after normalisation, `normalizeBufferName` was made to return the constant `'garbage-not-a-real-buffer-name'`. The run produced **20 passing, 9 failing**: every row that awaits `waitForMirror`, plus the picker re-seed row, failed. Restoring the real implementation returned **29 passing**.
+
+## Host cursor hold: Neovim's stale cursor copied over a host jump
+
+Every bridge request first flushes key delegation, whose `syncState` copies Neovim's cursor into CodeMirror. A host jump opens the note and sets CodeMirror's cursor before the bridge moves Neovim level, so a request in between copied Neovim's cursor — still at the top of the freshly reseeded buffer — over the restored one. Raising the restore's settle sleep from 25 ms to 300 ms made it deterministic: both `uses the host jumplist for two cross-note older jumps` and `forwards the count from 2<C-o> to the host jumplist` landed at line 0, column 0. The new scenarios hold the window open with `delayCursorWrites(300)`, which delays only the plugin's `nvim_win_set_cursor`.
+
+| Sabotage                                                       | Scenario that failed                                               | Observed                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------- |
+| The fix stashed                                                | `keeps a cross-note <C-o> cursor…`                                 | `{ line: 0, ch: 0 }`, expected `{ line: 1, ch: 3 }` |
+| Both `hostCursorHeld` checks removed from `syncState`          | `keeps a cross-note <C-o> cursor…`                                 | `{ line: 0, ch: 0 }`, expected `{ line: 1, ch: 3 }` |
+| The bridge takes no hold                                       | `keeps a cross-note <C-o> cursor…`                                 | `{ line: 0, ch: 0 }`                                |
+| The 300 ms release for a navigation that moved nothing removed | `lets the cursor follow Neovim again when <C-o> has nowhere to go` | `{ line: 0, ch: 0 }`, expected `{ line: 1, ch: 0 }` |
+| The release listener never called                              | `lets the cursor follow Neovim again…`                             | `{ line: 0, ch: 0 }`                                |
+| Command path without the hold                                  | `keeps a :HarpoonSelect cursor…`                                   | `{ line: 0, ch: 0 }`, expected `{ line: 1, ch: 7 }` |
+
+Each row failed exactly one scenario; the other three jump scenarios stayed green. The "nowhere to go" scenario passes with the whole fix stashed, as it should: it guards the hold against outliving its navigation, not the race. It presses real keys, because `nvim_input` bypasses key delegation and so never runs the copy the release must restore.
+
+## Bridged action dropped while a split is still loading
+
+Obsidian's `duplicateLeaf` activates the new pane in `createLeafBySplit`, then gives it a deferred placeholder and resolves — measured at 12–14 ms — while the real `MarkdownView` loads on activation through a second `setViewState` that nothing awaits. Until that load finishes the active pane has no vim adapter, and the bridge's `run()` returned at `if (!cm) return`. Instrumented, the bridged `<C-w>h` ran at 45 ms with `adapter=false file=undefined` and never called `executeCommandById`. This is why `focuses the expected pane in all four directions` timed out at the left pane on macOS CI, and why awaiting `duplicateLeaf` in the test is no settle signal.
+
+`moves out of a new split that is still loading its note` sends `<C-w>v<C-w>h` as one input, with no fault injection. Before the fix it ended in the new pane 3 runs out of 3.
+
+| Sabotage                                       | Observed                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------- |
+| Bridge without the readiness wait and the turn | `focus did not reach the original pane`, active the new leaf, 2 of 2 runs |
+| Turn removed, readiness wait kept              | same, 2 of 2                                                              |
+| Readiness wait removed, turn kept              | same, 2 of 2                                                              |
+
+Both halves are needed. Without the turn, `<C-w>h`'s first readiness check runs before `<C-w>v`'s split has executed, so it acts on the old layout and the split's deferred load then takes focus back. With the whole fix and the new pane's `setState` held back by 1.5 s, the four-directions scenario passes; with the same injection and no fix it failed at the left pane 2 of 2.
