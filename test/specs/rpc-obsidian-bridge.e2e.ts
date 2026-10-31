@@ -1747,9 +1747,10 @@ return out`,
         await request('nvim_win_set_cursor', [0, [1, 0]]);
 
         // Real keys, through key delegation, which copies Neovim's cursor
-        // after every key; nvim_input bypasses it.
-        await browser.keys([Key.Ctrl, 'o']);
-        await browser.keys([Key.Ctrl]);
+        // after every key; nvim_input bypasses it. Key.Control, because
+        // Key.Ctrl is Command on macOS, where it sent Cmd+O instead of <C-o>.
+        await browser.keys([Key.Control, 'o']);
+        await browser.keys([Key.Control]);
         await browser.keys(['j']);
 
         // Released 300 ms after nothing moved; the bridge's own wait runs on
