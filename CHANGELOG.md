@@ -67,6 +67,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`<Leader>tal`, `<Leader>tac` and `<Leader>tar` set the current column's alignment, and the alignment commands now work in a revealed table.** `:tablealignleft`, `:tablealigncenter` and `:tablealignright` already ran Obsidian's commands, which drive its table widget and so did nothing to a revealed table. They now fall back to rewriting the separator cell and realigning, like the other `:table*` commands.
     - Plugin: `src/motions/tables.ts`, `src/vim/table/structural.ts` (`setColumnAlignment`)
 
+- **Images: `h` and `l` select an embedded image, and `:image` resizes it, as under Obsidian 1.13's own Vim mode** ([#218](https://github.com/saberzero1/motions/issues/218)). The plugin's engine replaces the Vim adapter that provided both, so they were missing whenever it ran.
+    - **Selecting:** in idle normal mode, `l` at an image's start selects it, with Obsidian's accent outline and buttons, and `l` again leaves it at its end; `h` does the same from the end. A count or pending operator moves as before, so `2l` and `dl` are unchanged. The check runs on the physical key, ahead of mappings, as Obsidian's does. This departs from Neovim on purpose, because an embed is Obsidian syntax drawn as one object.
+    - **`:image grow|shrink|reset|edit`:** works as Obsidian's command does, with the count taken from the line address (`:3image grow`). Two additions: the count can also be given as an argument (`:image grow 3`), and with no image selected the command selects the one under the cursor. Without an image to act on, it says so, where Obsidian's does nothing.
+    - **No `g+`/`g-`/`g=`/`g<CR>`:** Obsidian binds these, but `g+` and `g-` are Neovim's undo-history keys, already used by the undo tree.
+    - **Hint mode:** an embed's top-right buttons, such as an image's **Zoom in** and **Edit this block**, get labels while they are visible.
+    - **Neovim backend:** `:image` is bridged. The resize is written into Neovim's buffer as one change, so `u` undoes it. Without that, Neovim kept the old text, and a later edit on the line left the embed reading `![[pic.png|3!25]]`.
+    - Plugin: `src/vim/image-embed.ts`, `src/vim/image-command.ts`, `src/vim/image-select-keys.ts` (new), `src/ui/hint-mode.ts`, `src/rpc/document-sync.ts` (`mirrorHostEdit`), `src/rpc/neovim-connection.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/main.ts`
+
 ### Changed
 
 - **Picker file names keep non-Markdown extensions, and outlines indent headings by level instead of showing `#` marks** ([#171](https://github.com/saberzero1/motions/issues/171)).
@@ -415,9 +423,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A scenario that had never executed its assertion, now executing it.** `table-cursor-suppression`'s #127 check nested its only `expect` two levels deep; measured, `cmView.view` was `undefined` while the overlay, its editor and the bridge were all present, so it had not run once since being written — and `cmView` is absent on the overlay and every descendant, so that accessor could never have worked. The view is reachable the way the product holds it, through `TextareaVimManager.active.editor.cm`, and the suppression claim is asserted again with the resolution itself asserted so a future refactor fails here rather than silently skipping.
 - **`rpc-obsidian-bridge.e2e.ts` covers both RPC flakes with deterministic scenarios.** Two scenarios hold the jump race open by delaying only the plugin's `nvim_win_set_cursor`: `keeps a cross-note <C-o> cursor…` and `keeps a :HarpoonSelect cursor…`. `lets the cursor follow Neovim again when <C-o> has nowhere to go` presses real keys, because `nvim_input` skips the cursor sync it checks. `moves out of a new split that is still loading its note` sends `<C-w>v<C-w>h` as one input, with no fault injection. The pane-focus waits now report on timeout which pane was active, the file, Neovim's mode and any notices, rather than a bare `waitUntil` timeout.
     - Negative controls: `test/specs/rpc-obsidian-bridge-negative-controls.md`, two new sections and nine sabotages, each with observed values.
+- **`image-embed.e2e.ts` and `rpc-image.e2e.ts` drive image selection and `:image` against a real image (#218).** The PNG is drawn at runtime, so no binary is committed.
+    - **Bundled engine:** `h`/`l` entering and leaving, a count passing through, `j` clearing the selection, each `:image` action, both count forms, selecting the image under the cursor, the two error messages, and hint labels on the buttons of a selected image but not of an unselected one, plus activating **Edit this block** through its label.
+    - **Neovim backend:** the resize reaching both the editor and Neovim, a count argument, one undo step, and a later Neovim edit on the same line.
+    - **Unit tests:** `image-command.test.ts` pins the count rules.
+    - **Negative controls:** twelve sabotages with observed values, in `test/specs/image-embed-negative-controls.md`. Two of them caught faults in the tests themselves: a sabotage applied to only one of two registration sites, and an undo scenario that never checked the grow.
+- **`handleEx` could not report an ex command that throws.** WebdriverIO reads a script result carrying an `error` key as a WebDriver error response and throws it, so the helper's `ok: false` result surfaced as `WebDriverError: Error: …` instead. The page now reports the field as `failure`, and the helper maps it back to `error`. `ExCommandResult` is unchanged.
+    - Tests: `test/helpers.ts`
 
 ### Documentation
 
+- **`docs/features/images.md` (new) covers selecting an image with `h`/`l`, `:image`, its hint labels, and the Neovim backend.** `ex-commands.md` and the keybindings reference gain `:image`, `hint-mode.md` the embed buttons, and `neovim-backend.md` the bridged command.
+    - **`KNOWN_LIMITATIONS.md`:** a new entry records that sync to Neovim is one-way, so edits Obsidian makes to the editor do not reach Neovim, except `:image`'s.
 - **`docs/features/neovim-backend.md` says that bridged actions run in order and wait for a pane that is still loading, and that a jump keeps its own cursor.** `KNOWN_LIMITATIONS.md`'s Neovim backend status says the same.
 - **The README described tables as three modes, `native` with and without its overlay and `raw`, with no mention of `reveal`.** It now describes `native` and `reveal`, and says `raw` is deprecated.
     - **CONTRIBUTING:** its source tree listed `table-format-on-exit.ts`, deleted in the move to Obsidian's table editor, and now lists the reveal modules and `normal-tab.ts`.

@@ -540,6 +540,73 @@ export class NeovimDocumentSync {
         await this.activationPromise;
     }
 
+    /**
+     * Sends an edit Obsidian made to the editor on to Neovim's buffer.
+     *
+     * Synchronisation otherwise runs one way, from Neovim's line events into
+     * CodeMirror, so a host edit left the buffer stale, and the next line
+     * event found the document diverged from the mirror. Sent as one edit,
+     * it is one step in Neovim's undo history. The mirror is updated first,
+     * so the line event Neovim echoes back changes nothing.
+     */
+    async mirrorHostEdit(): Promise<void> {
+        const editorView = this.editorView;
+        const buffer = this.buffer;
+        if (!editorView || buffer === null || this.disposed) return;
+        const previous = this.mirror;
+        const lines = editorView.state.doc.toString().split('\n');
+        let first = 0;
+        while (
+            first < previous.length &&
+            first < lines.length &&
+            previous[first] === lines[first]
+        )
+            first++;
+        if (first === previous.length && first === lines.length) return;
+        let previousEnd = previous.length;
+        let end = lines.length;
+        while (
+            previousEnd > first &&
+            end > first &&
+            previous[previousEnd - 1] === lines[end - 1]
+        ) {
+            previousEnd--;
+            end--;
+        }
+        this.mirror = lines;
+        this.remirroring = true;
+        try {
+            const before = previous[first];
+            const after = lines[first];
+            if (
+                previousEnd - first === 1 &&
+                end - first === 1 &&
+                before !== undefined &&
+                after !== undefined
+            ) {
+                const change = changedSpan(before, after);
+                await this.rpc.request('nvim_buf_set_text', [
+                    buffer,
+                    first,
+                    utf16ToNeovimByte(before, change.from),
+                    first,
+                    utf16ToNeovimByte(before, change.to),
+                    change.insert.split('\n'),
+                ]);
+            } else {
+                await this.rpc.request('nvim_buf_set_lines', [
+                    buffer,
+                    first,
+                    previousEnd,
+                    true,
+                    lines.slice(first, end),
+                ]);
+            }
+        } finally {
+            this.remirroring = false;
+        }
+    }
+
     async prepareKeyInput(): Promise<void> {
         await this.frontmatterFold.sync();
     }

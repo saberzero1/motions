@@ -537,6 +537,8 @@ Execute commands via the `:` command line, grouped by function.
 | `:retab [tabstop]` / `:ret`          | Replace tabs with spaces                |
 | `:startinsert[!]` / `:start`         | Enter insert mode (`!` appends)         |
 | `:stopinsert` / `:stopi`             | Leave insert mode (no-op outside it)    |
+| `:image grow\|shrink [count]`        | Resize the selected image (1.13+)       |
+| `:image reset` / `:image edit`       | Drop its size, or edit its file name    |
 
 ### Window and tab
 

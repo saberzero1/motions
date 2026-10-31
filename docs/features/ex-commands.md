@@ -105,6 +105,26 @@ An explicit line range still selects whole lines — `:1,3ob {command-id}` passe
 
 From normal mode, `:ob` runs at the cursor and ignores the last visual selection. A normal-mode mapping that calls `vim.cmd("ob editor:toggle-bold")` therefore bolds the word under the cursor, not text selected earlier. To act on the last selection on purpose, give the range: `:'<,'>ob {command-id}`.
 
+### `:image` — resize or edit an image
+
+Obsidian 1.13 added `:image` to its own Vim mode; the plugin provides the same command when it runs its own engine. It acts on the selected image: select one with `l` at its start or `h` at its end (see [[images]]), or put the cursor on the embed and the command selects it for you.
+
+| Command         | Effect                                                                           |
+| --------------- | -------------------------------------------------------------------------------- |
+| `:image grow`   | Widen to the next multiple of 25 px, written into the embed: `![[pic.png\|325]]` |
+| `:image shrink` | Narrow to the previous multiple of 25 px                                         |
+| `:image reset`  | Remove the width                                                                 |
+| `:image edit`   | Show the embed's source with its file name selected                              |
+
+A count repeats the step. Obsidian takes it from the line address, `:3image grow`, and the plugin also accepts it as an argument, `:image grow 3`, which is the form the [[neovim-backend|Neovim backend]] can pass on.
+
+Obsidian also binds `g+`, `g-`, `g=` and `g<CR>` to these actions. The plugin does not: `g+` and `g-` are Neovim's undo-history keys and drive the [[undo-tree|undo tree]]. Map your own instead:
+
+```lua
+vim.keymap.set("n", "<leader>i+", ":image grow<CR>", { desc = "Grow image" })
+vim.keymap.set("n", "<leader>i-", ":image shrink<CR>", { desc = "Shrink image" })
+```
+
 ## Picker commands
 
 The unified fuzzy picker provides [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)-style search across vault content. The picker uses a terminal-inspired visual presentation with monospace fonts, compact item density, and floating border titles showing the source name (e.g. "Files"), "Results", and "Preview" on each section's top border. All colors use Obsidian CSS variables for full theme compatibility, and its fonts, sizes and layout can be changed with CSS variables or the Style Settings plugin (see [[style-settings#Picker]]). All picker commands are available in both editor and non-editor views.
