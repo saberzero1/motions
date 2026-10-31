@@ -108,7 +108,7 @@ const EX_COMMAND_NAMES = new Set([
     'hintyank',
     'hintclose',
     'hintcontextmenu',
-    // Writes its edit to Neovim, which owns the buffer (mirrorHostEdit).
+    // Its edit reaches Neovim like any host edit (src/rpc/host-edits.ts).
     'image',
 ]);
 

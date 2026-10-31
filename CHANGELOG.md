@@ -72,8 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **`:image grow|shrink|reset|edit`:** works as Obsidian's command does, with the count taken from the line address (`:3image grow`). Two additions: the count can also be given as an argument (`:image grow 3`), and with no image selected the command selects the one under the cursor. Without an image to act on, it says so, where Obsidian's does nothing.
     - **No `g+`/`g-`/`g=`/`g<CR>`:** Obsidian binds these, but `g+` and `g-` are Neovim's undo-history keys, already used by the undo tree.
     - **Hint mode:** an embed's top-right buttons, such as an image's **Zoom in** and **Edit this block**, get labels while they are visible.
-    - **Neovim backend:** `:image` is bridged. The resize is written into Neovim's buffer as one change, so `u` undoes it. Without that, Neovim kept the old text, and a later edit on the line left the embed reading `![[pic.png|3!25]]`.
-    - Plugin: `src/vim/image-embed.ts`, `src/vim/image-command.ts`, `src/vim/image-select-keys.ts` (new), `src/ui/hint-mode.ts`, `src/rpc/document-sync.ts` (`mirrorHostEdit`), `src/rpc/neovim-connection.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/main.ts`
+    - **Neovim backend:** `:image` is bridged. The resize reaches Neovim's buffer as one change, so `u` undoes it, the way every edit Obsidian makes now does (see Fixed).
+    - Plugin: `src/vim/image-embed.ts`, `src/vim/image-command.ts`, `src/vim/image-select-keys.ts` (new), `src/ui/hint-mode.ts`, `src/rpc/obsidian-feature-bridge.ts`, `src/main.ts`
 
 ### Changed
 
@@ -171,6 +171,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/rpc/document-sync.ts` (`holdHostCursor`), `src/rpc/key-delegation.ts` (no cursor copy while held, re-sync on release), `src/rpc/obsidian-feature-bridge.ts` (held by the mapping and ex-command paths)
 - **Neovim backend: `<C-w>v<C-w>h` stayed in the new pane.** Obsidian activates a split's new pane before it loads the note into it. A bridged action arriving in that window found no editor and was dropped without notice. A mapping that splits and then moves therefore lost the move every time: 3 runs out of 3. Bridged actions now wait for a pane that is still loading, up to 1.5 s, and start in the order Neovim sent them. Both parts are needed, and either one alone still fails. This was also the intermittent macOS failure of `focuses the expected pane in all four directions`.
     - Plugin: `src/rpc/obsidian-feature-bridge.ts` (`resolveActiveEditor`, the action turn in `onNotification`)
+- **Neovim backend: edits Obsidian makes to the note now reach Neovim.** Sync ran only from Neovim to the editor. A ticked checkbox, an `:ob` command that changes text, another plugin's edit, or a change to the file on disk stayed out of Neovim's buffer. Neovim's next change to that line was then applied against the old text: `A!` after an API edit turned `NEW alpha beta` into `NEW alpha !beta`. Every edit that does not come from Neovim's line events now goes to Neovim's buffer as one change, so `u` undoes it.
+    - **Neovim's echo:** dropped, as an activation's reseed is. Applying it is not harmless: replacing 15 lines with 2 came back as lines 0–15 and failed against the 2-line editor.
+    - **An edit during an activation:** sent once the activation finishes, because its reseed would overwrite the edit.
+    - **An edit for a note the buffer no longer holds:** dropped. That note's next activation reseeds from the editor.
+    - Plugin: `src/rpc/host-edits.ts` (new), `src/rpc/document-sync.ts`, `src/vim/image-command.ts` (its own forwarding removed), `src/main.ts`
 
 ### Tests
 
@@ -428,13 +433,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Neovim backend:** the resize reaching both the editor and Neovim, a count argument, one undo step, and a later Neovim edit on the same line.
     - **Unit tests:** `image-command.test.ts` pins the count rules.
     - **Negative controls:** twelve sabotages with observed values, in `test/specs/image-embed-negative-controls.md`. Two of them caught faults in the tests themselves: a sabotage applied to only one of two registration sites, and an undo scenario that never checked the grow.
+- **`rpc-host-edits.e2e.ts` makes each kind of host edit under the Neovim backend and checks both sides hold the same note.** The edits are `:ob editor:toggle-bold`, a ticked checkbox, an editor API edit, a change to the file on disk, and an edit made while a note is being activated, held open by delaying one of its requests. Two more scenarios check that a later Neovim edit on the same line keeps the host edit, and that `u` undoes it in one step.
+    - **Before the fix:** all six then-present scenarios failed. Neovim kept `alpha beta` while the editor showed `**alpha** beta`, and after the API edit `A!` left the editor showing `NEW alpha !beta`.
+    - **Negative controls:** not installing the listener fails all seven, plus all four in `rpc-image.e2e.ts`. Removing the activation deferral fails only the activation scenario, with Neovim keeping `alpha beta`. `host-edits.test.ts` fails when Neovim's own transactions are counted as host edits; that guard only saves a whole-note diff per keystroke, so no end-to-end test can observe it. Recorded in `test/specs/rpc-host-edits-negative-controls.md`.
+- **`rpc-undo-isolation.e2e.ts` checks reachable undo history, not `seq_last`.** Its `beforeEach` sets each note's text while connected. Those edits now reach Neovim, so `seq_last` and `seq_cur` read 2 after the reseed, with no entry left to undo to: they are the highest numbers ever used, which a reseed at `undolevels = -1` does not reset. The assertion is now on `undotree().entries`. A reseed that keeps history fails it with 6 entries.
+- **`image-embed.e2e.ts` opens Obsidian's image viewer through the Zoom in hint, where the runtime can.** Obsidian filters the images it shows with `URL.parse`, which Chromium gained in 126. The 1.5.8 installer that CI runs on Linux and macOS is Chromium 120, where the button throws before opening anything. That is why it showed no effect. The scenario skips there and runs on Windows, which uses the latest installer. Measured locally on the 1.12.7 installer: the viewer opens, and without the `.embed-action` target the scenario fails. The whole spec passes there, 12 of 12.
 - **`handleEx` could not report an ex command that throws.** WebdriverIO reads a script result carrying an `error` key as a WebDriver error response and throws it, so the helper's `ok: false` result surfaced as `WebDriverError: Error: …` instead. The page now reports the field as `failure`, and the helper maps it back to `error`. `ExCommandResult` is unchanged.
     - Tests: `test/helpers.ts`
 
 ### Documentation
 
 - **`docs/features/images.md` (new) covers selecting an image with `h`/`l`, `:image`, its hint labels, and the Neovim backend.** `ex-commands.md` and the keybindings reference gain `:image`, `hint-mode.md` the embed buttons, and `neovim-backend.md` the bridged command.
-    - **`KNOWN_LIMITATIONS.md`:** a new entry records that sync to Neovim is one-way, so edits Obsidian makes to the editor do not reach Neovim, except `:image`'s.
+    - **`KNOWN_LIMITATIONS.md`:** records that `h`/`l` image selection is unavailable under the Neovim backend, and marks the one-way sync to Neovim fixed.
 - **`docs/features/neovim-backend.md` says that bridged actions run in order and wait for a pane that is still loading, and that a jump keeps its own cursor.** `KNOWN_LIMITATIONS.md`'s Neovim backend status says the same.
 - **The README described tables as three modes, `native` with and without its overlay and `raw`, with no mention of `reveal`.** It now describes `native` and `reveal`, and says `raw` is deprecated.
     - **CONTRIBUTING:** its source tree listed `table-format-on-exit.ts`, deleted in the move to Obsidian's table editor, and now lists the reveal modules and `normal-tab.ts`.

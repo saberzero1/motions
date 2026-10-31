@@ -66,7 +66,7 @@ export function getImageController(view: EditorView): ImageController | null {
 }
 
 /**
- * Runs an `:image` action and reports whether it changed the document.
+ * Runs an `:image` action.
  *
  * Obsidian's command acts only on a selected image and otherwise does
  * nothing. With no image selected this selects the one under the cursor
@@ -77,7 +77,7 @@ export function runImageAction(
     view: EditorView,
     action: ImageAction,
     count: number,
-): boolean {
+): void {
     const controller = getImageController(view);
     if (!controller) throw new Error(':image needs Obsidian 1.13 or later');
     if (!controller.selectedImage) {
@@ -89,7 +89,6 @@ export function runImageAction(
         if (!widget) throw new Error('No image at the cursor');
         controller.selectImage(widget);
     }
-    const before = view.state.doc;
     switch (action) {
         case 'grow':
         case 'shrink':
@@ -102,5 +101,4 @@ export function runImageAction(
             controller.editSelectedImageUrl();
             break;
     }
-    return view.state.doc !== before;
 }

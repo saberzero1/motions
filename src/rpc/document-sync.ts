@@ -5,7 +5,7 @@ import {
     type App,
     type EventRef,
 } from 'obsidian';
-import type { EditorView } from '@codemirror/view';
+import type { EditorView, ViewUpdate } from '@codemirror/view';
 import type { Text } from '@codemirror/state';
 import {
     byteToUtf16,
@@ -17,6 +17,11 @@ import { runCleanups } from '../util/cleanup';
 import { getEditorView } from '../util/editor';
 import { showYankHighlight } from '../vim/yank-highlight';
 import { NeovimFrontmatterFold } from './frontmatter-fold';
+import {
+    hasHostEdit,
+    neovimLineEvent,
+    setHostEditListener,
+} from './host-edits';
 import type { MsgpackRpcClient } from './msgpack-rpc';
 import { setVisualSelection, type VisualRange } from './visual-selection';
 
@@ -215,6 +220,9 @@ export class NeovimDocumentSync {
     private hostCursorHolds = 0;
     private onHostCursorReleased: (() => void) | null = null;
     private remirroring = false;
+    private activating = false;
+    private hostEditDuringActivation = false;
+    private hostEdits: Promise<void> = Promise.resolve();
     private disposed = false;
     private failureReported = false;
     private buffer: number | null = null;
@@ -264,6 +272,7 @@ export class NeovimDocumentSync {
             this.remirroring = false;
         }
         if (this.disposed) return;
+        setHostEditListener((update) => this.onEditorUpdate(update));
         this.leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
             void this.trackActivation().catch((error: unknown) =>
                 this.reportFailure(error),
@@ -297,6 +306,7 @@ export class NeovimDocumentSync {
                 () => readNotificationCleanup?.(),
                 () => cursorNotificationCleanup?.(),
                 () => yankNotificationCleanup?.(),
+                () => setHostEditListener(null),
                 () => {
                     if (leafChangeRef) this.app.workspace.offref(leafChangeRef);
                 },
@@ -541,18 +551,74 @@ export class NeovimDocumentSync {
     }
 
     /**
-     * Sends an edit Obsidian made to the editor on to Neovim's buffer.
+     * An edit Obsidian made to the mirrored editor, sent on to Neovim.
      *
-     * Synchronisation otherwise runs one way, from Neovim's line events into
-     * CodeMirror, so a host edit left the buffer stale, and the next line
-     * event found the document diverged from the mirror. Sent as one edit,
-     * it is one step in Neovim's undo history. The mirror is updated first,
-     * so the line event Neovim echoes back changes nothing.
+     * Synchronisation used to run one way, from Neovim's line events into
+     * the editor, so a host edit left Neovim's buffer stale and Neovim's next
+     * change to that line was applied against the old text: measured, `A!`
+     * after an editor API edit turned `NEW alpha beta` into
+     * `NEW alpha !beta`. The edit is captured at once, so the mirror is right
+     * before any later line event arrives, and the sends are chained in
+     * order. An edit made while a note is being activated waits for the
+     * activation, whose reseed would otherwise overwrite it.
      */
-    async mirrorHostEdit(): Promise<void> {
+    private onEditorUpdate(update: ViewUpdate): void {
+        if (this.disposed || update.view !== this.editorView) return;
+        if (!hasHostEdit(update.transactions)) return;
+        if (this.activating) {
+            this.hostEditDuringActivation = true;
+            return;
+        }
+        this.queueHostEdit();
+    }
+
+    private queueHostEdit(): void {
+        const edit = this.captureHostEdit();
+        if (!edit) return;
+        const activation = this.activation;
+        this.hostEdits = this.hostEdits
+            .then(() => {
+                // Every note shares one buffer. Once another activation has
+                // started, the positions describe a note the buffer no longer
+                // holds, and that activation reseeds from the editor anyway.
+                if (activation !== this.activation || this.disposed) return;
+                return this.sendHostEdit(edit);
+            })
+            .then(
+                () => undefined,
+                (error: unknown) => this.reportFailure(error),
+            );
+    }
+
+    /**
+     * Neovim's echo is dropped the way an activation's reseed is: Neovim
+     * writes a request's line events before its reply. The echo is not
+     * harmless to apply, because its line numbers describe the note before
+     * the edit: replacing 15 lines with 2 came back as lines 0-15 and failed
+     * against the 2-line editor with "Invalid line number".
+     */
+    private async sendHostEdit(edit: {
+        method: string;
+        args: unknown[];
+    }): Promise<void> {
+        this.remirroring = true;
+        try {
+            await this.rpc.request(edit.method, edit.args);
+        } finally {
+            this.remirroring = false;
+        }
+    }
+
+    /**
+     * Diffs the editor against the mirror and moves the mirror on. One line
+     * changed becomes `nvim_buf_set_text`, so Neovim's cursor and marks on the
+     * rest of the line stay put; anything else replaces the changed lines.
+     * Either way it is one step in Neovim's undo history.
+     */
+    private captureHostEdit(): { method: string; args: unknown[] } | null {
         const editorView = this.editorView;
         const buffer = this.buffer;
-        if (!editorView || buffer === null || this.disposed) return;
+        if (!editorView || buffer === null) return null;
         const previous = this.mirror;
         const lines = editorView.state.doc.toString().split('\n');
         let first = 0;
@@ -562,7 +628,7 @@ export class NeovimDocumentSync {
             previous[first] === lines[first]
         )
             first++;
-        if (first === previous.length && first === lines.length) return;
+        if (first === previous.length && first === lines.length) return null;
         let previousEnd = previous.length;
         let end = lines.length;
         while (
@@ -574,37 +640,31 @@ export class NeovimDocumentSync {
             end--;
         }
         this.mirror = lines;
-        this.remirroring = true;
-        try {
-            const before = previous[first];
-            const after = lines[first];
-            if (
-                previousEnd - first === 1 &&
-                end - first === 1 &&
-                before !== undefined &&
-                after !== undefined
-            ) {
-                const change = changedSpan(before, after);
-                await this.rpc.request('nvim_buf_set_text', [
+        const before = previous[first];
+        const after = lines[first];
+        if (
+            previousEnd - first === 1 &&
+            end - first === 1 &&
+            before !== undefined &&
+            after !== undefined
+        ) {
+            const change = changedSpan(before, after);
+            return {
+                method: 'nvim_buf_set_text',
+                args: [
                     buffer,
                     first,
                     utf16ToNeovimByte(before, change.from),
                     first,
                     utf16ToNeovimByte(before, change.to),
                     change.insert.split('\n'),
-                ]);
-            } else {
-                await this.rpc.request('nvim_buf_set_lines', [
-                    buffer,
-                    first,
-                    previousEnd,
-                    true,
-                    lines.slice(first, end),
-                ]);
-            }
-        } finally {
-            this.remirroring = false;
+                ],
+            };
         }
+        return {
+            method: 'nvim_buf_set_lines',
+            args: [buffer, first, previousEnd, true, lines.slice(first, end)],
+        };
     }
 
     async prepareKeyInput(): Promise<void> {
@@ -626,6 +686,10 @@ export class NeovimDocumentSync {
         this.editorView = editorView;
         this.mirror = lines;
         this.remirroring = true;
+        this.activating = true;
+        // An edit deferred by an earlier activation is in this one's snapshot
+        // if it was made to this note, and belongs to another note if not.
+        this.hostEditDuringActivation = false;
         try {
             await this.rpc.request('nvim_exec_lua', [
                 PREPARE_ACTIVATION_LUA,
@@ -652,10 +716,15 @@ export class NeovimDocumentSync {
             await this.frontmatterFold.syncForActivation();
         } finally {
             this.remirroring = false;
+            if (operation === this.activation) this.activating = false;
         }
         if (operation !== this.activation || this.disposed) return;
         this.editorView = editorView;
         this.mirror = lines;
+        if (this.hostEditDuringActivation) {
+            this.hostEditDuringActivation = false;
+            this.queueHostEdit();
+        }
     }
 
     private trackActivation(): Promise<void> {
@@ -753,7 +822,10 @@ export class NeovimDocumentSync {
             insert = data.length > 0 ? `${data.join('\n')}\n` : '';
         }
         if (from !== to || insert.length > 0)
-            editorView.dispatch({ changes: { from, to, insert } });
+            editorView.dispatch({
+                changes: { from, to, insert },
+                annotations: neovimLineEvent.of(true),
+            });
         if (editorView.state.doc.toString() !== this.mirror.join('\n'))
             throw new Error('Neovim line event produced a divergent document');
         this.mirrorObserver?.();

@@ -1,4 +1,3 @@
-import { Notice } from 'obsidian';
 import type { ExCommandArgs } from '../types/vim-api';
 import type { VimRegistration } from './registration';
 import { runImageAction, type ImageAction } from './image-embed';
@@ -27,27 +26,15 @@ export function imageCommandCount(params: ExCommandArgs): number {
  * copied: `g+` and `g-` are Neovim's undo-time travel, already bound to the
  * undo tree, and the other two alone would be half a set.
  *
- * `afterEdit` runs when the action changed the note; the Neovim backend uses
- * it to send the edit on to Neovim.
+ * Under the Neovim backend the resize reaches Neovim like any other edit
+ * Obsidian makes to the note (`src/rpc/host-edits.ts`).
  */
-export function registerImageCommand(
-    registration: VimRegistration,
-    afterEdit: () => Promise<void> | void,
-): void {
+export function registerImageCommand(registration: VimRegistration): void {
     registration.defineEx('image', 'image', (cm, params) => {
         const action = params.args[0];
         if (action === undefined || !ACTIONS.has(action) || params.args[2])
             throw new Error(USAGE);
         const count = imageCommandCount(params);
-        if (!runImageAction(cm.cm6, action as ImageAction, count)) return;
-        void Promise.resolve()
-            .then(afterEdit)
-            .catch((error: unknown) => {
-                const message =
-                    error instanceof Error ? error.message : String(error);
-                new Notice(
-                    `Vim Motions: :image did not reach Neovim: ${message}`,
-                );
-            });
+        runImageAction(cm.cm6, action as ImageAction, count);
     });
 }
