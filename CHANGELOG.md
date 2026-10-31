@@ -176,6 +176,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **An edit during an activation:** sent once the activation finishes, because its reseed would overwrite the edit.
     - **An edit for a note the buffer no longer holds:** dropped. That note's next activation reseeds from the editor.
     - Plugin: `src/rpc/host-edits.ts` (new), `src/rpc/document-sync.ts`, `src/vim/image-command.ts` (its own forwarding removed), `src/main.ts`
+- **`<C-w>v<C-w>h` stayed in the new pane under the bundled engine too.** The Neovim backend's fix above covered only keys that go through Neovim. Sent together, from keys or from a mapping, the move ran while the split was still loading its note, and the finished load focused the new pane again: 4 runs out of 4.
+    - **Fix:** window and tab commands now wait for a pane that is still loading, up to 1.5 s, and run in order. With nothing loading they run at once, as before.
+    - **Which pane is loading:** the check reads the active pane, as Obsidian's pane commands do. `getMostRecentLeaf()` still named the original pane right after the split, so a check on it passed and the move ran during the load. The Neovim bridge now shares the same check.
+    - Plugin: `src/workspace/leaf-settle.ts` (new), `src/workspace/navigation.ts`, `src/rpc/obsidian-feature-bridge.ts`
 
 ### Tests
 
@@ -438,11 +442,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Negative controls:** not installing the listener fails all seven, plus all four in `rpc-image.e2e.ts`. Removing the activation deferral fails only the activation scenario, with Neovim keeping `alpha beta`. `host-edits.test.ts` fails when Neovim's own transactions are counted as host edits; that guard only saves a whole-note diff per keystroke, so no end-to-end test can observe it. Recorded in `test/specs/rpc-host-edits-negative-controls.md`.
 - **`rpc-undo-isolation.e2e.ts` checks reachable undo history, not `seq_last`.** Its `beforeEach` sets each note's text while connected. Those edits now reach Neovim, so `seq_last` and `seq_cur` read 2 after the reseed, with no entry left to undo to: they are the highest numbers ever used, which a reseed at `undolevels = -1` does not reset. The assertion is now on `undotree().entries`. A reseed that keeps history fails it with 6 entries.
 - **`image-embed.e2e.ts` opens Obsidian's image viewer through the Zoom in hint, where the runtime can.** Obsidian filters the images it shows with `URL.parse`, which Chromium gained in 126. The 1.5.8 installer that CI runs on Linux and macOS is Chromium 120, where the button throws before opening anything. That is why it showed no effect. The scenario skips there and runs on Windows, which uses the latest installer. Measured locally on the 1.12.7 installer: the viewer opens, and without the `.embed-action` target the scenario fails. The whole spec passes there, 12 of 12.
+- **`split-then-move.e2e.ts` sends a split and a move together under the bundled engine.** It covers `<C-w>v<C-w>h` as keys, the same from a real `F7` mapping, `<C-w>s<C-w>k`, the order of three window commands, and a move with nothing loading, which must still act in the same task.
+    - **Negative controls:**
+        - Running each command at once fails the three split scenarios, which end in the new pane.
+        - Checking `getMostRecentLeaf()` instead of the active pane fails the same three.
+        - Running queued commands newest first fails the order scenario.
+        - Deferring a command when nothing is loading fails the same-task scenario, with `changedInTheSameTask: false`. Simply removing the fast path does not fail it, because the queue runs its first command before its first await.
 - **`handleEx` could not report an ex command that throws.** WebdriverIO reads a script result carrying an `error` key as a WebDriver error response and throws it, so the helper's `ok: false` result surfaced as `WebDriverError: Error: …` instead. The page now reports the field as `failure`, and the helper maps it back to `error`. `ExCommandResult` is unchanged.
     - Tests: `test/helpers.ts`
 
 ### Documentation
 
+- **`docs/features/workspace-navigation.md` says that a window command right after a split waits for the new pane to load.**
 - **`docs/features/images.md` (new) covers selecting an image with `h`/`l`, `:image`, its hint labels, and the Neovim backend.** `ex-commands.md` and the keybindings reference gain `:image`, `hint-mode.md` the embed buttons, and `neovim-backend.md` the bridged command.
     - **`KNOWN_LIMITATIONS.md`:** records that `h`/`l` image selection is unavailable under the Neovim backend, and marks the one-way sync to Neovim fixed.
 - **`docs/features/neovim-backend.md` says that bridged actions run in order and wait for a pane that is still loading, and that a jump keeps its own cursor.** `KNOWN_LIMITATIONS.md`'s Neovim backend status says the same.
