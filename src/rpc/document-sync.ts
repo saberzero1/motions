@@ -212,6 +212,8 @@ export class NeovimDocumentSync {
     private yankNotificationCleanup: (() => void) | null = null;
     private activation = 0;
     private activationPromise: Promise<void> = Promise.resolve();
+    private hostCursorHolds = 0;
+    private onHostCursorReleased: (() => void) | null = null;
     private remirroring = false;
     private disposed = false;
     private failureReported = false;
@@ -465,6 +467,43 @@ export class NeovimDocumentSync {
                 to: trailing + charLength(doc, trailing),
             },
         ];
+    }
+
+    /**
+     * Makes the host's cursor the authority until the returned release runs;
+     * the release is idempotent.
+     *
+     * A cross-note jump writes its cursor into CodeMirror first and reaches
+     * Neovim only after the new note is seeded and the bridge restores it, so
+     * in between Neovim's cursor is stale: (1,0) in a freshly seeded buffer.
+     * The cursor copy that runs before every request
+     * (`NeovimKeyDelegation.syncState`) put that into CodeMirror, and the
+     * jump landed on the note's first line. Reproduced deterministically by
+     * delaying the restore; in CI it failed intermittently.
+     */
+    holdHostCursor(): () => void {
+        this.hostCursorHolds++;
+        let held = true;
+        return () => {
+            if (!held) return;
+            held = false;
+            this.hostCursorHolds--;
+            if (this.hostCursorHolds === 0) this.onHostCursorReleased?.();
+        };
+    }
+
+    get hostCursorHeld(): boolean {
+        return this.hostCursorHolds > 0;
+    }
+
+    /**
+     * Called when the last hold is released, so the cursor copies skipped
+     * while it was held are caught up: a key typed during a navigation that
+     * moved nothing would otherwise leave CodeMirror behind Neovim until the
+     * next request.
+     */
+    setHostCursorReleasedListener(listener: (() => void) | null): void {
+        this.onHostCursorReleased = listener;
     }
 
     syncCursor(line: number, byteColumn: number): void {

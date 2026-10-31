@@ -136,6 +136,9 @@ export class NeovimKeyDelegation {
     start(): void {
         if (this.active) return;
         this.active = true;
+        this.documentSync.setHostCursorReleasedListener(() => {
+            if (this.active) void this.syncState(++this.settleOperation);
+        });
         try {
             this.installEditorHandler();
             this.leafChangeRef = this.app.workspace.on(
@@ -167,6 +170,7 @@ export class NeovimKeyDelegation {
                     if (leafChangeRef) this.app.workspace.offref(leafChangeRef);
                 },
                 () => this.imeInput.remove(),
+                () => this.documentSync.setHostCursorReleasedListener(null),
                 () => setKeyInterceptActive(false),
             ],
             'Neovim key delegation',
@@ -219,6 +223,9 @@ export class NeovimKeyDelegation {
             this.onMode(modeValue.mode);
             this.imeInput.setInsertMode(modeValue.mode.startsWith('i'));
         }
+        // A host navigation is restoring its own cursor; Neovim's is stale
+        // until it has (NeovimDocumentSync.holdHostCursor).
+        if (this.documentSync.hostCursorHeld) return;
         if (
             Array.isArray(cursor) &&
             typeof cursor[0] === 'number' &&
@@ -231,6 +238,7 @@ export class NeovimKeyDelegation {
                 cursorColumn,
             ]);
             if (!this.active || operation !== this.settleOperation) return;
+            if (this.documentSync.hostCursorHeld) return;
             const kind = visualKind(
                 typeof modeValue.mode === 'string' ? modeValue.mode : '',
             );

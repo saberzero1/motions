@@ -1,4 +1,5 @@
 import { browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { resolve } from 'node:path';
 import {
     getCursorPos,
@@ -561,6 +562,69 @@ async function createThreeTabs(): Promise<string[]> {
         app.workspace.setActiveLeaf(first, { focus: true });
         return ids;
     })) as string[];
+}
+
+/**
+ * Waits for the active leaf to become `id`, and on a timeout says which
+ * direction failed and where the focus was, which a bare waitUntil did not.
+ */
+async function waitForActiveLeaf(id: string, label: string): Promise<void> {
+    try {
+        await browser.waitUntil(
+            async () => (await getWorkspaceSnapshot()).activeLeafId === id,
+            { timeout: 5000, interval: 100 },
+        );
+    } catch {
+        throw new Error(
+            `focus did not reach the ${label} pane: ${JSON.stringify({
+                expected: id,
+                active: (await getWorkspaceSnapshot()).activeLeafId,
+                activeFile: await getActiveFile(),
+                neovimMode: await request('nvim_get_mode', []),
+                notices: await getNotices(),
+            })}`,
+        );
+    }
+}
+
+/**
+ * Delays every nvim_win_set_cursor the plugin sends by `ms`, or restores the
+ * client for 0. The bridge and the connection share the client instance.
+ */
+async function delayCursorWrites(ms: number): Promise<void> {
+    await browser.executeObsidian(({ app }, delay: number) => {
+        type Client = {
+            request(method: string, args: unknown[]): Promise<unknown>;
+            vimMotionsRequest?: Client['request'];
+        };
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        { neovimConnection?: { rpc?: Client | null } }
+                    >;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        const rpc = plugin?.neovimConnection?.rpc;
+        if (!rpc) throw new Error('no Neovim client');
+        rpc.vimMotionsRequest ??= rpc.request.bind(rpc);
+        const real = rpc.vimMotionsRequest;
+        if (delay === 0) {
+            rpc.request = real;
+            delete rpc.vimMotionsRequest;
+            return;
+        }
+        rpc.request = async (method, args) => {
+            if (method === 'nvim_win_set_cursor') {
+                await new Promise((resolve) =>
+                    window.setTimeout(resolve, delay),
+                );
+            }
+            return real(method, args);
+        };
+    }, ms);
 }
 
 async function setActiveLeaf(id: string): Promise<void> {
@@ -1131,15 +1195,9 @@ describe('Neovim RPC Obsidian feature bridge', function () {
         }
         await setActiveLeaf(right);
         await input('<C-w>h');
-        await browser.waitUntil(
-            async () => (await getWorkspaceSnapshot()).activeLeafId === left,
-            { timeout: 5000, interval: 100 },
-        );
+        await waitForActiveLeaf(left, 'left');
         await input('<C-w>l');
-        await browser.waitUntil(
-            async () => (await getWorkspaceSnapshot()).activeLeafId === right,
-            { timeout: 5000, interval: 100 },
-        );
+        await waitForActiveLeaf(right, 'right');
 
         const horizontal = (await browser.executeObsidian(async ({ app }) => {
             const active = app.workspace.getMostRecentLeaf();
@@ -1167,16 +1225,27 @@ describe('Neovim RPC Obsidian feature bridge', function () {
         }
         await setActiveLeaf(bottom);
         await input('<C-w>k');
-        await browser.waitUntil(
-            async () => (await getWorkspaceSnapshot()).activeLeafId === top,
-            { timeout: 5000, interval: 100 },
-        );
+        await waitForActiveLeaf(top, 'top');
         await input('<C-w>j');
+        await waitForActiveLeaf(bottom, 'bottom');
+        expect((await getWorkspaceSnapshot()).activeLeafId).toBe(bottom);
+    });
+
+    it('moves out of a new split that is still loading its note', async () => {
+        const original = (await getWorkspaceSnapshot()).activeLeafId;
+        if (!original) throw new Error('No active leaf');
+        // One input, so <C-w>h reaches the host while the split it just made
+        // is still loading: Obsidian activates the new pane first and loads
+        // its note afterwards.
+        await input('<C-w>v<C-w>h');
         await browser.waitUntil(
-            async () => (await getWorkspaceSnapshot()).activeLeafId === bottom,
+            async () => (await getWorkspaceSnapshot()).markdownLeafCount === 2,
             { timeout: 5000, interval: 100 },
         );
-        expect((await getWorkspaceSnapshot()).activeLeafId).toBe(bottom);
+        await waitForActiveLeaf(original, 'original');
+        // Held, so a focus the split's own load applies late is caught too.
+        await browser.pause(500);
+        expect((await getWorkspaceSnapshot()).activeLeafId).toBe(original);
     });
 
     it('forwards the count from 3gt and lands on tab three', async () => {
@@ -1517,6 +1586,26 @@ return out`,
         });
     });
 
+    // The ex-command twin of the cross-note <C-o> race below.
+    it('keeps a :HarpoonSelect cursor while Neovim is still being moved', async () => {
+        await prepareRpcNotes();
+        await seedHarpoon([
+            { filePath: RPC_NOTES[1].path, row: 0, col: 1 },
+            { filePath: RPC_NOTES[0].path, row: 1, col: 7 },
+        ]);
+        await openRpcNote(RPC_NOTES[2].path, { line: 0, ch: 2 });
+        await delayCursorWrites(300);
+        try {
+            await input(':HarpoonSelect 2<CR>');
+            await waitForRpcLocation(RPC_NOTES[0].path, { line: 1, ch: 7 });
+            // A request runs the cursor copy while the restore is delayed.
+            await waitForMirror(RPC_NOTES[0].path);
+            expect(await getCursorPos()).toEqual({ line: 1, ch: 7 });
+        } finally {
+            await delayCursorWrites(0);
+        }
+    });
+
     it('distinguishes current-file and explicit-slot HarpoonRemove', async () => {
         await prepareRpcNotes();
         await seedHarpoon([
@@ -1623,6 +1712,55 @@ return out`,
             RPC_NOTES[1].path,
             RPC_NOTES[0].path,
         ]);
+    });
+
+    // The restore reaches Neovim only after the new note is seeded, and the
+    // cursor copy that runs before every request used to put Neovim's stale
+    // (1,0) into CodeMirror meanwhile. The two scenarios above lost that race
+    // intermittently on Linux and macOS; delaying the restore's own
+    // nvim_win_set_cursor makes it lose every time without the fix.
+    it('keeps a cross-note <C-o> cursor while Neovim is still being moved', async () => {
+        await prepareRpcNotes();
+        await openRpcNote(RPC_NOTES[2].path, { line: 1, ch: 4 });
+        await seedJumpList([
+            { filePath: RPC_NOTES[1].path, line: 1, ch: 3 },
+            { filePath: RPC_NOTES[2].path, line: 1, ch: 4 },
+        ]);
+        await delayCursorWrites(300);
+        try {
+            await input('<C-o>');
+            await waitForRpcLocation(RPC_NOTES[1].path, { line: 1, ch: 3 });
+            // A request runs the cursor copy while the restore is delayed.
+            await waitForMirror(RPC_NOTES[1].path);
+            expect(await getCursorPos()).toEqual({ line: 1, ch: 3 });
+        } finally {
+            await delayCursorWrites(0);
+        }
+    });
+
+    // The hold above covers a navigation still to come; one that never comes,
+    // <C-o> with nothing older, must not leave keys typed meanwhile unshown.
+    it('lets the cursor follow Neovim again when <C-o> has nowhere to go', async () => {
+        await prepareRpcNotes();
+        await openRpcNote(RPC_NOTES[2].path, { line: 0, ch: 0 });
+        await seedJumpList([{ filePath: RPC_NOTES[2].path, line: 0, ch: 0 }]);
+        await request('nvim_win_set_cursor', [0, [1, 0]]);
+
+        // Real keys, through key delegation, which copies Neovim's cursor
+        // after every key; nvim_input bypasses it.
+        await browser.keys([Key.Ctrl, 'o']);
+        await browser.keys([Key.Ctrl]);
+        await browser.keys(['j']);
+
+        // Released 300 ms after nothing moved; the bridge's own wait runs on
+        // for 1.5 s, so a hold kept until then would miss this bound.
+        await browser
+            .waitUntil(async () => (await getCursorPos()).line === 1, {
+                timeout: 1000,
+                interval: 50,
+            })
+            .catch(() => undefined);
+        expect(await getCursorPos()).toEqual({ line: 1, ch: 0 });
     });
 
     it('forwards the count from 2<C-o> to the host jumplist', async () => {
