@@ -152,7 +152,8 @@ npm run build
         cmdline.ts             # Level-keyed external Neovim command-line, prompt, caret and special-character overlay
         config-export.ts       # Generated Neovim configuration, sentinel-guarded writes, plugin install/update and module probing
         decorations.ts         # UI redraw clock, CM6 decoration/fold dispatch and floating-window notification consumer
-        document-sync.ts      # Named acwrite Markdown mirror, Obsidian save/read routing, line events, byte/UTF-16 mapping and projected editor options (textwidth, list continuation, indent style, yank highlight)
+        document-sync.ts      # Named acwrite Markdown mirror, Obsidian save/read routing, line events, host edits sent on to Neovim, byte/UTF-16 mapping and projected editor options (textwidth, list continuation, indent style, yank highlight)
+        host-edits.ts         # Marks Neovim's own line-event transactions; routes every other editor edit to the document sync
         floating-windows.ts   # CM6-metric float positioning, content/extmark overlays, stacking and cleanup
         frontmatter-fold.ts   # Window-local Markdown foldexpr for headings, callouts and frontmatter
         ime-input.ts          # Cursor-positioned native composition owner, nvim_input commit and cancellation lifecycle

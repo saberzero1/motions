@@ -120,6 +120,7 @@ import { extmarkExtension } from './lua/extmarks';
 import { decorationProviderExtension } from './lua/decoration-provider';
 import { neovimDecorationExtension } from './rpc/decorations';
 import { neovimVisualSelectionExtension } from './rpc/visual-selection';
+import { neovimHostEditExtension } from './rpc/host-edits';
 import {
     foldSyncExtension,
     setFoldAwareNavigation,
@@ -2640,9 +2641,7 @@ export default class VimMotionsPlugin extends Plugin {
         registerFoldCommands(this.registration);
         // Obsidian's own Vim already defines :image.
         if (isBundledVimActive()) {
-            registerImageCommand(this.registration, () =>
-                this.neovimConnection?.mirrorHostEdit(),
-            );
+            registerImageCommand(this.registration);
         }
         if (this.settings.enableReplaceWithRegister) {
             registerReplaceWithRegister(this.registration);
@@ -2911,6 +2910,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimExtensionSlot.push(decorationProviderExtension());
         this.vimExtensionSlot.push(neovimDecorationExtension());
         this.vimExtensionSlot.push(neovimVisualSelectionExtension());
+        this.vimExtensionSlot.push(neovimHostEditExtension());
         this.vimExtensionSlot.push(createTableCellCursorGuard());
         this.vimExtensionSlot.push(
             createTableNavExtension(this.app, this.settings, getVimApi),
@@ -3922,9 +3922,7 @@ export default class VimMotionsPlugin extends Plugin {
         registerFoldCommands(this.registration);
         // Obsidian's own Vim already defines :image.
         if (isBundledVimActive()) {
-            registerImageCommand(this.registration, () =>
-                this.neovimConnection?.mirrorHostEdit(),
-            );
+            registerImageCommand(this.registration);
         }
         if (this.settings.enableReplaceWithRegister) {
             registerReplaceWithRegister(this.registration);

@@ -140,7 +140,8 @@ src/
     cmdline.ts             # Level-keyed external command-line, prompt, caret, and special-character overlay
     config-export.ts       # Generated Neovim configuration, sentinel-guarded writes, plugin install/update, and module probing
     decorations.ts         # UI redraw clock, CM6 decoration/fold dispatch, and float notification consumer
-    document-sync.ts       # Named acwrite mirror, Obsidian save/read routing, line events, byte/UTF-16 mapping, and projected editor options (textwidth, list continuation, indent style, yank highlight)
+    document-sync.ts       # Named acwrite mirror, Obsidian save/read routing, line events, host edits sent on to Neovim, byte/UTF-16 mapping, and projected editor options (textwidth, list continuation, indent style, yank highlight)
+    host-edits.ts          # Marks Neovim's own line-event transactions; routes every other editor edit to the document sync
     floating-windows.ts    # CM6-metric float positioning, content/extmark overlays, stacking, and cleanup
     frontmatter-fold.ts    # Window-local Markdown foldexpr for headings, callouts, and frontmatter
     ime-input.ts           # Cursor-positioned native composition owner, nvim_input commit, and cancellation lifecycle
@@ -167,7 +168,7 @@ src/
     neovim-options.ts      # Comprehensive registry of ALL Neovim options with tier classification (hardcoded, noop-platform, noop-deferred, rejected, not-applicable) — used by vimrc loader and Lua vim.opt for tiered logging and typo detection
     insert-escape.ts       # Configurable insert mode escape sequence (jk, etc.)
     image-embed.ts         # Obsidian 1.13's image controller, reached through its adapter class's livePreview getter; runImageAction() selects the image under the cursor when none is (#218)
-    image-command.ts       # :image grow|shrink|reset|edit, with the count from the address or an argument; afterEdit sends the change on to Neovim
+    image-command.ts       # :image grow|shrink|reset|edit, with the count from the address or an argument
     image-select-keys.ts   # h/l select and leave an image in idle normal mode, from a window capture listener ahead of the editor's own
     changelist.ts          # Change list tracking
     undo-tree.ts           # Undo tree data structure (shadow tree, branching, serialize/deserialize)

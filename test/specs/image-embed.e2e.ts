@@ -299,6 +299,33 @@ describe('Image embeds (#218)', function () {
             });
         });
 
+        // Obsidian filters the images it shows with URL.parse, which Chromium
+        // gained in 126. The 1.5.8 installer CI runs on Linux and macOS is
+        // Chromium 120, where the button throws before opening anything.
+        it('a hint on Zoom in opens the image viewer', async function () {
+            const urlParse = (await browser.execute(
+                () => typeof (URL as unknown as { parse?: unknown }).parse,
+            )) as string;
+            if (urlParse !== 'function') this.skip();
+            await openImageNote({ line: 1, ch: 0 });
+            await press('l');
+            await handleEx('hintactivate');
+            const label = (await buttonLabels())['Zoom in'];
+            expect(typeof label).toBe('string');
+            await press(...(label ?? '').split(''));
+            const opened = await browser
+                .waitUntil(
+                    async () =>
+                        (await browser.execute(
+                            () => !!document.querySelector('.lightbox'),
+                        )) as boolean,
+                    { timeout: 3000, interval: 100 },
+                )
+                .catch(() => false);
+            await browser.keys(['Escape']);
+            expect(opened).toBe(true);
+        });
+
         it('a hint on Edit this block reveals the image source', async function () {
             await openImageNote({ line: 1, ch: 0 });
             await press('l');

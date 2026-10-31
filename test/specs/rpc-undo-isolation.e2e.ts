@@ -214,11 +214,14 @@ describe('Neovim RPC undo isolation between notes', function () {
     it('starts a freshly activated note with no reachable undo history', async () => {
         await activateFile(FIRST_FILE);
         await activateFile(SECOND_FILE);
+        // Reachable history is the entries. seq_last and seq_cur are the
+        // highest numbers ever used, which a reseed at undolevels = -1 does
+        // not reset: once beforeEach's edits reached Neovim as host edits,
+        // they read 2 with no entry left to undo to.
         const undo = (await execLua(
-            'local t = vim.fn.undotree() return { seq_last = t.seq_last, seq_cur = t.seq_cur }',
-        )) as { seq_last: number; seq_cur: number };
-        await expect(undo.seq_last).toBe(0);
-        await expect(undo.seq_cur).toBe(0);
+            'local t = vim.fn.undotree() return { entries = #t.entries }',
+        )) as { entries: number };
+        await expect(undo.entries).toBe(0);
     });
 
     it('does not empty the note when undo is pressed right after activation', async () => {

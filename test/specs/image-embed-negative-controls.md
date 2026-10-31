@@ -17,12 +17,14 @@ Each sabotage was applied to the source, the plugin rebuilt with `npm run build:
 
 The `selectedRange` row is the defect it guards, found while writing the spec: the whole note was replaced between scenarios, Obsidian kept the selected range with no image behind it, and `:image grow` resized nothing without saying so. Run alone, that scenario passed either way; only the full spec order exposed it.
 
+The Zoom in scenario runs only where `URL.parse` exists, which Chromium gained in 126; on the 1.5.8 installer CI uses for Linux and macOS it skips. Run locally on the 1.12.7 installer, it passed, and without the `.embed-action` target it failed with the label `object` (null), expected `string`. The whole spec passed there, 12 of 12.
+
 ## `rpc-image.e2e.ts` (Neovim backend)
 
-| Sabotage                                                         | Failed | Observed                                                                                                                           |
-| ---------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `:image` not sent on to Neovim (`afterEdit` a no-op, both sites) | 4 of 4 | Neovim kept `![[rpc-image-pic.png]]` while the editor showed `\|325`; after `A!`, the editor showed `![[rpc-image-pic.png\|3!25]]` |
-| `image` removed from the bridge's allowlist                      | 4 of 4 | both sides unchanged                                                                                                               |
+| Sabotage                                                                                                                                                                                             | Failed | Observed                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `:image` not sent on to Neovim (`afterEdit` a no-op, both sites; since replaced by the host-edit listener, whose own control in `rpc-host-edits-negative-controls.md` fails these four the same way) | 4 of 4 | Neovim kept `![[rpc-image-pic.png]]` while the editor showed `\|325`; after `A!`, the editor showed `![[rpc-image-pic.png\|3!25]]` |
+| `image` removed from the bridge's allowlist                                                                                                                                                          | 4 of 4 | both sides unchanged                                                                                                               |
 
 The first attempt at the `afterEdit` sabotage replaced only the first of the two `registerImageCommand` call sites and left all four scenarios green: the RPC specs connect through a settings reload, which registers from the second. It also showed that `is one step in Neovim undo history` passed under the allowlist sabotage, because it never checked that the grow had happened; it now asserts the grown state and the undone state together.
 
