@@ -446,6 +446,47 @@ describe('Table reveal surface (tableWidgetMode: reveal)', function () {
         expect((await getEditorValue()).split('\n')[5]).toBe(' bb   | 22    |');
     });
 
+    // The scenario above clicks the cell's centre and accepts columns 2 to 4,
+    // which the cell's start, column 2, also satisfies; it passed with the
+    // text position never read. This one clicks a quarter of the way into the
+    // second `b`, where only the character under the pointer gives column 3.
+    it('places the caret on the clicked character of an idle table cell', async function () {
+        await setupEditor(DOC, { line: 7, ch: 0 });
+        await browser.pause(400);
+        const point = (await browser.execute(() => {
+            const cell = document.querySelector(
+                '.cm-table-widget tbody tr:nth-child(2) td',
+            );
+            if (!cell) return null;
+            const walker = document.createTreeWalker(
+                cell,
+                NodeFilter.SHOW_TEXT,
+            );
+            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                const at = (node.textContent ?? '').indexOf('bb');
+                if (at < 0) continue;
+                const range = document.createRange();
+                range.setStart(node, at + 1);
+                range.setEnd(node, at + 2);
+                const rect = range.getBoundingClientRect();
+                return {
+                    x: Math.round(rect.left + rect.width / 4),
+                    y: Math.round(rect.top + rect.height / 2),
+                };
+            }
+            return null;
+        })) as { x: number; y: number } | null;
+        expect(point).not.toBeNull();
+        await browser
+            .action('pointer')
+            .move({ x: point!.x, y: point!.y, origin: 'viewport' })
+            .down()
+            .up()
+            .perform();
+        await browser.pause(400);
+        expect(await getCursorPos()).toEqual({ line: 5, ch: 3 });
+    });
+
     it('styles revealed rows as an aligned grid and shows inline markup as source', async function () {
         const marked = DOC.replace('| aa   |', '| **b** |').replace(
             '| bb   |',
