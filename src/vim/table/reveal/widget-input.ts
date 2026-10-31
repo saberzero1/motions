@@ -64,18 +64,47 @@ function resolveCell(
     return { widget, row, cell };
 }
 
+/** WebKit's older, non-standard form of `caretPositionFromPoint`. */
+interface LegacyCaretDocument {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+}
+
+/**
+ * The text position under a point, from the standard `caretPositionFromPoint`
+ * where the runtime has it. Chromium gained it in 128, and the 1.5.8 installer
+ * the minimum-version tests run is Chromium 120, so older runtimes fall back
+ * to `caretRangeFromPoint`.
+ */
+function caretAt(
+    doc: Document,
+    x: number,
+    y: number,
+): { node: Node; offset: number } | null {
+    if (typeof doc.caretPositionFromPoint === 'function') {
+        const position = doc.caretPositionFromPoint(x, y);
+        return position
+            ? { node: position.offsetNode, offset: position.offset }
+            : null;
+    }
+    const legacy = doc as unknown as LegacyCaretDocument;
+    const range =
+        typeof legacy.caretRangeFromPoint === 'function'
+            ? legacy.caretRangeFromPoint(x, y)
+            : null;
+    return range
+        ? { node: range.startContainer, offset: range.startOffset }
+        : null;
+}
+
 /** The character offset of a point within `el`'s text, or null. */
 function textOffsetAt(el: Element, x: number, y: number): number | null {
     const doc = el.ownerDocument;
-    const caret =
-        typeof doc.caretRangeFromPoint === 'function'
-            ? doc.caretRangeFromPoint(x, y)
-            : null;
-    if (!caret || !el.contains(caret.startContainer)) return null;
+    const caret = caretAt(doc, x, y);
+    if (!caret || !el.contains(caret.node)) return null;
     let seen = 0;
     const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        if (node === caret.startContainer) return seen + caret.startOffset;
+        if (node === caret.node) return seen + caret.offset;
         seen += (node.textContent ?? '').length;
     }
     return null;
