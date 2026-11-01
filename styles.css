@@ -949,11 +949,15 @@
 
 .vim-motions-picker-title {
     position: absolute;
-    top: -10px;
+    /* Centred on the border it labels, with a height of its own: taken from
+       the theme's line height, it covered the first result in a theme with a
+       taller one, and only just cleared it in the default (#171). */
+    top: -8px;
     left: 50%;
     transform: translateX(-50%);
     font-family: var(--font-monospace);
     font-size: 14px;
+    line-height: 16px;
     color: var(--color-accent);
     background: var(--modal-background);
     padding: 0 8px;
@@ -1000,8 +1004,8 @@ input.vim-motions-picker-input:focus {
 .vim-motions-picker-results {
     overflow-y: auto;
     max-height: var(--vim-motions-picker-height, 50vh);
-    /* Clears the floating "Results" title, which the first item touched. */
-    padding-top: 6px;
+    /* Clears the lower half of the floating "Results" title. */
+    padding-top: 10px;
     border: 1px solid var(--color-accent);
     background-color: var(--modal-background);
 }
