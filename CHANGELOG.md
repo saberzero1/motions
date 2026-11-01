@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Fix:** your mappings, from the vimrc and from Lua, are lifted off before the plugin re-registers its bindings and put back on top afterwards, as user mappings beat built-in commands in Vim. Each is removed exactly, so nothing of the plugin's goes with it.
     - **Two related leaks:** every pane switch re-applied the vimrc's mappings without removing the previous copies, so they piled up. A vimrc reload removed the old mappings by key in normal mode only, so visual and insert mappings outlived their removal from the file.
     - Plugin: `src/main.ts` (`liftUserKeyMaps`, `restoreUserKeyMaps`, `removeKeyMapsExactly`), `src/types/vim-api.d.ts`
+- **`K` inside a preview put the preview's cursor back at the top instead of previewing the link under it** ([#208](https://github.com/saberzero1/motions/issues/208)). `K` always read the note's own editor and cursor, whichever editor it was pressed in, so inside a focused preview it acted as the note's second `K` and refocused the preview.
+    - **Fix:** it now uses the editor it was pressed in. Inside a preview it opens the nested preview Obsidian's own hover would, with the preview's note as the hover parent and as the source the link resolves from. `KK` there moves into the nested preview.
+    - Plugin: `src/workspace/navigation.ts` (`keywordContext`)
 
 ### Tests
 
@@ -26,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Not lifting the mappings fails the first two, with no EasyMotion labels on `gw` and `Y` yanking `three four five` (the plugin's `y$`).
         - Re-applying on a pane switch without lifting fails the second, which then finds duplicate entries.
         - A vimrc reload that removes nothing fails the third, with `Y` still yanking the whole line.
+- **`keyword-preview.e2e.ts` presses `K` on a link inside a focused preview.** It expects a nested preview of that link, the first preview still focused on its second line, and `KK` moving into the nested one.
+    - **Negative controls:**
+        - Reading the note's own editor, the old behaviour, opens no nested preview.
+        - Using the note's view as the hover parent replaces the preview instead of nesting.
+        - `KK` never focusing a nested preview leaves focus in the first, at index 0 instead of 1.
 
 ## [1.5.0] - 2026-10-31
 

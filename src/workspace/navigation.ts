@@ -1,5 +1,6 @@
 import { MarkdownView, Notice } from 'obsidian';
-import type { App } from 'obsidian';
+import type { App, TFile } from 'obsidian';
+import type { EditorView } from '@codemirror/view';
 import {
     foldCode,
     foldEffect,
@@ -35,6 +36,7 @@ import {
 import { createContextActionsAction } from '../ui/context-actions';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
+import { getEditorView } from '../util/editor';
 import { executeCommand } from '../util/commands';
 import { whenActiveLeafSettled } from './leaf-settle';
 
@@ -136,14 +138,72 @@ export function findFootnoteRefAtCursor(
     return null;
 }
 
-/** The parts of Obsidian's HoverPopover that a second `K` reads. */
+/** The parts of Obsidian's HoverPopover that `K` reads. */
 interface KeywordPopover {
     hoverEl?: HTMLElement;
-    embed?: { showEditor?: () => void; editor?: { focus(): void } };
+    embed?: KeywordEmbed;
+}
+
+/**
+ * The note a preview shows. It is a hover parent of its own: a preview opened
+ * from inside it hangs off its `hoverPopover`, as Obsidian's own nested hover
+ * does.
+ */
+interface KeywordEmbed {
+    file?: TFile | null;
+    hoverPopover?: KeywordPopover | null;
+    showEditor?: () => void;
+    editor?: { focus(): void; cm?: EditorView };
+}
+
+/** Where `K` was pressed: the note's own editor, or a preview at any depth. */
+interface KeywordContext {
+    /** Obsidian's hover parent: the note's view, or the preview's embed. */
+    parent: { hoverPopover?: KeywordPopover | null };
+    targetEl: HTMLElement;
+    sourcePath: string;
+}
+
+/**
+ * The context of the editor `K` was pressed in. Reading the active
+ * `MarkdownView` instead treated `K` inside a preview as the note's own `KK`:
+ * it refocused the preview, which put its cursor back at the top, and a link
+ * in the preview could not be previewed (#208).
+ */
+function keywordContext(app: App, cm: CmAdapter): KeywordContext | null {
+    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) return null;
+    const parent = view as unknown as {
+        hoverPopover?: KeywordPopover | null;
+    };
+    if (getEditorView(view) === cm.cm6) {
+        return {
+            parent,
+            targetEl: view.contentEl,
+            sourcePath: view.file?.path ?? '',
+        };
+    }
+    for (
+        let popover = parent.hoverPopover;
+        popover?.embed;
+        popover = popover.embed.hoverPopover
+    ) {
+        const embed = popover.embed;
+        if (embed.editor?.cm !== cm.cm6) continue;
+        return {
+            parent: embed,
+            targetEl: popover.hoverEl ?? view.contentEl,
+            sourcePath: embed.file?.path ?? view.file?.path ?? '',
+        };
+    }
+    return null;
 }
 
 /** Where the last `K` opened a preview: a second `K` there focuses it. */
-let lastKeywordPreview: { view: MarkdownView; offset: number } | null = null;
+let lastKeywordPreview: {
+    parent: KeywordContext['parent'];
+    offset: number;
+} | null = null;
 
 /**
  * Moves into the preview the previous `K` opened, as Neovim's hover does:
@@ -152,12 +212,13 @@ let lastKeywordPreview: { view: MarkdownView; offset: number } | null = null;
  * window when the cursor moves. `showEditor()` is what a click into the
  * preview does (#208).
  */
-function focusKeywordPreview(view: MarkdownView, offset: number): boolean {
+function focusKeywordPreview(
+    parent: KeywordContext['parent'],
+    offset: number,
+): boolean {
     const last = lastKeywordPreview;
-    if (last?.view !== view || last.offset !== offset) return false;
-    const popover = (
-        view as unknown as { hoverPopover?: KeywordPopover | null }
-    ).hoverPopover;
+    if (last?.parent !== parent || last.offset !== offset) return false;
+    const popover = parent.hoverPopover;
     if (!popover?.hoverEl?.isConnected) return false;
     const embed = popover.embed;
     if (!embed?.showEditor) return false;
@@ -167,27 +228,28 @@ function focusKeywordPreview(view: MarkdownView, offset: number): boolean {
 }
 
 function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
-    return () => {
-        const view = app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view) return;
-        const cm = getCmAdapter(view);
-        if (!cm) return;
+    return (cm, actionArgs, vim) => {
+        const context = keywordContext(app, cm);
+        if (!context) {
+            charInfoFn(cm, actionArgs, vim);
+            return;
+        }
         const cursor = cm.getCursor();
         const offset = cm.indexFromPos(cursor);
-        if (focusKeywordPreview(view, offset)) return;
+        if (focusKeywordPreview(context.parent, offset)) return;
         lastKeywordPreview = null;
         const lineText = cm.getLine(cursor.line);
         const footnote = findFootnoteRefAtCursor(lineText, cursor.ch);
         if (footnote) {
-            lastKeywordPreview = { view, offset };
+            lastKeywordPreview = { parent: context.parent, offset };
             // Obsidian's own footnote hover sends exactly this (#209).
             app.workspace.trigger('hover-link', {
-                event: hoverEventAtCursor(cm, view.contentEl),
+                event: hoverEventAtCursor(cm, context.targetEl),
                 source: 'preview',
-                hoverParent: view,
-                targetEl: view.contentEl,
+                hoverParent: context.parent,
+                targetEl: context.targetEl,
                 linktext: `#[^${footnote}]`,
-                sourcePath: view.file?.path ?? '',
+                sourcePath: context.sourcePath,
             });
             return;
         }
@@ -196,21 +258,18 @@ function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
             if (link.isExternal) {
                 window.open(link.target);
             } else {
-                lastKeywordPreview = { view, offset };
-                const sourcePath = view.file?.path ?? '';
+                lastKeywordPreview = { parent: context.parent, offset };
                 app.workspace.trigger('hover-link', {
-                    event: hoverEventAtCursor(cm, view.contentEl),
+                    event: hoverEventAtCursor(cm, context.targetEl),
                     source: 'preview',
-                    hoverParent: view,
-                    targetEl: view.contentEl,
+                    hoverParent: context.parent,
+                    targetEl: context.targetEl,
                     linktext: link.target,
-                    sourcePath,
+                    sourcePath: context.sourcePath,
                 });
             }
         } else {
-            if (cm.state.vim) {
-                charInfoFn(cm, {} as ActionArgs, cm.state.vim);
-            }
+            charInfoFn(cm, actionArgs, vim);
         }
     };
 }

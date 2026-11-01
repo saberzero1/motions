@@ -19,6 +19,7 @@ import { ensureLivePreview, PAUSE } from '../helpers';
 
 const NOTE = 'KeywordPreview.md';
 const TARGET = 'KeywordTarget.md';
+const THIRD = 'KeywordThird.md';
 
 async function placeCursor(line: number, needle: string): Promise<void> {
     await browser.executeObsidian(
@@ -81,17 +82,21 @@ describe('K previews', function () {
 
     before(async function () {
         await browser.executeObsidian(
-            async ({ app }, files: { note: string; target: string }) => {
+            async (
+                { app },
+                files: { note: string; target: string; third: string },
+            ) => {
+                await app.vault.adapter.write(files.third, 'Third body text\n');
                 await app.vault.adapter.write(
                     files.target,
-                    'Target body text\n',
+                    'Target body text\nSee [[KeywordThird]] too\n',
                 );
                 await app.vault.adapter.write(
                     files.note,
                     'Intro line\n\nSome text[^1] and [[KeywordTarget]] here.\n\n[^1]: The footnote body text\n',
                 );
             },
-            { note: NOTE, target: TARGET },
+            { note: NOTE, target: TARGET, third: THIRD },
         );
         await browser.pause(PAUSE.OBSIDIAN_LOAD);
     });
@@ -115,7 +120,7 @@ describe('K previews', function () {
                     }
                 }
             },
-            [NOTE, TARGET],
+            [NOTE, TARGET, THIRD],
         );
     });
 
@@ -154,6 +159,64 @@ describe('K previews', function () {
         expect(focused.count).toBe(1);
         expect(focused.focusInside).toBe(true);
         expect(afterQuit.count).toBe(0);
+    });
+
+    // Inside a preview, K is the preview's own: it used to act as the note's
+    // second K, refocusing the preview and putting its cursor at the top.
+    it('K on a link inside a focused preview opens a preview of that link, and KK moves into it', async function () {
+        await placeCursor(2, 'KeywordTarget');
+        await browser.keys(['K']);
+        await waitForPreview();
+        await browser.keys(['K']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        // Onto the K of `[[KeywordThird]]`, on the preview's second line.
+        await browser.keys(['j']);
+        await browser.keys(['f']);
+        await browser.keys(['K']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['K']);
+        await browser.waitUntil(async () => (await preview()).count === 2, {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: 'no nested preview opened',
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        const nested = await browser.executeObsidian(({ app, obsidian }) => {
+            const pops = Array.from(
+                document.querySelectorAll('.hover-popover'),
+            );
+            const focused = document.activeElement?.closest('.hover-popover');
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            ) as unknown as {
+                hoverPopover?: {
+                    embed?: { editor?: { getCursor(): { line: number } } };
+                } | null;
+            } | null;
+            return {
+                texts: pops.map((p) => p.textContent ?? ''),
+                focusedIndex: focused ? pops.indexOf(focused) : -1,
+                firstLine:
+                    view?.hoverPopover?.embed?.editor?.getCursor().line ?? -1,
+            };
+        });
+        await browser.keys(['K']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        const intoNested = await browser.executeObsidian(() => {
+            const pops = Array.from(
+                document.querySelectorAll('.hover-popover'),
+            );
+            const focused = document.activeElement?.closest('.hover-popover');
+            return focused ? pops.indexOf(focused) : -1;
+        });
+
+        expect(nested.texts.some((t) => t.includes('Third body text'))).toBe(
+            true,
+        );
+        // Still in the first preview, on its second line, after opening it.
+        expect(nested.focusedIndex).toBe(0);
+        expect(nested.firstLine).toBe(1);
+        expect(intoNested).toBe(1);
     });
 
     it('K after moving the cursor does not focus the open preview', async function () {
