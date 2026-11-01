@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Input method state follows the focused editing area** — the bundled IME manager now saves Markdown notes by vault and file path, tracks stable identities for plugin inputs and search boxes, serializes process queries and switches, and rejects stale restores after a newer focus event. Window `blur`/`focus` covers switches to and from other Windows applications, including systems that use Alt+Shift for input-method switching. Returning to the same stable area leaves the system-managed IM unchanged; only returning to a different area triggers a restore.
+- **Input method state follows the focused editing area** — the bundled IME manager now saves Markdown notes by vault and file path, tracks stable identities for plugin inputs and search boxes, serializes process queries and switches, and rejects stale restores after a newer focus event. Window `blur`/`focus` covers switches to and from other Windows applications, including systems that use Alt+Shift for input-method switching. Returning to the same stable area leaves the system-managed IM unchanged; only returning to a different area triggers a restore. The focusout-before-blur browser event order is handled so this rule is stable across application switches.
     - Plugin: `src/im/input-method-manager.ts`, `src/im/types.ts`, `src/im/im-mode-watcher.ts`, `src/main.ts`
 
 ### Added
@@ -125,7 +125,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`test/unit/jumplist.test.ts` covers the list's handling of jumps within a note**: landing entries replaced by the next start or departure, the cursor taking the newest one, bookmarks followed through edits, deleted text skipped, an editor gone, released marks and serialization.
     - Each rule fails a test when removed: comparing lines only, not releasing dropped marks, not skipping deleted text, not dropping a gone editor's mark, not replacing a landing, keeping more than the newest as a landing, not making a walked-past landing ordinary, and not clearing it when a jump starts there.
 - **The fork's `jumplist_recorded_callback` and `jumplist_recorded_callback_throws`** check that the callback reports `G` with its positions and nothing for `k` or the walk, and that a throwing callback leaves the jump and the list intact. Not calling it records no call, and letting the throw escape aborts the `G`.
-<<<<<<< HEAD
 - **`table-nav-stray-keys.e2e.ts` presses keys in Obsidian's own table editor with table-nav on.**
     - **Scenarios:**
         - `u`, `zz`, `x`, Space and Backspace leave the cell and the note unchanged;
@@ -154,7 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Gating table-nav on the stored setting fails the no-backend scenario, A2 and A3.
         - Never moving `native` fails the first migration scenario.
         - A marker that defaults to `false` fails the first scenario and moves a `native` picked on fresh settings to `auto`.
-- **`test/unit/input-method-manager.test.ts` covers note-path persistence, same-area external-window return, different-area restoration, stale restore cancellation, and Insert → Normal save ordering.** The negative controls remove same-area restore suppression, forced different-area restore, or the pre-mode save snapshot; the tests then observe an unwanted switch, no target restore, or the old IM value respectively.
+- **`test/unit/input-method-manager.test.ts` covers note-path persistence, same-area external-window return, focusout-before-blur ordering, different-area restoration, stale restore cancellation, and Insert → Normal save ordering.** The negative controls remove same-area restore suppression, focusout-before-blur recovery, forced different-area restore, or the pre-mode save snapshot; the tests then observe an unwanted switch, an unwanted same-area restore, no target restore, or the old IM value respectively.
     - **`test/unit/im-switcher.test.ts`** retains the compatibility surface and composition behavior while the implementation moves to `InputMethodManager`.
 
 ### Documentation

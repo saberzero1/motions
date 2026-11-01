@@ -103,6 +103,22 @@ describe('InputMethodManager', () => {
         expect(executeImSet).not.toHaveBeenCalled();
     });
 
+    it('handles focusout arriving before the window blur event', async () => {
+        executeImGet.mockResolvedValue('2052');
+        const manager = createManager({
+            resolveFocusedArea: () => noteArea,
+        });
+
+        manager.onFocusIn(noteArea);
+        await flushOperations();
+        manager.onFocusOut(noteArea);
+        manager.onWindowBlur();
+        manager.onWindowFocus();
+        await flushOperations();
+
+        expect(executeImSet).not.toHaveBeenCalled();
+    });
+
     it('does not restore a stale area after a newer focus event', async () => {
         executeImSet.mockResolvedValue(true);
         const manager = createManager();

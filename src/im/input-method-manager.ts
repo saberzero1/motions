@@ -53,6 +53,7 @@ export class InputMethodManager {
     private readonly areaByView = new Map<string, InputMethodArea>();
     private resolvers: InputMethodManagerResolvers;
     private currentArea: InputMethodArea | null = null;
+    private pendingFocusOutAreaKey: string | null = null;
     private windowBlurredAreaKey: string | null = null;
     private windowFocused = true;
     private destroyed = false;
@@ -138,6 +139,10 @@ export class InputMethodManager {
     onFocusIn(area: InputMethodArea): void {
         if (this.destroyed || !this.config.autoWire) return;
 
+        // A normal focus transition (A -> B) has focusout before focusin. If
+        // no window blur is delivered between them, this is not an external
+        // application switch and the pending key must not be treated as one.
+        this.pendingFocusOutAreaKey = null;
         const returnedToSameArea = this.windowBlurredAreaKey === area.key;
         this.windowBlurredAreaKey = null;
         this.windowFocused = true;
@@ -174,6 +179,7 @@ export class InputMethodManager {
         if (this.currentArea?.key !== area.key) return;
 
         const leaving = { ...this.currentArea, ...area };
+        if (this.windowFocused) this.pendingFocusOutAreaKey = leaving.key;
         this.currentArea = null;
         ++this.focusGeneration;
         ++this.actionGeneration;
@@ -186,8 +192,11 @@ export class InputMethodManager {
     onWindowBlur(): void {
         if (this.destroyed || !this.config.autoWire) return;
         this.windowFocused = false;
+        const blurredAreaKey =
+            this.currentArea?.key ?? this.pendingFocusOutAreaKey;
+        if (blurredAreaKey) this.windowBlurredAreaKey = blurredAreaKey;
+        this.pendingFocusOutAreaKey = null;
         if (this.currentArea) {
-            this.windowBlurredAreaKey = this.currentArea.key;
             this.onFocusOut(this.currentArea);
         }
     }
@@ -331,6 +340,7 @@ export class InputMethodManager {
         this.compositionWaiter?.resolve();
         this.compositionWaiter = null;
         this.currentArea = null;
+        this.pendingFocusOutAreaKey = null;
         this.windowBlurredAreaKey = null;
         this.savedImByArea.clear();
         this.modeByArea.clear();
