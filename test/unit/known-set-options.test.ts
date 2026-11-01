@@ -37,6 +37,8 @@ const EXCLUDED_SETTINGS_KEYS = new Set([
     'persistedImState',
     // IME UI setting — scoped to search areas, not a Vim :set option.
     'imFindDefaultIm',
+    // IME UI setting — controls cross-application focus handling, not a Vim :set option.
+    'imCrossAppStateMemory',
     // Crash breadcrumb: written around an RPC toggle so the next start can tell
     // the user the renderer died mid-switch. Meaningless to set by hand.
     'neovimToggleInFlight',

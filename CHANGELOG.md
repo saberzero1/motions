@@ -63,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Input method state follows the focused editing area** — the bundled IME manager now saves Markdown notes by vault and file path, tracks stable identities for plugin inputs and search boxes, serializes process queries and switches, and rejects stale restores after a newer focus event. Window `blur`/`focus` covers switches to and from other Windows applications, including systems that use Alt+Shift for input-method switching. Returning to the same stable area leaves the system-managed IM unchanged; only returning to a different area triggers a restore. The focusout-before-blur browser event order is handled so this rule is stable across application switches, and opening a new note in the same editor reconciles its Normal mode immediately.
     - Plugin: `src/im/input-method-manager.ts`, `src/im/types.ts`, `src/im/im-mode-watcher.ts`, `src/main.ts`
+- **Configurable cross-application IM memory behavior** — **Settings → Input method → System remembers IM state across apps** defaults to enabled for the current behavior. Disable it to actively restore the focused area's input method every time Obsidian regains focus.
+    - Plugin: `src/settings.ts`, `src/im/input-method-manager.ts`
 
 ### Added
 

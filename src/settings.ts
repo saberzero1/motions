@@ -273,6 +273,7 @@ export interface VimMotionsSettings {
     imRestoreBehavior: 'restore' | 'default';
     imDefaultInsertIm: string;
     imFindDefaultIm: string;
+    imCrossAppStateMemory: boolean;
     persistedImState: Record<string, string>;
 
     enableSnippets: boolean;
@@ -445,6 +446,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     imRestoreBehavior: 'restore' as const,
     imDefaultInsertIm: '',
     imFindDefaultIm: '1033',
+    imCrossAppStateMemory: true,
     persistedImState: {},
 
     enableSnippets: true,
@@ -608,6 +610,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'imRestoreBehavior',
         'imDefaultInsertIm',
         'imFindDefaultIm',
+        'imCrossAppStateMemory',
         'pickerOmnisearch',
         'pickerTasks',
         'pickerDataview',
@@ -2996,6 +2999,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'imEnabled',
+                                },
+                            },
+                            {
+                                name: 'System remembers IM state across apps',
+                                desc: 'When enabled, returning to the same editing area after another app leaves the system-managed input method unchanged. When disabled, Obsidian actively restores the area input method every time it regains focus.',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'imCrossAppStateMemory',
                                 },
                             },
                             {
@@ -6286,6 +6298,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         if (!this.plugin.settings.imEnabled) return;
+
+        new Setting(container)
+            .setName('System remembers IM state across apps')
+            .setDesc(
+                'When enabled, returning to the same editing area after another app leaves the system-managed input method unchanged. When disabled, Obsidian actively restores the area input method every time it regains focus.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.imCrossAppStateMemory)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imCrossAppStateMemory = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
 
         const IM_PRESETS: Record<
             string,

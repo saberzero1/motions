@@ -32,6 +32,7 @@ vi.mock('obsidian', () => ({
 
 function createManager(
     resolvers?: ConstructorParameters<typeof InputMethodManager>[1],
+    overrides: Partial<ImSwitcherConfig> = {},
 ): InputMethodManager {
     const config: ImSwitcherConfig = {
         enabled: true,
@@ -46,6 +47,7 @@ function createManager(
             args: ['{im}'],
             timeoutMs: 5000,
         },
+        ...overrides,
     };
     return new InputMethodManager(config, resolvers);
 }
@@ -101,6 +103,27 @@ describe('InputMethodManager', () => {
         await flushOperations();
 
         expect(executeImSet).not.toHaveBeenCalled();
+    });
+
+    it('restores the same area when cross-app state memory is disabled', async () => {
+        executeImSet.mockResolvedValue(true);
+        const manager = createManager(
+            { resolveFocusedArea: () => noteArea },
+            { crossAppStateMemory: false },
+        );
+        manager.loadPersistedState({ [noteArea.key]: '2052' });
+
+        manager.onFocusIn(noteArea);
+        await flushOperations();
+        executeImSet.mockClear();
+        manager.onWindowBlur();
+        manager.onWindowFocus();
+        await flushOperations();
+
+        expect(executeImSet).toHaveBeenCalledWith(
+            manager.config.switchConfig,
+            '2052',
+        );
     });
 
     it('handles focusout arriving before the window blur event', async () => {

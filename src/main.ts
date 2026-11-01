@@ -946,6 +946,7 @@ export default class VimMotionsPlugin extends Plugin {
                 restoreBehavior: this.settings.imRestoreBehavior,
                 defaultInsertIm: this.settings.imDefaultInsertIm,
                 findDefaultIm: this.settings.imFindDefaultIm,
+                crossAppStateMemory: this.settings.imCrossAppStateMemory,
                 obtainConfig: {
                     binary: resolvedBinary,
                     args: parseImArgs(this.settings.imObtainArgs),

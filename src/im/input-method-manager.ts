@@ -23,6 +23,8 @@ export interface ImSwitcherConfig {
     defaultInsertIm: string;
     /** Default used for a search box that has no saved identity yet. */
     findDefaultIm?: string;
+    /** When true, trust the OS to preserve IM state for the same area across apps. */
+    crossAppStateMemory?: boolean;
     obtainConfig: ImProcessConfig;
     switchConfig: ImProcessConfig;
 }
@@ -143,7 +145,9 @@ export class InputMethodManager {
         // no window blur is delivered between them, this is not an external
         // application switch and the pending key must not be treated as one.
         this.pendingFocusOutAreaKey = null;
-        const returnedToSameArea = this.windowBlurredAreaKey === area.key;
+        const returnedToSameArea =
+            this.config.crossAppStateMemory !== false &&
+            this.windowBlurredAreaKey === area.key;
         this.windowBlurredAreaKey = null;
         this.windowFocused = true;
         this.rememberArea(area);
