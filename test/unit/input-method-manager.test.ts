@@ -119,6 +119,37 @@ describe('InputMethodManager', () => {
         expect(executeImSet).not.toHaveBeenCalled();
     });
 
+    it('restores normal IM when a new note replaces the focused editor', async () => {
+        executeImSet.mockResolvedValue(true);
+        const oldArea: InputMethodArea = {
+            ...noteArea,
+            mode: 'insert',
+        };
+        const newArea: InputMethodArea = {
+            key: 'note:Vault:two.md',
+            kind: 'note',
+            viewId: noteArea.viewId,
+            mode: 'normal',
+        };
+        let focusedArea = oldArea;
+        const manager = createManager({
+            resolveFocusedArea: () => focusedArea,
+        });
+        manager.loadPersistedState({ [oldArea.key]: '2052' });
+
+        manager.onFocusIn(oldArea);
+        await flushOperations();
+        executeImSet.mockClear();
+        focusedArea = newArea;
+        manager.onFocusedAreaChanged();
+        await flushOperations();
+
+        expect(executeImSet).toHaveBeenLastCalledWith(
+            manager.config.switchConfig,
+            '1033',
+        );
+    });
+
     it('does not restore a stale area after a newer focus event', async () => {
         executeImSet.mockResolvedValue(true);
         const manager = createManager();

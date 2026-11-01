@@ -208,6 +208,16 @@ export class InputMethodManager {
         if (area) this.onFocusIn(area);
     }
 
+    /**
+     * Reconciles the focused area after a file changes inside the same leaf.
+     * Obsidian keeps DOM focus in that case, so no focus event is emitted.
+     */
+    onFocusedAreaChanged(): void {
+        if (this.destroyed || !this.config.autoWire) return;
+        const area = this.resolvers.resolveFocusedArea?.();
+        if (area) this.onFocusIn(area);
+    }
+
     onInsertLeave(viewId: string): void {
         this.onModeChange(viewId, 'normal');
     }

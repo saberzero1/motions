@@ -63,6 +63,7 @@
 
 - [ ] 两篇不同笔记均处于 Insert：A 中文、B 英文，反复切换并返回，各自恢复。
 - [ ] A 为 Normal、B 为 Insert：切换 A/B 后，A 恒为 `1033`，B 保持自己的 Insert IM。
+- [ ] 在同一编辑器中用 `<C-o>` 打开新笔记后，新笔记以 Normal 模式立即切换到 `1033`，不需要再按一次键。
 - [ ] A Insert 中文 → `Esc` → A Normal 英文 → `i`：恢复中文。
 - [ ] A ↔ Copilot 输入框：双方分别保存 IM，返回 A 时遵守 A 的 Normal/Insert 模式。
 - [ ] Copilot 不同输入框、当前笔记查找框、全局搜索框的 IM 互不干扰；动态重建的查找框按默认策略工作。

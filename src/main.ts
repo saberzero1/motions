@@ -1132,6 +1132,17 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registerEvent(
+            this.app.workspace.on('file-open', () => {
+                if (!this.settings.vimEnabled) return;
+                // A file opened into the current leaf keeps CodeMirror focus,
+                // so no focusin event identifies the new note. Let Obsidian
+                // finish replacing the document, then reconcile its area and
+                // current Vim mode immediately.
+                queueMicrotask(() => this.imSwitcher?.onFocusedAreaChanged());
+            }),
+        );
+
+        this.registerEvent(
             this.app.workspace.on('active-leaf-change', (newLeaf) => {
                 if (!this.settings.vimEnabled) return;
                 if (!this.settings.enableWorkspaceNav) return;
