@@ -230,7 +230,15 @@ export interface VimApi {
     unmap(
         lhs: string,
         context?: MapContext,
-        options?: { includeDefaults?: boolean },
+        /**
+         * `toKeys` (bundled fork only) removes just the user mapping from
+         * `lhs` to `toKeys`, never a command for the same keys.
+         */
+        options?: {
+            includeDefaults?: boolean;
+            toKeys?: string;
+            noremap?: boolean;
+        },
     ): boolean;
 
     mapCommand(

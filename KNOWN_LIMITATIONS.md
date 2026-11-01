@@ -228,6 +228,10 @@ Neovim owns `h` and `l` there. `:image` selects the image under the cursor inste
 
 `.obsidian.init.lua` and `.obsidian.vimrc` still load while RPC is connected, but a `vim.keymap.set` or `map` defined there targets the bundled fork, and key delegation stands the fork down through `setKeyInterceptActive(true)`. Editor-context mappings from the plugin's config therefore never fire; the Neovim equivalent belongs in the user's own `init.lua`. Settings and host-rendered features are unaffected, because Obsidian still renders them. The Obsidian action mappings the feature bridge installs into Neovim are generated from the plugin's registration data, so they follow the configured leader key but not arbitrary `vim.keymap.set` remaps.
 
+## Vimrc mappings under Obsidian's own Vim key bindings
+
+A vimrc mapping on a key the plugin binds itself (`Y`, `Q`, `gw`, …) is kept on top after a settings change only under the plugin's own engine. Re-registering the plugin's bindings has to lift your mappings off first and put them back. Obsidian's built-in Vim cannot remove a single mapping exactly, so with **Settings → Editor → Vim key bindings** on, such a mapping can still lose to the plugin's binding until the vimrc is reloaded.
+
 ## Lua configuration
 
 **Status**: Implemented.

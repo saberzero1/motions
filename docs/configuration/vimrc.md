@@ -365,6 +365,8 @@ When configuration mode includes vimrc (Lua + Vimrc or Vimrc only), vimrc values
 
 Settings overridden by vimrc appear as disabled controls in the settings tab with a note showing the vimrc directive (e.g., "Set by vimrc: `set scrolloff=10`"). Changing a setting via the Settings UI clears the override for that key.
 
+Your mappings take precedence over the plugin's own bindings for the same keys, as user mappings do over built-in commands in Vim. `nnoremap Y yy` replaces the plugin's `Y` (`y$`), and `nmap gw <Plug>(easymotion-bd-w)` replaces hard-wrap's `gw`. This holds after Obsidian starts and after any settings change. Remove the mapping and reload the vimrc, and the plugin's binding is back. A Lua mapping for the same keys and mode wins over a vimrc one, because Lua loads second.
+
 > [!info] Gutter settings apply immediately
 > Settings that control CM6 gutter extensions (`number`, `relativenumber`, `signcolumn`, `foldcolumn`, `cursorline`, `statuscolumn`) take effect as soon as the config file is loaded, matching the Settings UI. These extensions are registered once at startup inside CodeMirror compartments, which are then reconfigured in place. Earlier releases required one Obsidian restart, because that reconfiguration resolved the wrong editor property and so reached no open editor.
 

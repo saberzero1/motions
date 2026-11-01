@@ -169,7 +169,7 @@ import { MarkStore } from './vim/mark-store';
 import { HarpoonStore } from './vim/harpoon-store';
 import { navigateToHarpoonPin } from './vim/harpoon-nav';
 import { createHarpoonSource } from './picker/sources/harpoon';
-import type { VimYankEvent, CmAdapter } from './types/vim-api';
+import type { VimYankEvent, CmAdapter, MapContext } from './types/vim-api';
 
 import {
     installVisualLineCommandFix,
@@ -354,6 +354,14 @@ import {
 const MAX_PERSISTED_UNDO_TREES = 50;
 
 const TOGGLE_COOLDOWN_MS = 500;
+
+/** A user's key-to-key mapping, from the vimrc or from Lua. */
+interface UserKeyMap {
+    lhs: string;
+    rhs: string;
+    context?: MapContext;
+    noremap: boolean;
+}
 
 export default class VimMotionsPlugin extends Plugin {
     settings!: VimMotionsSettings;
@@ -1330,7 +1338,15 @@ export default class VimMotionsPlugin extends Plugin {
                         this.resetVimInputStateOnPaneSwitch(vim);
 
                         if (this.vimrcLoaded) {
-                            applyVimrcMaps(vim, this.vimrcMaps);
+                            // Re-applied on every pane switch. Lifted first,
+                            // or each switch stacked another copy, and a
+                            // mapping later removed from the vimrc survived
+                            // in the copies a reload left behind.
+                            if (this.liftUserKeyMaps(vim)) {
+                                this.restoreUserKeyMaps(vim);
+                            } else {
+                                applyVimrcMaps(vim, this.vimrcMaps);
+                            }
                             this.applyLuaPendingExCommands(vim);
                             if (this.pendingVimrcExCommands.length > 0) {
                                 const view =
@@ -3821,6 +3837,8 @@ export default class VimMotionsPlugin extends Plugin {
         this.modeTracker?.destroy();
         this.modeTracker = null;
         this.hintActions = null;
+        const liftVim = getVimApi();
+        const lifted = liftVim ? this.liftUserKeyMaps(liftVim) : false;
         this.registration?.unregisterAll();
         this.leaderRegistry?.clearBuiltinBindings();
 
@@ -4146,6 +4164,8 @@ export default class VimMotionsPlugin extends Plugin {
             this.registerBundledIntegrations();
         }
 
+        // The user's mappings go back on top of the bindings just registered.
+        if (lifted) applyVimrcMaps(vim, this.vimrcMaps);
         this.applyLuaMaps(vim);
 
         this.reconfigureLineNumberGutter();
@@ -4602,6 +4622,8 @@ export default class VimMotionsPlugin extends Plugin {
 
     private reregisterLeaderFeatures(): void {
         if (!this.registration || !this.leaderRegistry) return;
+        const vim = getVimApi();
+        const lifted = vim ? this.liftUserKeyMaps(vim) : false;
         this.registration.unregisterLeaderBindings();
         this.leaderRegistry.clearBuiltinBindings();
         this.registration.unmapDefaultBinding(
@@ -4635,6 +4657,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.leaderRegistry,
         );
         this.registration.endLeaderScope();
+        if (vim && lifted) this.restoreUserKeyMaps(vim);
     }
 
     private hintActions: {
@@ -4883,11 +4906,18 @@ export default class VimMotionsPlugin extends Plugin {
         }
         this.vimrcOverrides.clear();
 
-        for (const key of this.vimrcMapKeys) {
-            try {
-                vim.unmap(key, 'normal');
-            } catch {
-                /* may not exist */
+        if (isBundledVimActive()) {
+            // Each in its own mode, and only that mapping: removing by key
+            // in normal mode left visual and insert mappings behind, and
+            // could take a feature's binding for the same keys instead.
+            this.removeKeyMapsExactly(vim, this.vimrcMaps);
+        } else {
+            for (const key of this.vimrcMapKeys) {
+                try {
+                    vim.unmap(key, 'normal');
+                } catch {
+                    /* may not exist */
+                }
             }
         }
         this.vimrcMapKeys.clear();
@@ -5844,6 +5874,83 @@ export default class VimMotionsPlugin extends Plugin {
     private reregisterLuaTextObjects(): void {
         for (const { keys, spec } of this.luaTextObjectSpecs) {
             this.registerLuaTextObject(keys, spec);
+        }
+    }
+
+    /**
+     * The user's own key-to-key mappings, vimrc then Lua, in the order they
+     * were applied. A Lua mapping a later `vim.keymap.del` removed is left out.
+     */
+    private userKeyMaps(): UserKeyMap[] {
+        let lua: UserKeyMap[] = [];
+        for (const op of this.luaMapOperations) {
+            if (op.type === 'unmap') {
+                lua = lua.filter(
+                    (m) => m.lhs !== op.map.lhs || m.context !== op.map.mode,
+                );
+                continue;
+            }
+            if (op.map.isFn || !op.map.rhs) continue;
+            lua.push({
+                lhs: op.map.lhs,
+                rhs: op.map.rhs,
+                context: op.map.mode,
+                noremap: op.map.noremap,
+            });
+        }
+        return [
+            ...this.vimrcMaps.map((m) => ({
+                lhs: m.lhs,
+                rhs: m.rhs,
+                context: m.context,
+                noremap: m.noremap,
+            })),
+            ...lua,
+        ];
+    }
+
+    /** Removes exactly these mappings, newest first; any other entry stays. */
+    private removeKeyMapsExactly(
+        vim: import('./types/vim-api').VimApi,
+        maps: readonly UserKeyMap[],
+    ): void {
+        for (const map of [...maps].reverse()) {
+            try {
+                vim.unmap(map.lhs, map.context, {
+                    toKeys: map.rhs,
+                    noremap: map.noremap,
+                });
+            } catch {
+                /* intentional: an ex mapping, or one already gone */
+            }
+        }
+    }
+
+    /**
+     * Lifts the user's mappings off before the plugin re-registers its own
+     * bindings, so they can go back on top (#205). Re-registering removes a
+     * feature's entries and adds them again. That used to remove a vimrc
+     * mapping on the same keys as well, so `nmap gw <Plug>(easymotion-bd-w)`
+     * and `nnoremap Y yy` were gone once Obsidian had started, and a mapping
+     * that survived ended up behind the re-added binding, which then won.
+     * Obsidian's own Vim cannot remove one mapping exactly, so this applies to
+     * the bundled engine only.
+     */
+    private liftUserKeyMaps(vim: import('./types/vim-api').VimApi): boolean {
+        if (!isBundledVimActive()) return false;
+        this.removeKeyMapsExactly(vim, this.userKeyMaps());
+        return true;
+    }
+
+    /** Puts the user's key-to-key mappings back on top, vimrc then Lua. */
+    private restoreUserKeyMaps(vim: import('./types/vim-api').VimApi): void {
+        for (const map of this.userKeyMaps()) {
+            try {
+                if (map.noremap) vim.noremap(map.lhs, map.rhs, map.context);
+                else vim.map(map.lhs, map.rhs, map.context);
+            } catch {
+                /* intentional: skip malformed mapping */
+            }
         }
     }
 

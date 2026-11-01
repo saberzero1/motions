@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A vimrc mapping on a key the plugin binds itself was gone once Obsidian had started** ([#205](https://github.com/saberzero1/motions/issues/205)). `nmap gw <Plug>(easymotion-bd-w)` left `gw` as hard-wrap's operator, and `nnoremap Y yy` left `Y` as the plugin's `y$`.
+    - **Cause:** the plugin removes and re-registers its bindings at startup and on every settings change. The removal took your mapping for the same keys with it, and a mapping that survived ended up behind the re-added binding, which then won. Reloading the vimrc after startup put the mappings back, which is why it went unseen. A mapping on a key the plugin does not bind, such as `<leader>w`, was never affected.
+    - **Fix:** your mappings, from the vimrc and from Lua, are lifted off before the plugin re-registers its bindings and put back on top afterwards, as user mappings beat built-in commands in Vim. Each is removed exactly, so nothing of the plugin's goes with it.
+    - **Two related leaks:** every pane switch re-applied the vimrc's mappings without removing the previous copies, so they piled up. A vimrc reload removed the old mappings by key in normal mode only, so visual and insert mappings outlived their removal from the file.
+    - Plugin: `src/main.ts` (`liftUserKeyMaps`, `restoreUserKeyMaps`, `removeKeyMapsExactly`), `src/types/vim-api.d.ts`
+
+### Tests
+
+- **`vimrc-feature-key-overrides.e2e.ts` loads a vimrc with `nmap gw <Plug>(easymotion-bd-w)` and `nnoremap Y yy` the way Obsidian's start does.** That means a cold plugin load followed by exactly one leaf change. Earlier tests reloaded the vimrc after startup, which is what hid the defect.
+    - **Scenarios:**
+        - both mappings work after start;
+        - they still work after settings changes and pane switches, with one copy each;
+        - removing `Y` from the vimrc gives `Y` back to the plugin.
+    - **Negative controls:**
+        - Not lifting the mappings fails the first two, with no EasyMotion labels on `gw` and `Y` yanking `three four five` (the plugin's `y$`).
+        - Re-applying on a pane switch without lifting fails the second, which then finds duplicate entries.
+        - A vimrc reload that removes nothing fails the third, with `Y` still yanking the whole line.
+
 ## [1.5.0] - 2026-10-31
 
 ### Added
