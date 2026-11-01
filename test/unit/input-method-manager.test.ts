@@ -85,11 +85,8 @@ describe('InputMethodManager', () => {
         );
     });
 
-    it('snapshots before leaving Obsidian and restores after returning', async () => {
-        executeImGet
-            .mockResolvedValueOnce('2052')
-            .mockResolvedValueOnce('2052');
-        executeImSet.mockResolvedValue(true);
+    it('does not interfere when returning to the same area after an app switch', async () => {
+        executeImGet.mockResolvedValue('2052');
         const manager = createManager({
             resolveFocusedArea: () => noteArea,
         });
@@ -103,10 +100,7 @@ describe('InputMethodManager', () => {
         manager.onWindowFocus();
         await flushOperations();
 
-        expect(executeImSet).toHaveBeenCalledWith(
-            manager.config.switchConfig,
-            '2052',
-        );
+        expect(executeImSet).not.toHaveBeenCalled();
     });
 
     it('does not restore a stale area after a newer focus event', async () => {
@@ -187,14 +181,20 @@ describe('InputMethodManager', () => {
         expect(executeImGet).not.toHaveBeenCalled();
     });
 
-    it('forces normal IM after returning from another application', async () => {
+    it('restores the target area after returning from another application', async () => {
         executeImSet.mockResolvedValue(true);
         const normalArea: InputMethodArea = {
             ...noteArea,
             mode: 'normal',
         };
+        const otherArea: InputMethodArea = {
+            key: 'note:Vault:two.md',
+            kind: 'note',
+            viewId: 'imw_2',
+            mode: 'normal',
+        };
         const manager = createManager({
-            resolveFocusedArea: () => normalArea,
+            resolveFocusedArea: () => otherArea,
         });
 
         manager.onFocusIn(normalArea);

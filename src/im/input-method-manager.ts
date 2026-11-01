@@ -53,6 +53,7 @@ export class InputMethodManager {
     private readonly areaByView = new Map<string, InputMethodArea>();
     private resolvers: InputMethodManagerResolvers;
     private currentArea: InputMethodArea | null = null;
+    private windowBlurredAreaKey: string | null = null;
     private windowFocused = true;
     private destroyed = false;
     private operationTail: Promise<void> = Promise.resolve();
@@ -137,6 +138,8 @@ export class InputMethodManager {
     onFocusIn(area: InputMethodArea): void {
         if (this.destroyed || !this.config.autoWire) return;
 
+        const returnedToSameArea = this.windowBlurredAreaKey === area.key;
+        this.windowBlurredAreaKey = null;
         this.windowFocused = true;
         this.rememberArea(area);
 
@@ -162,7 +165,7 @@ export class InputMethodManager {
             ) {
                 return;
             }
-            await this.restoreArea(area);
+            if (!returnedToSameArea) await this.restoreArea(area);
         });
     }
 
@@ -183,7 +186,10 @@ export class InputMethodManager {
     onWindowBlur(): void {
         if (this.destroyed || !this.config.autoWire) return;
         this.windowFocused = false;
-        if (this.currentArea) this.onFocusOut(this.currentArea);
+        if (this.currentArea) {
+            this.windowBlurredAreaKey = this.currentArea.key;
+            this.onFocusOut(this.currentArea);
+        }
     }
 
     onWindowFocus(): void {
@@ -325,6 +331,7 @@ export class InputMethodManager {
         this.compositionWaiter?.resolve();
         this.compositionWaiter = null;
         this.currentArea = null;
+        this.windowBlurredAreaKey = null;
         this.savedImByArea.clear();
         this.modeByArea.clear();
         this.areaByView.clear();
