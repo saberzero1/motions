@@ -14,14 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Fix:** your mappings, from the vimrc and from Lua, are lifted off before the plugin re-registers its bindings and put back on top afterwards, as user mappings beat built-in commands in Vim. Each is removed exactly, so nothing of the plugin's goes with it.
     - **Two related leaks:** every pane switch re-applied the vimrc's mappings without removing the previous copies, so they piled up. A vimrc reload removed the old mappings by key in normal mode only, so visual and insert mappings outlived their removal from the file.
     - Plugin: `src/main.ts` (`liftUserKeyMaps`, `restoreUserKeyMaps`, `removeKeyMapsExactly`), `src/types/vim-api.d.ts`
+    - Fork: codemirror-vim 6.4.8 makes the engine's side exact too. `unmap(lhs, ctx, { toKeys, noremap })` removes only that user mapping, and `removeMapCommand` no longer removes a user mapping on the same keys.
 - **`K` inside a preview put the preview's cursor back at the top instead of previewing the link under it** ([#208](https://github.com/saberzero1/motions/issues/208)). `K` always read the note's own editor and cursor, whichever editor it was pressed in, so inside a focused preview it acted as the note's second `K` and refocused the preview.
     - **Fix:** it now uses the editor it was pressed in. Inside a preview it opens the nested preview Obsidian's own hover would, with the preview's note as the hover parent and as the source the link resolves from. `KK` there moves into the nested preview.
     - Plugin: `src/workspace/navigation.ts` (`keywordContext`)
 - **`<C-o>` after switching tabs went to an older note instead of the tab before** ([#206](https://github.com/saberzero1/motions/issues/206)). Only the plugin's own navigations recorded a jump, such as `gd`, the pickers and `]b`. A tab clicked or reached with **Ctrl+Tab**, or a note Obsidian opened in the current tab, recorded nothing.
     - **Fix:** every change of note is now a jump, recorded with the line the note was left at, as Neovim records a `:b` switch. With `a`, `b` and `c` in three tabs, visiting them in order and pressing `<C-o>`, `<C-o>`, `<C-i>` lands on `b`, `a`, `b`, matching Neovim 0.12.5, and focuses each note's own tab.
     - A navigation that records its own jump, and the walk itself, are not recorded twice.
-    - **Remaining gap:** jumps made inside a note after switching to it are still walked after the previous note rather than before it, because they live in the fork's separate list. Measured values are in `KNOWN_LIMITATIONS.md`.
-    - Plugin: `src/workspace/note-switch-jumps.ts`, `src/workspace/navigate.ts`, `src/main.ts`
+    - **Jumps within a note are walked in their place.** After switching to a note and jumping inside it, `<C-o>` used to go back to the previous note before visiting those jumps. The editor kept them in a list of its own, which the walk consulted only once the plugin's list had no older note.
+        - **Fix:** the bundled engine now reports each jump it records, and the plugin keeps it in the same list as the note switches, in the order they happened. Each position is a bookmark in the note's editor, so it follows edits.
+        - **Neovim's model:** where a jump landed, or a note was entered, stands for the cursor until the next jump's start replaces it, as Neovim records only where jumps start. The first `<C-o>` moves it to the cursor, and once walked past it is an ordinary entry.
+        - **Measured parity with Neovim 0.12.5:**
+            - `a`, then `G` in `b`, walks `b`, `a`, `b`, `b`.
+            - `<C-o>` back into a note visits the jumps made there.
+            - `j` is not a jump, so `<C-o>` after it goes straight to the previous note.
+            - `<C-i>` comes back to where `<C-o>` was pressed.
+            - The walk stays put at the oldest entry.
+        - Flash and EasyMotion jumps now record where they landed too, so `<C-o>` returns from them. `:jumps` lists the jumps within notes.
+        - Only with the bundled engine: Obsidian's own Vim key bindings and the Neovim backend do not report their jumps, so there the previous order stands.
+        - **Still differs from Neovim:** the list keeps an older entry on the same line as a newer one, where Neovim drops it. Both are recorded in `KNOWN_LIMITATIONS.md`.
+    - Plugin: `src/workspace/note-switch-jumps.ts`, `src/workspace/in-note-jumps.ts`, `src/vim/jumplist.ts`, `src/workspace/global-defaults.ts`, `src/workspace/navigate.ts`, `src/flash/{jump,char,search}-mode.ts`, `src/easymotion/register.ts`, `src/main.ts`
+    - Fork: `src/vim.js` (`setJumpRecordedCallback`), released as codemirror-vim 6.4.8
 
 ### Tests
 
@@ -51,6 +64,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Not skipping a switch that left the list at the new note fails `gd` and `]b`, recording `a, c, a, c` and `a, b, a, b`.
         - Not skipping one while a navigation is still opening its note fails `:headings`, recording `a, b, a, b`.
         - Forgetting the cursor of a note whose tab has since been reused fails the same-tab scenario, landing on line 0 instead of 2.
+- **`jump-list-note-switch.e2e.ts` also walks the jumps made within notes among the switches**, each scenario against a sequence measured on Neovim 0.12.5.
+    - **Scenarios:**
+        - `a`, then `G` in `b`, walks `b:0`, `a:0`, `b:0`, `b:2`;
+        - `G` in `a`, then `b`, walks back `a:4`, `a:0`, `a:0`;
+        - at the oldest jump `<C-o>` stays put;
+        - `jj` is not a jump, so `<C-o>` goes to `a`, and `<C-i>` back to `b:2`;
+        - after `G` and `k`, `<C-i>` comes back to where `<C-o>` was pressed;
+        - once walked past, where `G` landed stays put;
+        - a line put above a jump moves it;
+        - a note replaced in its tab keeps where its jumps were, in `:jumps` and in the walk;
+        - `<C-o>` to a closed fold's heading opens it;
+        - a Flash jump is walked back and forth.
+    - **Negative controls:**
+        - Not installing the engine's callback fails seven scenarios: the first `<C-o>` after `G` in `b` lands on `a` again, the old order.
+        - Handing jumps within a note back to the engine's own walk fails nine.
+        - Each rule of the model fails its own scenarios when removed:
+            - keeping where a note was entered stops on `b:0` instead of reaching `a`;
+            - not moving the newest entry to the cursor brings `<C-i>` back to `b:0` and `a:4` instead of `b:2` and `a:3`;
+            - moving its position but not its bookmark brings `<C-i>` back to `a:4`;
+            - not making it an ordinary entry once walked past brings `<C-i>` to `a:3` instead of `a:4`.
+        - Fixed positions instead of bookmarks land on `b:1` instead of `b:2` after the edit.
+        - Reading a replaced editor's bookmark lists `a:2` instead of `a:3` in `:jumps`.
+        - Letting the walk fall through to the engine's list at the oldest entry lands on `a:1`.
+        - Not marking the walk as `foldopen`'s `mark` leaves the fold closed.
+        - Recording only where a Flash jump started leaves `<C-o>` at `a:4`.
+- **`test/unit/jumplist.test.ts` covers the list's handling of jumps within a note**: landing entries replaced by the next start or departure, the cursor taking the newest one, bookmarks followed through edits, deleted text skipped, an editor gone, released marks and serialization.
+    - Each rule fails a test when removed: comparing lines only, not releasing dropped marks, not skipping deleted text, not dropping a gone editor's mark, not replacing a landing, keeping more than the newest as a landing, not making a walked-past landing ordinary, and not clearing it when a jump starts there.
+- **The fork's `jumplist_recorded_callback` and `jumplist_recorded_callback_throws`** check that the callback reports `G` with its positions and nothing for `k` or the walk, and that a throwing callback leaves the jump and the list intact. Not calling it records no call, and letting the throw escape aborts the `G`.
 
 ## [1.5.0] - 2026-10-31
 

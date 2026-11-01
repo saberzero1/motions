@@ -49,12 +49,8 @@ export function noteCursorTracker(): Extension {
  * with Ctrl+Tab, or a link Obsidian opened, left `<C-o>` on an older entry.
  *
  * A navigation that records its own jump, and the jump-list walk itself, are
- * not recorded again.
- *
- * Only this list is fed. An in-note jump made after a switch lands in the
- * fork's own list, which `<C-o>` consults only once this one has no older
- * note, so it goes back to the previous note before those (measured, and
- * recorded in KNOWN_LIMITATIONS.md).
+ * not recorded again. The jumps made within each note are recorded in the
+ * same list (in-note-jumps.ts), so a walk visits them in order.
  */
 export function installNoteSwitchJumps(
     app: App,
@@ -82,7 +78,7 @@ export function installNoteSwitchJumps(
         const from = departure(previous);
         const to = view.editor.getCursor();
         jumpList.recordJump(previous.path, from.line, from.ch);
-        jumpList.recordJump(path, to.line, to.ch);
+        jumpList.recordJump(path, to.line, to.ch, { landing: true });
     };
     owner.registerEvent(app.workspace.on('active-leaf-change', onSwitch));
     owner.registerEvent(app.workspace.on('file-open', onSwitch));

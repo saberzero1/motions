@@ -404,9 +404,18 @@ The `LanguageTree` class supports child language trees and injection resolution,
 
 **Status**: Implemented.
 
-The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>` (or `<Tab>`, which is `<C-i>` in normal mode, as in Vim). Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 14 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Any other change of the active note is recorded as well — a tab clicked or reached with Ctrl+Tab, a note Obsidian opens in the current tab — with the cursor the note was left at, as Neovim records a `:b` switch ([#206](https://github.com/saberzero1/motions/issues/206)). A navigation that records its own jump, and the `<C-o>`/`<C-i>` walk itself, are not recorded twice. Within-buffer jumps (G, gg, /, ?) are handled by the fork's built-in jump list and delegate to the original `jumpListWalk` action.
+The jump list tracks cursor positions across different notes, allowing you to navigate back and forth through your jump history using `<C-o>` and `<C-i>` (or `<Tab>`, which is `<C-i>` in normal mode, as in Vim). Jumps are recorded on cross-note navigation via `gd`/`gD`, picker file selection (all 14 sources), harpoon, oil, hint mode, ex commands (`:e`, `:find`, `:tabnew`, `:buffer`, `:bfirst`/`:blast`), structural buffer cycling (`]b`/`[b`), and Lua `vim.cmd("e ...")`. Standalone EasyMotion jumps are also recorded. Any other change of the active note is recorded as well — a tab clicked or reached with Ctrl+Tab, a note Obsidian opens in the current tab — with the cursor the note was left at, as Neovim records a `:b` switch ([#206](https://github.com/saberzero1/motions/issues/206)). A navigation that records its own jump, and the `<C-o>`/`<C-i>` walk itself, are not recorded twice.
 
-The plugin-level jump list is cross-note only — it stores `{ filePath, line, ch }` entries and only records when the source and destination files differ. The `jumpListWalk` action override peeks at the next entry: if it points to a different file, the override navigates cross-note; otherwise, it delegates to the fork's within-buffer handler.
+Jumps within a note (`G`, `gg`, `/`, `?`, `n`, `%`, marks, Flash, EasyMotion) go into the same list, in the order they happened, so a walk visits a note's jumps in their place among the note switches, as Neovim walks its one list per window ([#206](https://github.com/saberzero1/motions/issues/206)). The bundled engine reports each jump it records through `Vim.setJumpRecordedCallback` (codemirror-vim 6.4.8). Each position is a bookmark in the note's editor, so it follows edits while that editor lasts. Obsidian gives a tab a new editor when it opens another note in it, and from then on the entry keeps the last position the bookmark gave.
+
+The list follows Neovim's model, and four rules make it match:
+
+- Where a jump landed, or a note was entered, stands for the cursor as the newest entry.
+- The next jump's start in that note replaces it, since Neovim records only where jumps start.
+- The first `<C-o>` moves it to the cursor, so `<C-i>` comes back to where `<C-o>` was pressed.
+- Once the walk has left it, it is an entry like any other.
+
+Each rule is pinned by a scenario measured on Neovim 0.12.5 in `test/specs/jump-list-note-switch.e2e.ts`. Within a note's own editor, the `jumpListWalk` override walks this list alone, and it stays put at either end, as Neovim does.
 
 New settings: `set jumplist` / `set nojumplist` (boolean, default true), `set jumplistsize=N` (number, default 200). Persists across sessions via `saveData()`. Handles file rename/delete via `vault.on('rename')`/`vault.on('delete')`.
 
@@ -418,9 +427,11 @@ Entries whose file cannot be resolved at navigation time (for example, a note de
 
 **Remaining limitations**:
 
-- **In-note jumps after a note switch are walked after the previous note.** The two lists are separate: the plugin's holds note switches, the fork's holds jumps within a note, and `<C-o>` consults the fork's only once the plugin's has no older note. Measured on `a` → `b`, then `G` in `b`, then `<C-o>`, `<C-o>`, `<C-i>`, `<C-i>`: Neovim 0.12.5 visits `b:1`, `a:1`, `b:1`, `b:4`; the plugin visits `a`, `a`, `b:1`, `b:3`, skipping `b:1` on the way back. A `j` or `k` move is not a jump, and after one Neovim goes straight to `a` as the plugin does, so the plugin cannot tell the two apart without the fork reporting the jumps it records.
+- ~~**In-note jumps after a note switch are walked after the previous note.**~~ Fixed: they are now in the same list as the note switches, in the order they happened. On `a` → `b`, then `G` in `b`, then `<C-o>`, `<C-o>`, `<C-i>`, `<C-i>`, the plugin now visits `b:1`, `a:1`, `b:1`, `b:3` (1-based) in the 3-line note the spec uses. Neovim 0.12.5 visits `b:1`, `a:1`, `b:1`, `b:4` in a 4-line one, the same walk.
+- **Jumps within a note under Obsidian's own Vim key bindings or the Neovim backend.** Neither reports the jumps it makes, so they stay in that engine's own list, which `<C-o>` consults only once this one has no older note. There, `<C-o>` after a switch and a jump still goes back to the previous note before visiting them.
+- **Duplicate lines are kept.** With its default `jumpoptions=clean`, Neovim drops an older entry on the same line of the same note as a newer one, so `<C-o>` gets back to each position only once. This list keeps both. Measured on a 6-line note: `G`, `k`, `gg`, then `<C-o>`, `<C-o>` visits line 5 and then stays there in Neovim 0.12.5. The plugin visits line 5, then line 1, where the first jump started. Revisited notes repeat the same way. After tabs `a`, `b`, `a`, `b`, `<C-o>` walks back through three notes. Neovim, after `:b` the same way, goes to `a` and stops there.
 - **Cross-window (popout) jumps**: The jump list tracks positions across notes within the main Obsidian window but does not yet support jumps between the main window and popout windows.
-- **E2E test coverage for cross-note `<C-o>`/`<C-i>`**: The `jumpListWalk` action override and within-buffer jump delegation are covered by passing E2E tests.
+- **E2E test coverage for cross-note `<C-o>`/`<C-i>`**: The `jumpListWalk` override, across notes and within one, is covered by `test/specs/jump-list.e2e.ts` and `test/specs/jump-list-note-switch.e2e.ts`.
 - **Cursor restoration uses a fixed settle delay**: `openJumpEntry()` waits a hardcoded 50 ms after opening a leaf before restoring the saved cursor position, then verifies the active view matches the target path. When the editor takes longer than that to become ready — a cold file, a very large note, slow storage, or mobile — the guard causes cursor restoration to be skipped. The failure is contained rather than incorrect: the correct note is still opened and focused, and no cursor is ever written into the wrong file; only the saved line/column is not restored. A proper fix replaces the timer with a deterministic wait on editor readiness, which needs its own regression coverage.
 
 ## Table cell vim modality
@@ -1113,17 +1124,6 @@ During hint label selection, GlobalKeyHandler bails entirely via an `isHintModeA
 ### Stale target handling
 
 Targets are validated via `el.isConnected` before action execution. If an element has been removed from the DOM between overlay display and label selection (e.g., Obsidian re-rendered a view), a Notice is shown and the action is aborted. During count iterations, if re-activation finds no visible targets, it stops silently without repeated Notices.
-
-## Cross-document jump history (`Ctrl-o` / `Ctrl-i`)
-
-codemirror-vim's built-in `<C-o>` and `<C-i>` handle the **within-file** jump list (jumping between cursor positions in the current document). Overriding them for cross-document navigation would break within-file jumps.
-
-Cross-document navigation is available via `:back` and `:forward` ex commands, which map to Obsidian's built-in back/forward history. Users who prefer keybindings can add mappings in their vimrc:
-
-```vim
-nmap <C-p> :back
-nmap <C-n> :forward
-```
 
 ## `gf` opens file switcher, not file path under cursor
 
@@ -2289,6 +2289,10 @@ Investigation found that Obsidian 1.13+'s `SettingDefinitionList` (`type: 'list'
 The current `render` callback approach is the correct pattern for these complex settings. The imperative path works identically on pre-1.13. No migration planned.
 
 ## Resolved Issues
+
+## ~~Cross-document jump history (`Ctrl-o` / `Ctrl-i`)~~ (Fixed)
+
+`<C-o>` and `<C-i>` walk one list of the notes you have moved between and the jumps within each note, in the order they happened. This section used to say they only walked jumps within the current note, and pointed to `:back`/`:forward` for crossing notes. Both are still available. See [Cross-note jump list](#cross-note-jump-list).
 
 ## ~~Normal-mode `Tab` indents the line~~ (Fixed)
 

@@ -65,7 +65,9 @@ Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycli
 
 `<C-o>` and `<C-i>` walk back and forward through the notes you have moved between, as well as the jumps inside a note. Every change of note is a jump: following a link, picking a note, `]b`, a tab you click or reach with **Ctrl+Tab**, and a note Obsidian opens in the current tab. With notes `a`, `b` and `c` in three tabs, visiting them in that order and pressing `<C-o>`, `<C-o>`, `<C-i>` lands on `b`, `a`, `b`, which is what Neovim does with `:b` between three buffers. A note open in another tab is focused there rather than opened again in the current one, at the line you left it on.
 
-`:jumps` lists the history, and `set nojumplist` turns the cross-note part off. Jumps made inside a note after switching to it are walked after the previous note, not before it, as Neovim would; see [[known-limitations#Cross-note jump list]].
+The jumps you make inside a note are in the same list, where they happened among the note switches. Switch to `b`, press `G`, and `<C-o>` first goes back to where `G` started, then to `a`. Their positions move with the text when you edit above them. A move that is not a jump, such as `j`, leaves no entry, and `<C-i>` comes back to wherever you pressed `<C-o>`. Flash and EasyMotion jumps count too.
+
+`:jumps` lists the history, and `set nojumplist` turns the cross-note part off. With Obsidian's own Vim key bindings, or the Neovim backend, the jumps inside a note stay in that engine's own list and are walked after the previous note. Unlike Neovim, the list keeps an older entry on the same line as a newer one; see [[known-limitations#Cross-note jump list]].
 
 ## Change list navigation
 

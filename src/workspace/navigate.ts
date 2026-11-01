@@ -79,7 +79,7 @@ function recordCrossNoteJump(
 ): void {
     if (source.filePath === dest.filePath) return;
     jumpList.recordJump(source.filePath, source.line, source.ch);
-    jumpList.recordJump(dest.filePath, dest.line, dest.ch);
+    jumpList.recordJump(dest.filePath, dest.line, dest.ch, { landing: true });
 }
 
 export async function navigateWithJump(

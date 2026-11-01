@@ -138,6 +138,7 @@ import {
     installNoteSwitchJumps,
     noteCursorTracker,
 } from './workspace/note-switch-jumps';
+import { installInNoteJumps } from './workspace/in-note-jumps';
 import { markdownFoldProvider } from './fold/provider';
 import { FoldPersistenceStore } from './fold/persistence';
 import { foldPlaceholderExtension } from './fold/placeholder';
@@ -861,6 +862,7 @@ export default class VimMotionsPlugin extends Plugin {
         );
         installImageSelectKeys(this.app, this);
         installNoteSwitchJumps(this.app, this, () => this.jumpList);
+        installInNoteJumps(this);
         this.neovimConnection = new NeovimConnection(
             this.app,
             () => this.registration,

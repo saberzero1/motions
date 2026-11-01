@@ -9,7 +9,7 @@ import type { Target } from '../easymotion/types';
 import type { OverlayHandle } from '../easymotion/overlay';
 import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
 import { FlashLabeler } from './labeler';
-import { getJumpListInstance } from '../workspace/navigate';
+import { recordInNoteJump } from '../workspace/in-note-jumps';
 
 interface FlashSearchSettings {
     flashSearch: boolean;
@@ -144,14 +144,8 @@ export function enableFlashSearch(
                 cleanupPostCommit();
 
                 const fromCursor = cm.getCursor();
-                const filePath =
-                    app.workspace.getActiveViewOfType(MarkdownView)?.file?.path;
-                if (filePath && exact.line !== fromCursor.line) {
-                    getJumpListInstance()?.recordJump(
-                        filePath,
-                        fromCursor.line,
-                        fromCursor.ch,
-                    );
+                if (exact.line !== fromCursor.line) {
+                    recordInNoteJump(app, cm, fromCursor, exact);
                 }
                 cm.setCursor(exact.line, exact.ch);
                 return;

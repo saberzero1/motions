@@ -1,5 +1,4 @@
 import type { App } from 'obsidian';
-import { MarkdownView } from 'obsidian';
 import type { CmAdapter, VimPos, VimState } from '../types/vim-api';
 import { isEasyMotionActive } from '../easymotion/register';
 import { isFlashActive, setFlashActive } from './state';
@@ -13,7 +12,7 @@ import {
 } from '../easymotion/overlay';
 import { FlashLabeler } from './labeler';
 import { captureKeys } from '../util/key-capture';
-import { getJumpListInstance } from '../workspace/navigate';
+import { recordInNoteJump } from '../workspace/in-note-jumps';
 
 function computeSkipChars(
     cm: CmAdapter,
@@ -235,10 +234,6 @@ export function createFlashJumpMotion(
 function maybeRecordJump(app: App, cm: CmAdapter, target: Target): void {
     const cursor = cm.getCursor();
     if (target.line !== cursor.line) {
-        const filePath =
-            app.workspace.getActiveViewOfType(MarkdownView)?.file?.path;
-        if (filePath) {
-            getJumpListInstance()?.recordJump(filePath, cursor.line, cursor.ch);
-        }
+        recordInNoteJump(app, cm, cursor, target);
     }
 }

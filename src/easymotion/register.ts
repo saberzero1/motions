@@ -1,9 +1,8 @@
 import type { App } from 'obsidian';
-import { MarkdownView } from 'obsidian';
 import { setKeyInterceptActive } from '@replit/codemirror-vim';
 import type { CmAdapter } from '../types/vim-api';
 import { getVimApi } from '../vim/vim-api';
-import { getJumpListInstance } from '../workspace/navigate';
+import { recordInNoteJump } from '../workspace/in-note-jumps';
 import { VimRegistration } from '../vim/registration';
 import type { LeaderRegistry } from '../ui/which-key';
 import type { Target } from './types';
@@ -349,13 +348,8 @@ function recordJumpOnResolve(
     factory: (cm: CmAdapter) => Promise<{ line: number; ch: number } | null>,
 ): Promise<{ line: number; ch: number } | null> {
     const fromPos = cm.getCursor();
-    const filePath =
-        app.workspace.getActiveViewOfType(MarkdownView)?.file?.path;
     return factory(cm).then((result) => {
-        if (result && filePath) {
-            const jumpList = getJumpListInstance();
-            jumpList?.recordJump(filePath, fromPos.line, fromPos.ch);
-        }
+        if (result) recordInNoteJump(app, cm, fromPos, result);
         return result;
     });
 }

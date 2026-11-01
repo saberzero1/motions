@@ -1,5 +1,4 @@
 import type { App } from 'obsidian';
-import { MarkdownView } from 'obsidian';
 import type {
     CmAdapter,
     MotionFn,
@@ -20,7 +19,7 @@ import type { Target } from '../easymotion/types';
 import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
 import { assignFlashLabels } from './labeler';
 import { waitForFlashLabel } from './label-input';
-import { getJumpListInstance } from '../workspace/navigate';
+import { recordInNoteJump } from '../workspace/in-note-jumps';
 
 function findCharTargetsCurrentLine(
     cm: CmAdapter,
@@ -253,10 +252,6 @@ function recordSearch(
 function maybeRecordJump(app: App, cm: CmAdapter, target: Target): void {
     const cursor = cm.getCursor();
     if (target.line !== cursor.line) {
-        const filePath =
-            app.workspace.getActiveViewOfType(MarkdownView)?.file?.path;
-        if (filePath) {
-            getJumpListInstance()?.recordJump(filePath, cursor.line, cursor.ch);
-        }
+        recordInNoteJump(app, cm, cursor, target);
     }
 }

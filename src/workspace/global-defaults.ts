@@ -10,7 +10,8 @@ import { GlobalExCommandModal } from '../ui/global-ex-command';
 import type { OilManager } from '../oil/manager';
 import { isJumpListEnabled } from '../vim/options';
 import type { JumpEntry, JumpList } from '../vim/jumplist';
-import type { ActionFn } from '../types/vim-api';
+import type { ActionFn, CmAdapter } from '../types/vim-api';
+import { cursorPoint, mirroredNoteOf } from './in-note-jumps';
 
 export const LINE_HEIGHT = 40;
 
@@ -114,6 +115,18 @@ async function openJumpEntry(
     return { filePath: entry.filePath, line, ch: col };
 }
 
+/**
+ * Moves to a jump within the note being edited, as the editor's own walk
+ * does, `foldopen`'s `mark` included.
+ */
+function moveWithinNote(cm: CmAdapter, entry: JumpEntry): void {
+    const line = Math.min(entry.line, Math.max(0, cm.lineCount() - 1));
+    const ch = Math.min(entry.ch, cm.getLine(line).length);
+    (cm as unknown as { _pendingFoldopen: string | null })._pendingFoldopen =
+        'mark';
+    cm.setCursor(line, ch);
+}
+
 export function createJumpListWalkOverride(
     original: ActionFn,
     app: App,
@@ -132,6 +145,12 @@ export function createJumpListWalkOverride(
         const forward = actionArgs.forward === true;
         const count = Math.max(1, actionArgs.repeat || 1);
         const currentFile = app.workspace.getActiveFile()?.path ?? '';
+        // The note's own editor, while the list holds every jump made in it:
+        // then the list alone is walked, in the order the jumps happened.
+        const withinNote = mirroredNoteOf(cm) === currentFile;
+        if (withinNote && !forward) {
+            jumpList.settleLanding(currentFile, () => cursorPoint(cm));
+        }
         let skippedInvalid = false;
         const isValid = (entry: JumpEntry): boolean => {
             const valid =
@@ -145,7 +164,12 @@ export function createJumpListWalkOverride(
             ? jumpList.peekNewer(count, isValid)
             : jumpList.peekOlder(count, isValid);
 
-        if (
+        if (withinNote && candidate?.filePath === currentFile) {
+            const entry = forward
+                ? jumpList.jumpNewer(count, isValid)
+                : jumpList.jumpOlder(count, isValid);
+            if (entry) moveWithinNote(cm, entry);
+        } else if (
             candidate &&
             (candidate.filePath !== currentFile || skippedInvalid)
         ) {
@@ -160,8 +184,9 @@ export function createJumpListWalkOverride(
                     );
                 });
             }
-        } else if (!skippedInvalid) {
-            // Dead history must not fall through to the fork's unrelated history.
+        } else if (!skippedInvalid && !withinNote) {
+            // Dead history must not fall through to the fork's unrelated
+            // history, nor the end of a list that holds the fork's jumps.
             original(cm, actionArgs, vim);
         }
     };

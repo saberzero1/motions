@@ -9,7 +9,11 @@ vi.mock('../../src/vim/options', () => ({
 vi.mock('../../src/workspace/navigation', () => ({ executeCommand: vi.fn() }));
 vi.mock('../../src/ui/global-ex-command', () => ({}));
 
-import { JumpList, type JumpEntry } from '../../src/vim/jumplist';
+import {
+    JumpList,
+    type JumpEntry,
+    type JumpMark,
+} from '../../src/vim/jumplist';
 import { createJumpListWalkOverride } from '../../src/workspace/global-defaults';
 
 describe('JumpList', () => {
@@ -341,6 +345,228 @@ describe('JumpList', () => {
                 'd.md',
             ]);
         });
+    });
+});
+
+/** A mark whose position, deletion and editor the test controls. */
+function fakeMark(line: number, ch = 0) {
+    const state = {
+        pos: { line, ch } as { line: number; ch: number } | null | undefined,
+        cleared: false,
+    };
+    const mark: JumpMark = {
+        find: () => state.pos,
+        clear: () => {
+            state.cleared = true;
+        },
+    };
+    return { mark, state };
+}
+
+describe('JumpList jumps within a note (#206)', () => {
+    let jl: JumpList;
+
+    beforeEach(() => {
+        jl = new JumpList();
+    });
+
+    const where = (entry: JumpEntry | null) =>
+        entry ? `${entry.filePath}:${entry.line}:${entry.ch}` : null;
+
+    it('records where a jump started and where it landed', () => {
+        jl.recordInNoteJump('a.md', { line: 2, ch: 1 }, { line: 9, ch: 0 });
+        expect(jl.getEntries().map(where)).toEqual(['a.md:2:1', 'a.md:9:0']);
+        expect(jl.getIndex()).toBe(1);
+    });
+
+    // Neovim records the starts: `2j`, `G`, `kk`, `gg` walks back to 4,
+    // then 3 (measured, 0.12.5), never to where `G` landed.
+    it("replaces where the last jump landed with the next one's start", () => {
+        jl.recordInNoteJump('a.md', { line: 2, ch: 0 }, { line: 5, ch: 0 });
+        jl.recordInNoteJump('a.md', { line: 3, ch: 0 }, { line: 0, ch: 0 });
+        expect(jl.getEntries().map(where)).toEqual([
+            'a.md:2:0',
+            'a.md:3:0',
+            'a.md:0:0',
+        ]);
+    });
+
+    it('replaces where a note was entered with its first jump', () => {
+        jl.recordJump('a.md', 3, 0);
+        jl.recordJump('b.md', 0, 0, { landing: true });
+        jl.recordInNoteJump('b.md', { line: 1, ch: 0 }, { line: 2, ch: 0 });
+        expect(jl.getEntries().map(where)).toEqual([
+            'a.md:3:0',
+            'b.md:1:0',
+            'b.md:2:0',
+        ]);
+    });
+
+    it('replaces where the last jump landed with where the note was left', () => {
+        jl.recordInNoteJump('a.md', { line: 0, ch: 0 }, { line: 6, ch: 0 });
+        jl.recordJump('a.md', 4, 0);
+        jl.recordJump('b.md', 0, 0, { landing: true });
+        expect(jl.getEntries().map(where)).toEqual([
+            'a.md:0:0',
+            'a.md:4:0',
+            'b.md:0:0',
+        ]);
+    });
+
+    it('keeps where the last jump landed once a jump starts there', () => {
+        jl.recordInNoteJump('a.md', { line: 0, ch: 0 }, { line: 6, ch: 0 });
+        jl.recordJump('a.md', 6, 0);
+        jl.recordJump('a.md', 2, 0);
+        expect(jl.getEntries().map(where)).toEqual([
+            'a.md:0:0',
+            'a.md:6:0',
+            'a.md:2:0',
+        ]);
+    });
+
+    it('keeps an older entry once a newer one is recorded', () => {
+        jl.recordJump('a.md', 3, 0);
+        jl.recordJump('b.md', 0, 0, { landing: true });
+        jl.recordInNoteJump('c.md', { line: 1, ch: 0 }, { line: 2, ch: 0 });
+        jl.jumpOlder(2);
+        jl.recordInNoteJump('b.md', { line: 2, ch: 0 }, { line: 5, ch: 0 });
+        expect(jl.getEntries().map(where)).toEqual([
+            'a.md:3:0',
+            'b.md:0:0',
+            'b.md:2:0',
+            'b.md:5:0',
+        ]);
+    });
+
+    // The editor's own list compares whole positions: a jump that starts on
+    // the line of the entry the walk is at, at another column, is recorded.
+    it('records a start at another column of the entry it is at', () => {
+        jl.recordInNoteJump('a.md', { line: 1, ch: 0 }, { line: 4, ch: 0 });
+        jl.jumpOlder();
+        jl.recordInNoteJump('a.md', { line: 1, ch: 5 }, { line: 7, ch: 0 });
+        expect(jl.getEntries().map(where)).toEqual([
+            'a.md:1:0',
+            'a.md:1:5',
+            'a.md:7:0',
+        ]);
+    });
+
+    it('does not record the start again when the list is there', () => {
+        const start = fakeMark(2, 1);
+        jl.recordInNoteJump('a.md', { line: 2, ch: 1 }, { line: 9, ch: 0 });
+        jl.jumpOlder();
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 2, ch: 1, mark: start.mark },
+            { line: 5, ch: 0 },
+        );
+        expect(jl.getEntries().map(where)).toEqual(['a.md:2:1', 'a.md:5:0']);
+        expect(start.state.cleared).toBe(true);
+    });
+
+    it('moves where the last jump landed to the cursor', () => {
+        jl.recordJump('a.md', 3, 0);
+        jl.recordJump('b.md', 0, 0, { landing: true });
+        jl.settleLanding('b.md', () => ({ line: 5, ch: 2 }));
+        jl.settleLanding('a.md', () => ({ line: 7, ch: 0 }));
+        expect(jl.getEntries().map(where)).toEqual(['a.md:3:0', 'b.md:5:2']);
+    });
+
+    it('moves it with a mark of its own, releasing the old one', () => {
+        const landed = fakeMark(9);
+        const cursor = fakeMark(4);
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 1, ch: 0 },
+            { line: 9, ch: 0, mark: landed.mark },
+        );
+        jl.settleLanding('a.md', () => ({ line: 4, ch: 0, mark: cursor.mark }));
+        cursor.state.pos = { line: 6, ch: 0 };
+        expect(jl.getEntries().map(where)).toEqual(['a.md:1:0', 'a.md:6:0']);
+        expect(landed.state.cleared).toBe(true);
+    });
+
+    it('does not move an entry that is not a landing', () => {
+        jl.recordJump('a.md', 3, 0);
+        jl.recordJump('b.md', 0, 0);
+        jl.settleLanding('b.md', () => ({ line: 5, ch: 2 }));
+        expect(jl.getEntries().map(where)).toEqual(['a.md:3:0', 'b.md:0:0']);
+    });
+
+    // `G`, `<C-o>`, `<C-i>`, `k`, `<C-o>`, `<C-i>` comes back to where `G`
+    // landed in Neovim, not to where `k` left.
+    it('does not move a landing the walk has left', () => {
+        jl.recordJump('a.md', 3, 0);
+        jl.recordJump('b.md', 0, 0, { landing: true });
+        jl.jumpOlder();
+        jl.jumpNewer();
+        jl.settleLanding('b.md', () => ({ line: 9, ch: 0 }));
+        expect(jl.getEntries().map(where)).toEqual(['a.md:3:0', 'b.md:0:0']);
+    });
+
+    it('follows a mark through edits', () => {
+        const start = fakeMark(2);
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 2, ch: 0, mark: start.mark },
+            { line: 9, ch: 0 },
+        );
+        start.state.pos = { line: 4, ch: 0 };
+        expect(where(jl.jumpOlder())).toBe('a.md:4:0');
+    });
+
+    it('skips a jump whose text was deleted, as the editor does', () => {
+        const middle = fakeMark(5);
+        jl.recordInNoteJump('a.md', { line: 1, ch: 0 }, { line: 3, ch: 0 });
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 5, ch: 0, mark: middle.mark },
+            { line: 9, ch: 0 },
+        );
+        middle.state.pos = null;
+        expect(where(jl.jumpOlder())).toBe('a.md:1:0');
+    });
+
+    it("keeps a mark's last position once its editor has gone", () => {
+        const start = fakeMark(2);
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 2, ch: 0, mark: start.mark },
+            { line: 9, ch: 0 },
+        );
+        start.state.pos = { line: 3, ch: 1 };
+        expect(jl.getEntries().map(where)[0]).toBe('a.md:3:1');
+        start.state.pos = undefined;
+        expect(where(jl.jumpOlder())).toBe('a.md:3:1');
+        expect(start.state.cleared).toBe(true);
+    });
+
+    it('releases the marks of entries it drops', () => {
+        const landed = fakeMark(9);
+        const start = fakeMark(1);
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 1, ch: 0, mark: start.mark },
+            { line: 9, ch: 0, mark: landed.mark },
+        );
+        jl.recordInNoteJump('a.md', { line: 9, ch: 0 }, { line: 3, ch: 0 });
+        expect(landed.state.cleared).toBe(true);
+        jl.handleDelete('a.md');
+        expect(start.state.cleared).toBe(true);
+    });
+
+    it('serializes positions without marks', () => {
+        const start = fakeMark(2);
+        jl.recordInNoteJump(
+            'a.md',
+            { line: 2, ch: 0, mark: start.mark },
+            { line: 9, ch: 0 },
+        );
+        start.state.pos = { line: 6, ch: 0 };
+        expect(jl.serialize()).toEqual([
+            { filePath: 'a.md', line: 6, ch: 0 },
+            { filePath: 'a.md', line: 9, ch: 0 },
+        ]);
     });
 });
 
