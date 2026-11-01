@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Plugin: `src/workspace/note-switch-jumps.ts`, `src/workspace/in-note-jumps.ts`, `src/vim/jumplist.ts`, `src/workspace/global-defaults.ts`, `src/workspace/navigate.ts`, `src/flash/{jump,char,search}-mode.ts`, `src/easymotion/register.ts`, `src/main.ts`
     - Fork: `src/vim.js` (`setJumpRecordedCallback`), released as codemirror-vim 6.4.8
 
+- **In Obsidian's table editor, keys table-nav does not use were typed into the cell** ([#167](https://github.com/saberzero1/motions/issues/167)). Table-nav, on by default, holds vim off while it keeps the cell editor hidden but focused. So a key outside its keymap reached the cell as text and was written to the note: `u`, `zz` and `x` made `Name` into `uzzxName`. After a click on `bb`, `x` made it `bxb`. Such keys now do nothing.
+    - **A second race in the same mode:** table-nav sends `i` to the cell's vim only once the cell editor is up, 150 ms on. Keys typed in between ran as normal-mode commands, so `iq` started recording a macro and `iHi` typed nothing. They are now held and played after the `i`.
+    - **Visual mode still ends at a native table:** Obsidian's widget moves the cursor into its cell editor as soon as a selection reaches it. `set tablewidget=reveal` keeps the table as lines, where `V` extends through its rows. This is recorded in `KNOWN_LIMITATIONS.md`.
+    - Plugin: `src/vim/table-nav-controller.ts` (`holdEntryKeys`), `src/vim/table-nav-keymap.ts` (`typesIntoCell`, `heldEntryKey`, `replayEntryKeys`)
+
 ### Tests
 
 - **`vimrc-feature-key-overrides.e2e.ts` loads a vimrc with `nmap gw <Plug>(easymotion-bd-w)` and `nnoremap Y yy` the way Obsidian's start does.** That means a cold plugin load followed by exactly one leaf change. Earlier tests reloaded the vimrc after startup, which is what hid the defect.
@@ -92,6 +97,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`test/unit/jumplist.test.ts` covers the list's handling of jumps within a note**: landing entries replaced by the next start or departure, the cursor taking the newest one, bookmarks followed through edits, deleted text skipped, an editor gone, released marks and serialization.
     - Each rule fails a test when removed: comparing lines only, not releasing dropped marks, not skipping deleted text, not dropping a gone editor's mark, not replacing a landing, keeping more than the newest as a landing, not making a walked-past landing ordinary, and not clearing it when a jump starts there.
 - **The fork's `jumplist_recorded_callback` and `jumplist_recorded_callback_throws`** check that the callback reports `G` with its positions and nothing for `k` or the walk, and that a throwing callback leaves the jump and the list intact. Not calling it records no call, and letting the throw escape aborts the `G`.
+- **`table-nav-stray-keys.e2e.ts` presses keys in Obsidian's own table editor with table-nav on.**
+    - **Scenarios:**
+        - `u`, `zz`, `x`, Space and Backspace leave the cell and the note unchanged;
+        - after a click on `bb`, `x` does nothing, and `iQ` inserts at the click, making `bQb`;
+        - `iHi` sent at once types `Hi`;
+        - `iH` then Escape at once leaves `H` in the cell in normal mode.
+    - **Negative controls:**
+        - Not swallowing the stray keys types `uzzx` into the cell and the note, and `bxb` after the click.
+        - Not holding keys during the 150 ms loses `Hi`, `H` and `Q`, and leaves the last scenario in insert mode.
+        - Holding them but not typing them in insert mode loses the same text.
 
 ## [1.5.0] - 2026-10-31
 

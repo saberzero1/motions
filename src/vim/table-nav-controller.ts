@@ -40,6 +40,9 @@ import { getScrolloffMargin } from './scrolloff';
 import {
     createTableNavKeyHandler,
     clearLastStructuralAction,
+    heldEntryKey,
+    replayEntryKeys,
+    typesIntoCell,
     type TableNavKeyHandler,
     type TableNavActions,
 } from './table-nav-keymap';
@@ -95,6 +98,9 @@ interface TableNavSession {
     hiddenEl: HTMLElement | null;
     navScope: Scope | null;
     cellEditScope: Scope | null;
+    /** Holds the keys typed while a cell editor opens; see `holdEntryKeys`. */
+    entryScope: Scope | null;
+    entryKeys: string[];
     cellEscapeCleanup: (() => void) | null;
     entryTimer: number | null;
     refreshTimer: number | null;
@@ -118,6 +124,8 @@ function getSession(view: EditorView): TableNavSession {
             hiddenEl: null,
             navScope: null,
             cellEditScope: null,
+            entryScope: null,
+            entryKeys: [],
             cellEscapeCleanup: null,
             entryTimer: null,
             refreshTimer: null,
@@ -686,6 +694,7 @@ class TableNavController implements PluginValue {
 
         s.state = 'edit';
         s.pendingEntryMode = mode;
+        this.holdEntryKeys();
 
         window.setTimeout(() => {
             this.finishCellEditEntry();
@@ -694,6 +703,7 @@ class TableNavController implements PluginValue {
 
     private finishCellEditEntry(): void {
         const s = this.session;
+        const held = this.releaseEntryKeys();
         if (s.state !== 'edit') return;
 
         const editMode = getEditModeForView(this.view);
@@ -723,15 +733,51 @@ class TableNavController implements PluginValue {
             normal: '',
         };
         const keys = entryKeyMap[mode ?? ''] ?? '';
-        if (keys && cellView) {
+        if ((keys || held.length) && cellView) {
             const adapter = getCmAdapterFromEditorView(cellView);
             const vim = this.getVimApi();
             if (adapter && vim) {
                 for (const k of keys) {
                     vim.handleKey(adapter, k);
                 }
+                replayEntryKeys(vim, adapter, held);
             }
         }
+    }
+
+    /**
+     * Holds the keys typed while a cell editor opens, for
+     * `finishCellEditEntry` to play after the keys that enter it. It sends
+     * `i` only once the editor is up, 150 ms on, and keys typed in between
+     * reached the cell's vim in normal mode: `i` then `q` started recording a
+     * macro and typed nothing (#167).
+     */
+    private holdEntryKeys(): void {
+        const s = this.session;
+        if (s.entryScope || !this.app) return;
+        const scope = new Scope(this.app.scope);
+        scope.register(null, null, (evt: KeyboardEvent) => {
+            if (s.state !== 'edit' || s.pendingEntryMode === null) {
+                return undefined;
+            }
+            const key = heldEntryKey(evt);
+            if (key === null) return undefined;
+            s.entryKeys.push(key);
+            evt.preventDefault();
+            return false;
+        });
+        s.entryScope = scope;
+        pushKeymapScope(this.app, scope);
+    }
+
+    /** Stops holding keys, and gives back the keys it held. */
+    private releaseEntryKeys(): string[] {
+        const s = this.session;
+        const held = s.entryKeys;
+        s.entryKeys = [];
+        if (s.entryScope && this.app) popKeymapScope(this.app, s.entryScope);
+        s.entryScope = null;
+        return held;
     }
 
     private exitCellEditToNav(): void {
@@ -748,6 +794,7 @@ class TableNavController implements PluginValue {
 
         this.removeCellEscapeCapture();
         this.removeCellEditScope();
+        this.releaseEntryKeys();
         this.hideCellEditor(editMode);
 
         setKeyInterceptActive(true);
@@ -790,6 +837,7 @@ class TableNavController implements PluginValue {
         if (wasEdit) {
             this.removeCellEscapeCapture();
             this.removeCellEditScope();
+            this.releaseEntryKeys();
         }
 
         s.widgetEl?.classList.remove(NAV_MODE_CLASS);
@@ -1113,11 +1161,13 @@ class TableNavController implements PluginValue {
         const scope = new Scope(this.app.scope);
         scope.register(null, null, (evt: KeyboardEvent) => {
             if (s.state !== 'nav') return undefined;
-            const handled = handler(evt);
-            if (handled) {
+            // A key nav does not own does nothing, rather than reach the
+            // hidden cell editor as text.
+            if (handler(evt) || typesIntoCell(evt)) {
                 evt.preventDefault();
+                return false;
             }
-            return handled ? false : undefined;
+            return undefined;
         });
 
         s.navScope = scope;
@@ -1288,6 +1338,7 @@ class TableNavController implements PluginValue {
             this.removeNavScope();
             this.removeCellEscapeCapture();
             this.removeCellEditScope();
+            this.releaseEntryKeys();
             s.widgetEl?.classList.remove(NAV_MODE_CLASS);
             this.showCellEditor();
             setKeyInterceptActive(false);

@@ -193,6 +193,8 @@ When the cursor enters a table in Live Preview with `tablenav` enabled, a naviga
 | `=`                             | Realign the table                                    |
 | `.`                             | Repeat the last structural command                   |
 
+Other keys do nothing in table-nav, including `u`, `zz` and `:`. Start editing the cell, or leave the table, to use them. Text you type straight after `i`, `a`, `c`, `s` or `Enter` goes into the cell, however quickly it follows.
+
 > [!info] Fork-only feature
 > Table-nav mode requires the bundled vim engine or the Neovim backend. If you are using Obsidian's built-in vim mode, the plugin falls back to standard cell editing. Under the Neovim backend the overlay works normally: Obsidian's keymap scope consumes its keys before they reach Neovim.
 
