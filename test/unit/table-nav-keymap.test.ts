@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
     createTableNavKeyHandler,
+    heldEntryKey,
+    replayEntryKeys,
+    typesIntoCell,
     type TableNavActions,
 } from '../../src/vim/table-nav-keymap';
+import type { CmAdapter } from '../../src/types/vim-api';
 
 // The handler checks for an open modal before doing anything; the unit
 // environment has no DOM, so `document` is stubbed rather than pulling in jsdom.
@@ -111,5 +115,102 @@ describe('table nav pending state is per handler', () => {
         handler(key('j'));
 
         expect(pane.navigate).toHaveBeenCalledWith('j', 3);
+    });
+});
+
+const keyEvent = (key: string, mods: Partial<KeyboardEvent> = {}) =>
+    ({
+        key,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        ...mods,
+    }) as KeyboardEvent;
+
+describe('keys that would reach the hidden cell editor (#167)', () => {
+    it('counts text, Space, Backspace and Delete', () => {
+        expect(
+            ['u', 'Z', ' ', ':', 'Backspace', 'Delete'].map((k) =>
+                typesIntoCell(keyEvent(k)),
+            ),
+        ).toEqual([true, true, true, true, true, true]);
+    });
+
+    it('leaves modified and navigation keys to Obsidian', () => {
+        expect([
+            typesIntoCell(keyEvent('p', { ctrlKey: true })),
+            typesIntoCell(keyEvent('s', { metaKey: true })),
+            typesIntoCell(keyEvent('x', { altKey: true })),
+            typesIntoCell(keyEvent('F2')),
+            typesIntoCell(keyEvent('PageDown')),
+        ]).toEqual([false, false, false, false, false]);
+    });
+
+    it('holds text, Escape and Backspace while a cell opens', () => {
+        expect([
+            heldEntryKey(keyEvent('H')),
+            heldEntryKey(keyEvent('Escape')),
+            heldEntryKey(keyEvent('Backspace')),
+            heldEntryKey(keyEvent('Enter')),
+            heldEntryKey(keyEvent('c', { ctrlKey: true })),
+        ]).toEqual(['H', '<Esc>', '<BS>', null, null]);
+    });
+});
+
+describe('replaying keys held while a cell opened (#167)', () => {
+    /** A one-line cell whose vim handles `i` and `<Esc>` and nothing else. */
+    function cell(text: string) {
+        const state = { text, ch: 0, insert: false };
+        const cm = {
+            state: {
+                get vim() {
+                    return { insertMode: state.insert };
+                },
+            },
+            getCursor: () => ({ line: 0, ch: state.ch }),
+            replaceSelection: (t: string) => {
+                state.text =
+                    state.text.slice(0, state.ch) +
+                    t +
+                    state.text.slice(state.ch);
+                state.ch += t.length;
+            },
+            replaceRange: (
+                t: string,
+                from: { ch: number },
+                to: { ch: number },
+            ) => {
+                state.text =
+                    state.text.slice(0, from.ch) + t + state.text.slice(to.ch);
+                state.ch = from.ch + t.length;
+            },
+        } as unknown as CmAdapter;
+        const vim = {
+            handleKey: (_cm: CmAdapter, key: string) => {
+                if (key === 'i' && !state.insert) state.insert = true;
+                else if (key === '<Esc>' && state.insert) state.insert = false;
+                else return !state.insert;
+                return true;
+            },
+        };
+        return { state, cm, vim };
+    }
+
+    it('types text in insert mode, after the key that entered it', () => {
+        const { state, cm, vim } = cell('Name');
+        replayEntryKeys(vim, cm, ['i', 'H', 'i']);
+        expect(state).toEqual({ text: 'HiName', ch: 2, insert: true });
+    });
+
+    it('deletes with Backspace and leaves insert mode with Escape', () => {
+        const { state, cm, vim } = cell('Name');
+        replayEntryKeys(vim, cm, ['i', 'H', 'x', '<BS>', '<Esc>']);
+        expect(state).toEqual({ text: 'HName', ch: 1, insert: false });
+    });
+
+    it('types nothing in normal mode, where vim owns every key', () => {
+        const { state, cm, vim } = cell('Name');
+        replayEntryKeys(vim, cm, ['q', 'x']);
+        expect(state).toEqual({ text: 'Name', ch: 0, insert: false });
     });
 });

@@ -1,3 +1,5 @@
+import type { CmAdapter, VimApi } from '../types/vim-api';
+
 export interface TableNavActions {
     navigate(
         direction: 'h' | 'j' | 'k' | 'l',
@@ -185,4 +187,54 @@ export function createTableNavKeyHandler(
             countBuffer = '';
         },
     });
+}
+
+/**
+ * Whether `e` would type or delete text in the cell editor that nav keeps
+ * hidden but focused. Nav holds vim off with the global key intercept, so a
+ * key the nav keymap does not own was typed into the cell as text: `u`, `zz`
+ * and `x` left `uName`, `uzzName` and `bxb` (#167).
+ */
+export function typesIntoCell(e: KeyboardEvent): boolean {
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    return e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete';
+}
+
+const HELD_SPECIAL_KEYS: Record<string, string> = {
+    Escape: '<Esc>',
+    Backspace: '<BS>',
+};
+
+/**
+ * `e` in Vim's notation, when it is a key to hold while a cell editor opens:
+ * text, Escape and Backspace, the keys typed straight after `i`.
+ */
+export function heldEntryKey(e: KeyboardEvent): string | null {
+    if (e.ctrlKey || e.metaKey || e.altKey) return null;
+    if (e.key.length === 1) return e.key;
+    return HELD_SPECIAL_KEYS[e.key] ?? null;
+}
+
+/**
+ * Plays keys held while a cell editor opened into its vim, after the keys
+ * that entered it. In insert mode vim leaves text to the editor, so the
+ * replay types it.
+ */
+export function replayEntryKeys(
+    vim: Pick<VimApi, 'handleKey'>,
+    cm: CmAdapter,
+    keys: readonly string[],
+): void {
+    for (const key of keys) {
+        if (vim.handleKey(cm, key)) continue;
+        if (!cm.state.vim?.insertMode) continue;
+        if (key.length === 1) {
+            cm.replaceSelection(key);
+        } else if (key === '<BS>') {
+            const at = cm.getCursor();
+            if (at.ch > 0) {
+                cm.replaceRange('', { line: at.line, ch: at.ch - 1 }, at);
+            }
+        }
+    }
 }
