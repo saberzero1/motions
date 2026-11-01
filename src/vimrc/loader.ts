@@ -229,7 +229,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
         // option callback, which is not registered under Obsidian's own vim,
         // so there a legacy value stayed in the setting as an invalid mode.
         normalize: normalizeTableWidget,
-        validValues: ['native', 'reveal', 'raw'],
+        validValues: ['auto', 'native', 'reveal', 'raw'],
     },
 
     whichkey: {

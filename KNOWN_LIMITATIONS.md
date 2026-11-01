@@ -438,12 +438,13 @@ Entries whose file cannot be resolved at navigation time (for example, a note de
 
 **Status**: Implemented.
 
-The plugin uses Obsidian's native table editor for cell editing. `set tablewidget=native` (default) uses the native `cm-table-widget`. Cell editing uses native `TableCellEditor` instances created by Obsidian's `editTableCell()` method. Vim is injected into native cell editors via `registerEditorExtension()` propagation.
+The plugin uses Obsidian's native table editor for cell editing. `set tablewidget=native`, and `auto` (the default) without the Neovim backend, use the native `cm-table-widget`. Cell editing uses native `TableCellEditor` instances created by Obsidian's `editTableCell()` method. Vim is injected into native cell editors via `registerEditorExtension()` propagation.
 
 These table editing configurations are supported:
 
 | `tableWidgetMode` | `enableTableNav` | Experience                                                                                    |
 | ----------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| `auto` (default)  | either           | `reveal` while the Neovim backend is connected; otherwise as `native` below                   |
 | `native`          | `true` (default) | Full table-nav overlay with cell highlighting and structural commands                         |
 | `native`          | `false`          | Native table editor with vim cell editing and cross-cell h/j/k/l navigation, no nav overlay   |
 | `reveal`          | n/a              | Obsidian's widget for idle tables; the table holding the cursor becomes editable source lines |
@@ -687,9 +688,10 @@ The following are intentionally not implemented:
 
 ## Table widget in Live Preview
 
-Three modes are available via `set tablewidget`:
+These modes are available via `set tablewidget`:
 
-- **`native`** (default): Uses Obsidian's built-in `cm-table-widget`. Vim is injected into cell editors via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping, cursor positioning, and `<br>` conversion automatically. Cross-cell `h`/`j`/`k`/`l` navigation is always active in native mode, independent of the `tablenav` setting.
+- **`auto`** (default): `reveal` while the Neovim backend is connected, and `native` otherwise, switching when the backend connects, disconnects or dies. Obsidian's table editor gives each cell an editor of its own, which the backend never mirrors, so under the backend a table has to be lines of the note for Neovim to edit it. Covered by `test/specs/rpc-table-reveal.e2e.ts` (A1 to A3) and `test/specs/table-nav-mode.e2e.ts`. Stored settings with `native` from before `auto` existed moved to `auto` once, because a stored `native` could not be told apart from the old default. Nothing changed without the backend; a user who wants Obsidian's editor under the backend too picks **Always native** again, and it stays (`test/specs/table-widget-migration.e2e.ts`).
+- **`native`**: Uses Obsidian's built-in `cm-table-widget`. Vim is injected into cell editors via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping, cursor positioning, and `<br>` conversion automatically. Cross-cell `h`/`j`/`k`/`l` navigation is always active in native mode, independent of the `tablenav` setting.
 - **`raw`**: Hides the widget. **In Live Preview this renders the table as nothing at all** — see the measured subsection below; it does not fall back to showing markdown source. Use **Source mode** for source-style table editing instead.
 
 - **`reveal`** (experimental): Obsidian keeps rendering every table the cursor is not in, and the table holding the cursor becomes ordinary lines of the note's own editor, edited by its own vim — one document, one vim state, one undo history, with no nested editor. The mechanism is Obsidian's own: its Live Preview table builder skips any table touched by the `obsidian-search-match-highlight` mark in the `Editor.addHighlights()` field, which is how in-file search shows a match inside a table, and that branch is unchanged from 1.5.8 through 1.13.7. The plugin places that mark over each row of the active table **in the same transaction** that moves the cursor there, so the table is never replaced around the cursor. Measured in `test/specs/table-reveal.e2e.ts` (18 scenarios), `table-reveal-editing.e2e.ts` (28), `table-reveal-integrations.e2e.ts` (7), `table-reveal-builtin-vim.e2e.ts` (8) and `rpc-table-reveal.e2e.ts` (5), with the negative controls in `test/specs/table-reveal-negative-controls.md` and `test/specs/table-reveal-editing-negative-controls.md`. Its limitations, each a consequence of the design rather than a defect:

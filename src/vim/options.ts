@@ -456,7 +456,7 @@ export function registerVimOptions(
         }
     });
 
-    vim.defineOption('tablewidget', 'native', 'string', [], (value) => {
+    vim.defineOption('tablewidget', 'auto', 'string', [], (value) => {
         if (value === undefined) return;
         const str = typeof value === 'string' ? value : '';
         const mapping: Record<string, string> = {
@@ -466,6 +466,7 @@ export function registerVimOptions(
             // `always` retargets to `native`, not `raw`: `raw` is deprecated,
             // and it renders the table as nothing rather than as source.
             always: 'native',
+            auto: 'auto',
             native: 'native',
             raw: 'raw',
             // The owned surface was removed before it shipped; `reveal`

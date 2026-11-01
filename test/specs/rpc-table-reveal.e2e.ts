@@ -31,7 +31,7 @@ interface RevealRpcPlugin {
         neovimRpcEnabled: boolean;
         neovimBinaryPath: string;
         neovimConfigPath: string;
-        tableWidgetMode: 'native' | 'raw' | 'reveal';
+        tableWidgetMode: 'auto' | 'native' | 'raw' | 'reveal';
     };
     saveSettings(): Promise<void>;
     reloadFeatures(): void;
@@ -53,7 +53,7 @@ const TABLE_DOC = [
 ].join('\n');
 const MARK_TEXT = 'reveal-probe-mark';
 
-async function setMode(mode: 'native' | 'reveal'): Promise<void> {
+async function setMode(mode: 'auto' | 'native' | 'reveal'): Promise<void> {
     await browser.executeObsidian(async ({ app }, next: string) => {
         const plugin = (
             app as unknown as {
@@ -61,7 +61,7 @@ async function setMode(mode: 'native' | 'reveal'): Promise<void> {
             }
         ).plugins.plugins['vim-motions'];
         if (!plugin) throw new Error('Vim Motions is not loaded');
-        plugin.settings.tableWidgetMode = next as 'native' | 'reveal';
+        plugin.settings.tableWidgetMode = next as 'auto' | 'native' | 'reveal';
         await plugin.saveSettings();
         plugin.reloadFeatures();
     }, mode);
@@ -141,6 +141,7 @@ async function neovimLines(): Promise<string[]> {
 
 interface Surface {
     error?: string;
+    nav: boolean;
     widgets: number;
     revealedRows: number;
     parentRow: number;
@@ -152,6 +153,7 @@ async function surface(): Promise<Surface> {
     return (await browser.executeObsidian(
         ({ app, obsidian }, markText: string) => {
             const empty: Surface = {
+                nav: false,
                 widgets: -1,
                 revealedRows: -1,
                 parentRow: -1,
@@ -182,7 +184,17 @@ async function surface(): Promise<Surface> {
                     (el.textContent ?? '').includes(markText) &&
                     el.closest('.vim-motions-reveal-row') !== null,
             );
+            const debug = (
+                window as unknown as {
+                    CodeMirrorAdapter?: {
+                        getTableDebugState?: () => {
+                            nav: { state?: string } | null;
+                        };
+                    };
+                }
+            ).CodeMirrorAdapter?.getTableDebugState?.();
             return {
+                nav: debug?.nav?.state === 'nav',
                 widgets: cm.dom.querySelectorAll('.cm-table-widget').length,
                 revealedRows: cm.contentDOM.querySelectorAll(
                     '.vim-motions-reveal-row',
@@ -314,5 +326,101 @@ vim.cmd('redraw')`,
         const s = await surface();
         expect(s.widgets).toBe(0);
         expect(s.marksInRevealedRow).toBe(1);
+    });
+});
+
+// `auto`, the default: `reveal` while Neovim owns the keys, `native` otherwise.
+// Obsidian's table editor gives each cell an editor of its own, which the
+// backend never mirrors, so under the backend a table has to be lines of the
+// note for Neovim to edit it.
+describe('Neovim RPC with the table widget on auto', function () {
+    before(function () {
+        requireRpcPrerequisites(this);
+    });
+
+    this.timeout(240000);
+
+    beforeEach(async () => {
+        await setRpcEnabled(false);
+        await setMode('auto');
+        await loadSingleFileWorkspace();
+        await ensureLivePreview();
+        await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
+    });
+
+    afterEach(async () => {
+        await setRpcEnabled(false);
+        await setMode('native');
+        for (const pid of spawnedPids) {
+            killIfAlive(pid);
+            spawnedPids.delete(pid);
+        }
+    });
+
+    it('A1: reveals the table Neovim moves into once the backend connects', async () => {
+        await setRpcEnabled(true);
+        await waitForConnected();
+        await browser.pause(600);
+        await browser.keys(['j', 'j', 'j', 'j']);
+        await browser.pause(900);
+        const s = await surface();
+        const [nvimRow] = await neovimCursor();
+        expect({
+            widgets: s.widgets,
+            revealedRows: s.revealedRows,
+            tableCell: s.tableCell,
+            nav: s.nav,
+            caretOnNeovimRow: s.parentRow === nvimRow,
+        }).toEqual({
+            widgets: 0,
+            revealedRows: 4,
+            tableCell: false,
+            nav: false,
+            caretOnNeovimRow: true,
+        });
+    });
+
+    it('A2: gives tables back to Obsidian’s editor when the backend disconnects', async () => {
+        await setRpcEnabled(true);
+        await waitForConnected();
+        await browser.pause(600);
+        await setRpcEnabled(false);
+        await browser.waitUntil(async () => !(await getRpcState()).connected, {
+            timeout: 10000,
+            interval: 100,
+        });
+        await browser.pause(600);
+        await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
+        await browser.keys(['Escape', 'j', 'j']);
+        await browser.pause(900);
+        const s = await surface();
+        expect({
+            widgets: s.widgets,
+            revealedRows: s.revealedRows,
+            nav: s.nav,
+        }).toEqual({ widgets: 1, revealedRows: 0, nav: true });
+    });
+
+    // A backend that dies is torn down without a disconnect call.
+    it('A3: gives tables back when the backend process dies', async () => {
+        await setRpcEnabled(true);
+        await waitForConnected();
+        await browser.pause(600);
+        const pid = (await getRpcState()).pid;
+        if (pid !== null) killIfAlive(pid);
+        await browser.waitUntil(async () => !(await getRpcState()).connected, {
+            timeout: 10000,
+            interval: 100,
+        });
+        await browser.pause(600);
+        await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
+        await browser.keys(['Escape', 'j', 'j']);
+        await browser.pause(900);
+        const s = await surface();
+        expect({
+            widgets: s.widgets,
+            revealedRows: s.revealedRows,
+            nav: s.nav,
+        }).toEqual({ widgets: 1, revealedRows: 0, nav: true });
     });
 });

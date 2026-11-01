@@ -71,27 +71,28 @@ Vim Motions includes built-in auto-formatting for tables:
 
 ## Table widget in Live Preview
 
-Vim Motions integrates with Obsidian's native table editor in Live Preview. Three modes are available via `set tablewidget`:
+Vim Motions integrates with Obsidian's native table editor in Live Preview. These modes are available via `set tablewidget`:
 
-- **`native`** (default): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
-- **`reveal`** (experimental): Obsidian renders every table the cursor is not in, and the table holding the cursor becomes ordinary editor lines that Vim edits directly. See [[tables#Reveal mode]] below.
+- **`auto`** (default, **Automatic**): `reveal` while the [[neovim-backend|Neovim backend]] is connected, and `native` otherwise. It switches when the backend connects or disconnects. Obsidian's table editor gives each cell an editor of its own, and the backend mirrors only the note's editor, so with the backend Neovim never sees a cell being edited. A revealed table is lines of the note, which Neovim edits directly.
+- **`native`** (**Always native**): Obsidian's native table widget renders in Live Preview. Cell editors are native Obsidian editors with vim injected via `registerEditorExtension()`. The native editor handles wikilinks, pipe escaping (`|` → `\|`), cursor positioning, and `<br>` conversion automatically.
+- **`reveal`** (experimental, **Always reveal**): Obsidian renders every table the cursor is not in, and the table holding the cursor becomes ordinary editor lines that Vim edits directly. See [[tables#Reveal mode]] below.
 - **`raw`** (**deprecated**, will be removed): despite the name it does **not** show Markdown source. It hides Obsidian's widget with CSS while Obsidian still replaces the table's range, so the table renders as nothing at all. Use **Source mode** to edit a table's source. No widget rendering. Useful for users who prefer source-style editing in Live Preview. The vim cursor remains fully visible in raw mode — cursor suppression only activates when a native table widget is visible.
 
 In **source mode**, tables are always rendered as raw markdown regardless of the `tablewidget` setting. The cursor behaves normally — no cursor suppression occurs.
 
 The `tablenav` setting (on by default) controls whether the **table-nav overlay** activates on top of the native editor. With `tablenav` off, the native table editor still provides full vim cell editing with cross-cell `h`/`j`/`k`/`l` navigation — just without the overlay UI.
 
-| Configuration                   | Experience                                                            |
-| ------------------------------- | --------------------------------------------------------------------- |
-| `native` + `tablenav` (default) | Full table-nav overlay with cell highlighting and structural commands |
-| `native` + `notablenav`         | Native table editor with vim cell editing and cross-cell navigation   |
-| `raw`                           | Raw markdown tables                                                   |
-| `reveal`                        | Obsidian's table when idle; the active table as editable source       |
+| Configuration                                              | Experience                                                            |
+| ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| `native` + `tablenav` (default without the Neovim backend) | Full table-nav overlay with cell highlighting and structural commands |
+| `native` + `notablenav`                                    | Native table editor with vim cell editing and cross-cell navigation   |
+| `raw`                                                      | Raw markdown tables                                                   |
+| `reveal`                                                   | Obsidian's table when idle; the active table as editable source       |
 
 ## Reveal mode
 
 > [!warning]
-> Experimental, and not the default. Enable with `set tablewidget=reveal`, `vim.opt.tablewidget = "reveal"` or **Settings → Vim Motions → General → Table widget in live preview**.
+> Experimental. It is what `auto`, the default, uses while the Neovim backend is connected. To use it with the plugin's own Vim too, choose `set tablewidget=reveal`, `vim.opt.tablewidget = "reveal"` or **Always reveal** under **Settings → Vim Motions → General → Table widget in live preview**.
 
 With `reveal`, tables you are not editing keep Obsidian's own table — formatted cells, images and links, the row and column buttons, drag to reorder, sort and the context menus. When the cursor enters a table, that table turns into its Markdown source, shown as an aligned grid, and leaves the grid again when the cursor moves out. It is the way Live Preview already treats a heading or a link, applied to tables.
 
@@ -254,7 +255,7 @@ Wherever a table is plain text — Source mode, a revealed table in `reveal` mod
 These text objects are useful for quickly deleting, changing, or yanking whole rows while editing the Markdown source.
 
 > [!info]
-> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=native` / `set tablewidget=reveal` in your vimrc. `set tablewidget=raw` still works but is **deprecated** — see below.
+> You can configure the table widget mode in **Settings → Vim Motions → Table widget in live preview**, or via `set tablewidget=auto` / `set tablewidget=native` / `set tablewidget=reveal` in your vimrc. `set tablewidget=raw` still works but is **deprecated** — see below.
 
 ## Ex commands
 

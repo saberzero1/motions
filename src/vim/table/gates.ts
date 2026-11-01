@@ -1,4 +1,28 @@
 import { Platform } from 'obsidian';
+import { isExternalBackendActive } from '../external-mode';
+
+/** A table widget mode that renders tables; `auto` resolves to one of them. */
+export type TableWidgetMode = 'native' | 'reveal' | 'raw';
+
+/**
+ * The table widget mode in effect for the `tableWidgetMode` setting.
+ *
+ * `auto` is `reveal` while the Neovim backend owns keys and `native`
+ * otherwise. Obsidian's table editor gives each cell an editor of its own,
+ * and the backend mirrors only the note's editor, so Neovim never sees a cell
+ * being edited; a revealed table is lines of the note, which Neovim edits,
+ * follows into and draws its extmarks over. With the plugin's own vim,
+ * `native` keeps Obsidian's widget while editing, works on mobile, and is the
+ * mode most measured.
+ */
+export function effectiveTableWidgetMode(
+    setting: string,
+    externalBackend: boolean = isExternalBackendActive(),
+): TableWidgetMode {
+    if (setting === 'reveal' || setting === 'raw') return setting;
+    if (setting === 'auto') return externalBackend ? 'reveal' : 'native';
+    return 'native';
+}
 
 /**
  * Why the reveal table surface is not installed, or `null` when it is.

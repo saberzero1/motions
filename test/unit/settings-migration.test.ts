@@ -114,33 +114,40 @@ describe('migrateCursorlineoptSettings', () => {
 });
 
 describe('tableWidgetMode migration', () => {
+    // Settings saved since `auto` became the default carry the marker, so
+    // these cases isolate the legacy retargeting from the one-time move.
+    const migrated = { tableWidgetAutoMigrated: true };
+
     it('retargets suppressTableWidget=true to native, not raw', () => {
         // The legacy flag meant "hide the widget", and `raw` is what used to
         // implement that — but `raw` renders the table as nothing, so native
         // is the honest destination.
-        expect(migrateTableWidgetMode({ suppressTableWidget: true })).toBe(
-            'native',
-        );
+        expect(
+            migrateTableWidgetMode({ ...migrated, suppressTableWidget: true }),
+        ).toBe('native');
     });
 
     it('retargets suppressTableWidget=false to native', () => {
-        expect(migrateTableWidgetMode({ suppressTableWidget: false })).toBe(
-            'native',
-        );
+        expect(
+            migrateTableWidgetMode({ ...migrated, suppressTableWidget: false }),
+        ).toBe('native');
     });
 
     it('retargets tablewidget=always to native, not raw', () => {
-        expect(migrateTableWidgetMode({ tableWidgetMode: 'always' })).toBe(
-            'native',
-        );
+        expect(
+            migrateTableWidgetMode({ ...migrated, tableWidgetMode: 'always' }),
+        ).toBe('native');
     });
 
     it.each(['off', 'cursor', 'embedded'])(
         'retargets the legacy value %s to native',
         (legacy) => {
-            expect(migrateTableWidgetMode({ tableWidgetMode: legacy })).toBe(
-                'native',
-            );
+            expect(
+                migrateTableWidgetMode({
+                    ...migrated,
+                    tableWidgetMode: legacy,
+                }),
+            ).toBe('native');
         },
     );
 
@@ -152,8 +159,9 @@ describe('tableWidgetMode migration', () => {
 
     it('leaves current values alone', () => {
         expect(
-            migrateTableWidgetMode({ tableWidgetMode: 'native' }),
+            migrateTableWidgetMode({ ...migrated, tableWidgetMode: 'native' }),
         ).toBeNull();
+        expect(migrateTableWidgetMode({ tableWidgetMode: 'auto' })).toBeNull();
     });
 
     it('retargets the removed owned surface to its successor, reveal', () => {
@@ -169,5 +177,44 @@ describe('tableWidgetMode migration', () => {
         expect(migrateTableWidgetMode(null)).toBeNull();
         expect(migrateTableWidgetMode({})).toBeNull();
         expect(migrateTableWidgetMode({ tableWidgetMode: 42 })).toBeNull();
+    });
+});
+
+describe('tableWidgetMode moves from native to auto once', () => {
+    // Settings are saved whole, defaults included, so a stored `native` from
+    // before `auto` cannot be told apart from the old default.
+    it('moves a stored native without the marker to auto', () => {
+        expect(migrateTableWidgetMode({ tableWidgetMode: 'native' })).toBe(
+            'auto',
+        );
+    });
+
+    it('moves the legacy native values with it', () => {
+        expect(
+            ['off', 'cursor', 'embedded', 'always'].map((legacy) =>
+                migrateTableWidgetMode({ tableWidgetMode: legacy }),
+            ),
+        ).toEqual(['auto', 'auto', 'auto', 'auto']);
+        expect(migrateTableWidgetMode({ suppressTableWidget: true })).toBe(
+            'auto',
+        );
+    });
+
+    // A native chosen again after the move stays native.
+    it('keeps a native saved with the marker', () => {
+        expect(
+            migrateTableWidgetMode({
+                tableWidgetMode: 'native',
+                tableWidgetAutoMigrated: true,
+            }),
+        ).toBeNull();
+    });
+
+    it('leaves reveal and raw alone either way', () => {
+        expect(
+            ['reveal', 'raw'].map((mode) =>
+                migrateTableWidgetMode({ tableWidgetMode: mode }),
+            ),
+        ).toEqual([null, null]);
     });
 });

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`set tablewidget=auto`, the new default: tables are revealed while the Neovim backend is connected, and use Obsidian's table editor otherwise.** It switches when the backend connects, disconnects or dies.
+    - **Why the split:** Obsidian's table editor gives each cell an editor of its own, and the backend mirrors only the note's editor, so under the backend Neovim never saw a cell being edited. A revealed table is lines of the note, which Neovim edits, follows its cursor into and draws its extmarks over. With the plugin's own Vim, Obsidian's editor keeps its buttons, sorting and menus while you edit, works on mobile, and is the most tested mode, so it stays.
+    - The setting's options are now **Automatic**, **Always native**, **Always reveal (experimental)** and **Raw (deprecated)**, in both settings implementations, `set tablewidget` and `vim.opt.tablewidget`.
+    - Plugin: `src/vim/table/gates.ts` (`effectiveTableWidgetMode`), `src/main.ts` (`followBackendForTables`), `src/vim/table-nav-controller.ts`, `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+
+### Changed
+
+- **A stored `tablewidget` of `native` moves to `auto` once.** Settings are saved whole, defaults included, so a `native` saved before `auto` existed cannot be told apart from the old default.
+    - Nothing changes without the Neovim backend, where `auto` is `native`.
+    - With the backend, tables are now revealed. To keep Obsidian's table editor there too, choose **Always native** again; it is then kept, because settings saved since carry `tableWidgetAutoMigrated`.
+    - `raw` and `reveal` are left alone.
+    - Plugin: `src/settings-migration.ts` (`migrateTableWidgetMode`)
+
 ### Fixed
 
 - **A vimrc mapping on a key the plugin binds itself was gone once Obsidian had started** ([#205](https://github.com/saberzero1/motions/issues/205)). `nmap gw <Plug>(easymotion-bd-w)` left `gw` as hard-wrap's operator, and `nnoremap Y yy` left `Y` as the plugin's `y$`.
@@ -114,6 +129,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Negative controls:**
         - The 1.5.0 CSS fails both: −1.2 px and −16.6 px for the box, 1.8 px and −13.6 px for the text.
         - Centring the title without giving it a height of its own still fails at a line height of 2.4, at −14.6 px.
+- **`tablewidget=auto` is covered with and without the Neovim backend, and across a migration.**
+    - **Scenarios:**
+        - `rpc-table-reveal.e2e.ts` A1 to A3: `auto` reveals the table Neovim moves into once the backend connects, and gives tables back to Obsidian's table editor when the backend disconnects (A2) or its process is killed (A3);
+        - `table-nav-mode.e2e.ts`: table-nav still starts on `auto` without the backend;
+        - `table-widget-migration.e2e.ts` loads stored settings cold: a `native` saved before `auto` moves and records the move, a `native` chosen after it stays, a `native` picked on fresh settings stays, and `reveal` is left alone;
+        - unit: `table-widget-mode.test.ts` resolves each setting with and without the backend, and `settings-migration.test.ts` covers the move with and without the marker.
+    - **Negative controls:**
+        - Resolving `auto` to `native` always fails A1, with Obsidian's widget and table-nav taking the table.
+        - Not following the backend fails A1 and A2. A settings reload during a pending disconnect still sees the backend, so without the listener the table stayed revealed after it.
+        - Following only the backend connecting fails A2 and A3, with the table revealed after the backend has gone.
+        - Gating table-nav on the stored setting fails the no-backend scenario, A2 and A3.
+        - Never moving `native` fails the first migration scenario.
+        - A marker that defaults to `false` fails the first scenario and moves a `native` picked on fresh settings to `auto`.
 
 ## [1.5.0] - 2026-10-31
 

@@ -68,7 +68,8 @@ export function migrateSigncolumnSettings(
 /**
  * Legacy table-widget values, resolved to a current one.
  *
- * Every legacy shape retargets to `'native'`, including the two that used to
+ * Every legacy shape retargets to `'native'`, or to `'auto'` in the one-time
+ * move described at `toAuto`, including the two that used to
  * mean `'raw'` (`suppressTableWidget: true` and `tablewidget=always`). `raw` is
  * deprecated, and it does not do what those settings were chosen for: it hides
  * Obsidian's widget with CSS while Obsidian still replaces the table's range,
@@ -86,24 +87,41 @@ export function migrateSigncolumnSettings(
  */
 export function migrateTableWidgetMode(
     raw: Record<string, unknown> | null,
-): 'native' | 'raw' | 'reveal' | null {
+): 'auto' | 'native' | 'raw' | 'reveal' | null {
     if (!raw) return null;
+    const native = toAuto(raw) ? 'auto' : 'native';
     if (
         'suppressTableWidget' in raw &&
         typeof raw.suppressTableWidget === 'boolean'
     ) {
-        return 'native';
+        return native;
     }
     const mode = raw.tableWidgetMode;
     if (typeof mode !== 'string') return null;
     if (
+        mode === 'native' ||
         mode === 'off' ||
         mode === 'cursor' ||
         mode === 'embedded' ||
         mode === 'always'
     ) {
-        return 'native';
+        return native === mode ? null : native;
     }
     if (mode === 'owned') return 'reveal';
     return null;
+}
+
+/**
+ * Whether stored settings still need the one-time move from `native` to
+ * `auto`, which became the default.
+ *
+ * Settings are saved whole, defaults included, so a stored `native` cannot be
+ * told apart from the old default. It moves once: nothing changes without the
+ * Neovim backend, where `auto` is `native`, and a user who wants `native`
+ * under the backend too picks it again, after which it stays. Settings saved
+ * since then carry `tableWidgetAutoMigrated`, which the defaults supply to
+ * every load and the next save writes.
+ */
+function toAuto(raw: Record<string, unknown>): boolean {
+    return raw.tableWidgetAutoMigrated !== true;
 }

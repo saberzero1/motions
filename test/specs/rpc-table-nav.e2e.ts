@@ -26,7 +26,7 @@ interface RpcPlugin {
         neovimBinaryPath: string;
         neovimConfigPath: string;
         enableTableNav: boolean;
-        tableWidgetMode: 'native' | 'raw';
+        tableWidgetMode: 'auto' | 'native' | 'raw';
     };
     saveSettings(): Promise<void>;
     reloadFeatures(): void;
@@ -51,6 +51,9 @@ async function setRpcEnabled(enabled: boolean): Promise<void> {
             plugin.settings.neovimBinaryPath = '';
             plugin.settings.neovimConfigPath = nextConfigPath;
             plugin.settings.neovimRpcEnabled = nextEnabled;
+            // Obsidian's own table editor under the backend, which `auto`, the
+            // default, replaces with reveal there.
+            plugin.settings.tableWidgetMode = 'native';
             await plugin.saveSettings();
             plugin.reloadFeatures();
         },

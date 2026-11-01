@@ -301,6 +301,7 @@ import { createTableNavExtension } from './vim/table-nav-controller';
 import { realignTableLines } from './vim/table-utils';
 import {
     describeTableSurfaceBlocker,
+    effectiveTableWidgetMode,
     resolveTableSurfaceBlocker,
     type TableSurfaceBlocker,
 } from './vim/table/gates';
@@ -341,7 +342,11 @@ import {
     resolveNeovimBinaryPath,
 } from './rpc/neovim-connection';
 import type { NeovimEditorOptions } from './rpc/document-sync';
-import { getExternalVimMode } from './vim/external-mode';
+import {
+    getExternalVimMode,
+    isExternalBackendActive,
+    onExternalVimMode,
+} from './vim/external-mode';
 import {
     BUNDLED_SNIPPET_FILES,
     SNIPPET_DIRECTORY,
@@ -1015,6 +1020,7 @@ export default class VimMotionsPlugin extends Plugin {
         // Obsidian's Vim key bindings are on.
         this.applyTableRevealSlot();
         this.registerEditorExtension(this.tableRevealSlot);
+        this.followBackendForTables();
         void this.enableTreesitterBridge();
 
         const builtinVimOn = isBuiltinVimEnabled(this.app);
@@ -2778,7 +2784,13 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
-        if (this.settings.tableWidgetMode === 'native') {
+        // Whenever the setting can mean native, so the Neovim backend
+        // disconnecting reinstalls nothing: while it is connected, `auto`
+        // reveals tables and no cell editor opens to use them.
+        if (
+            effectiveTableWidgetMode(this.settings.tableWidgetMode, false) ===
+            'native'
+        ) {
             this.uninstallTableCellMotions = applyTableCellMotions(
                 this.app,
                 vim,
@@ -3481,7 +3493,7 @@ export default class VimMotionsPlugin extends Plugin {
      */
     private applyTableRevealSlot(): void {
         const blocker = resolveTableSurfaceBlocker(
-            this.settings.tableWidgetMode,
+            effectiveTableWidgetMode(this.settings.tableWidgetMode),
         );
         if (blocker === null) {
             this.tableRevealBlockerNotified = null;
@@ -3798,6 +3810,26 @@ export default class VimMotionsPlugin extends Plugin {
     }
 
     /**
+     * Re-applies the table surface when the Neovim backend takes the keys or
+     * gives them back, which is when `auto` changes between `native` and
+     * `reveal`. Through the backend's mode rather than the connection calls,
+     * so a crash that tears the backend down counts as well.
+     */
+    private followBackendForTables(): void {
+        let backend = isExternalBackendActive();
+        this.register(
+            onExternalVimMode(() => {
+                const active = isExternalBackendActive();
+                if (active === backend) return;
+                backend = active;
+                if (this.settings.tableWidgetMode !== 'auto') return;
+                this.applyTableRevealSlot();
+                this.app.workspace.updateOptions();
+            }),
+        );
+    }
+
+    /**
      * Tells a `raw` user once that the mode is going away.
      *
      * `raw` does not show Markdown source: it hides the widget with CSS while
@@ -4019,7 +4051,13 @@ export default class VimMotionsPlugin extends Plugin {
                 this.settings,
             );
         }
-        if (this.settings.tableWidgetMode === 'native') {
+        // Whenever the setting can mean native, so the Neovim backend
+        // disconnecting reinstalls nothing: while it is connected, `auto`
+        // reveals tables and no cell editor opens to use them.
+        if (
+            effectiveTableWidgetMode(this.settings.tableWidgetMode, false) ===
+            'native'
+        ) {
             this.uninstallTableCellMotions = applyTableCellMotions(
                 this.app,
                 vim,

@@ -65,6 +65,9 @@ const EXCLUDED_SETTINGS_KEYS = new Set([
     // Machine-written state: the fingerprint of the settings the generated
     // Neovim file was last produced from, not a user-editable preference.
     'neovimConfigExportFingerprint',
+    // Machine-written state: records the one-time move of a stored
+    // `tableWidgetMode: native` to `auto`.
+    'tableWidgetAutoMigrated',
 
     // Nested objects — configured via dedicated commands or sub-options
     'modePrompts', // via `let g:mode_prompt_*`

@@ -35,6 +35,7 @@ import {
     resumeAnimatedCursorForView,
 } from './animated-cursor/config';
 import { isExternalBackendActive } from './external-mode';
+import { effectiveTableWidgetMode } from './table/gates';
 import type { VimApi, CmAdapter } from '../types/vim-api';
 import { getScrolloffMargin } from './scrolloff';
 import {
@@ -406,7 +407,8 @@ class TableNavController implements PluginValue {
     private canActivate(): boolean {
         return (
             this.settings.enableTableNav &&
-            this.settings.tableWidgetMode === 'native' &&
+            effectiveTableWidgetMode(this.settings.tableWidgetMode) ===
+                'native' &&
             this.forkAvailable
         );
     }

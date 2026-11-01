@@ -507,6 +507,19 @@ describe('Table-nav mode entry and exit', function () {
         expect(await hasTableNavHighlight()).toBe(true);
     });
 
+    // `auto`, the default, is native while no Neovim backend owns the keys.
+    it('enters table-nav on the default auto, without the Neovim backend', async function () {
+        this.timeout(15000);
+        await ensureLivePreview();
+        await setPluginSettings({
+            enableTableNav: true,
+            tableWidgetMode: 'auto',
+        });
+        await setupTableDoc();
+        await enterTableNav();
+        expect(await hasTableNavHighlight()).toBe(true);
+    });
+
     it('should highlight header cell on entry from above', async function () {
         this.timeout(15000);
         await ensureLivePreview();

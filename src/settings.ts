@@ -191,7 +191,12 @@ export interface VimMotionsSettings {
     enableDial: boolean;
     listContinuationOnOpen: boolean;
     enableTableNav: boolean;
-    tableWidgetMode: 'native' | 'raw' | 'reveal';
+    tableWidgetMode: 'auto' | 'native' | 'raw' | 'reveal';
+    /**
+     * Whether a stored `tableWidgetMode` of `native` has been through the
+     * one-time move to `auto`; see `migrateTableWidgetMode`.
+     */
+    tableWidgetAutoMigrated: boolean;
     tableAutoRealign: boolean;
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
@@ -303,14 +308,16 @@ const TABLE_WIDGET_OPTIONS: Record<
     VimMotionsSettings['tableWidgetMode'],
     string
 > = {
-    native: 'Native',
-    reveal: 'Reveal (experimental)',
+    auto: 'Automatic',
+    native: 'Always native',
+    reveal: 'Always reveal (experimental)',
     raw: 'Raw (deprecated)',
 };
 
 const TABLE_WIDGET_DESCRIPTION =
     'How tables display in Live Preview. ' +
-    "Native: Obsidian's table editor, with Vim in each cell (recommended). " +
+    'Automatic: reveal while the Neovim backend is connected, where Neovim then edits the table itself, and native otherwise. ' +
+    "Native: Obsidian's table editor, with Vim in each cell. " +
     "Reveal: Obsidian renders the tables the cursor is not in, and the table holding the cursor becomes its Markdown source, edited directly by Vim. Desktop only; works with Obsidian's own Vim key bindings and with the Neovim backend. " +
     'Raw: deprecated. It hides the table without showing its source; use Source mode instead.';
 
@@ -359,7 +366,10 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableDial: false,
     listContinuationOnOpen: true,
     enableTableNav: true,
-    tableWidgetMode: 'native',
+    tableWidgetMode: 'auto',
+    // Fresh settings have nothing to move; stored settings without the field
+    // are read from the raw data, before these defaults apply.
+    tableWidgetAutoMigrated: true,
     tableAutoRealign: false,
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,

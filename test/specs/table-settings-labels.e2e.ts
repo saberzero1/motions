@@ -91,11 +91,15 @@ describe('Table settings as rendered', function () {
 
         expect(widget.found).toBe(true);
         expect(widget.options).toEqual([
-            ['native', 'Native'],
-            ['reveal', 'Reveal (experimental)'],
+            ['auto', 'Automatic'],
+            ['native', 'Always native'],
+            ['reveal', 'Always reveal (experimental)'],
             ['raw', 'Raw (deprecated)'],
         ]);
         // What each mode does moved into the description.
+        expect(widget.description).toContain(
+            'Automatic: reveal while the Neovim backend is connected',
+        );
         expect(widget.description).toContain('Native:');
         expect(widget.description).toContain('Reveal:');
         expect(widget.description).toContain('Raw: deprecated');
