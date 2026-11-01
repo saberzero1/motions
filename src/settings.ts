@@ -272,6 +272,7 @@ export interface VimMotionsSettings {
     imDefaultNormalIm: string;
     imRestoreBehavior: 'restore' | 'default';
     imDefaultInsertIm: string;
+    imFindDefaultIm: string;
     persistedImState: Record<string, string>;
 
     enableSnippets: boolean;
@@ -443,6 +444,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     imDefaultNormalIm: '',
     imRestoreBehavior: 'restore' as const,
     imDefaultInsertIm: '',
+    imFindDefaultIm: '1033',
     persistedImState: {},
 
     enableSnippets: true,
@@ -605,6 +607,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'imDefaultNormalIm',
         'imRestoreBehavior',
         'imDefaultInsertIm',
+        'imFindDefaultIm',
         'pickerOmnisearch',
         'pickerTasks',
         'pickerDataview',
@@ -6461,6 +6464,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         }),
                 );
         }
+
+        new Setting(container)
+            .setName('Search box default IM')
+            .setDesc(
+                'IM identifier used the first time a current-note or global search box receives focus. Existing search boxes restore their own saved IM. Defaults to 1033 on windows.',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('1033')
+                    .setValue(this.plugin.settings.imFindDefaultIm)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imFindDefaultIm = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
     }
 
     private renderGroupLabels(container: HTMLElement): void {

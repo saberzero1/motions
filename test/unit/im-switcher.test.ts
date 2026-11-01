@@ -60,6 +60,10 @@ function ensureDomGlobals(): void {
     }
 }
 
+async function flushAsyncOperations(): Promise<void> {
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+}
+
 beforeEach(() => {
     vi.useFakeTimers();
     vi.restoreAllMocks();
@@ -79,7 +83,7 @@ describe('primeCache', () => {
     it('populates lastKnownIm after async resolution', async () => {
         const switcher = createSwitcher();
         switcher.primeCache();
-        await Promise.resolve();
+        await flushAsyncOperations();
         expect(mockExecuteImGet).toHaveBeenCalledWith(
             switcher.config.obtainConfig,
         );
@@ -225,9 +229,9 @@ describe('per-leaf isolation', () => {
         await switcher.save('leaf-2');
 
         switcher.restore('leaf-1');
-        await Promise.resolve();
+        await flushAsyncOperations();
         switcher.restore('leaf-2');
-        await Promise.resolve();
+        await flushAsyncOperations();
 
         expect(mockExecuteImSet).toHaveBeenNthCalledWith(
             1,
@@ -359,7 +363,7 @@ describe('composition guard', () => {
     });
 
     it('executes pending switch when onAllCompositionsEnd fires', async () => {
-        mockIsAnyViewComposing.mockReturnValue(true);
+        mockIsAnyViewComposing.mockReturnValueOnce(true).mockReturnValue(false);
         mockExecuteImGet.mockResolvedValue(
             'com.tencent.inputmethod.wetype.pinyin',
         );
@@ -377,6 +381,7 @@ describe('composition guard', () => {
 
         endCallback!();
         await vi.advanceTimersByTimeAsync(0);
+        await flushAsyncOperations();
         expect(mockExecuteImSet).toHaveBeenCalledWith(
             switcher.config.switchConfig,
             'com.apple.keylayout.ABC',
