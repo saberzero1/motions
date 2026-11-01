@@ -134,6 +134,10 @@ import {
 import { registerFoldCommands } from './fold/commands';
 import { registerImageCommand } from './vim/image-command';
 import { installImageSelectKeys } from './vim/image-select-keys';
+import {
+    installNoteSwitchJumps,
+    noteCursorTracker,
+} from './workspace/note-switch-jumps';
 import { markdownFoldProvider } from './fold/provider';
 import { FoldPersistenceStore } from './fold/persistence';
 import { foldPlaceholderExtension } from './fold/placeholder';
@@ -856,6 +860,7 @@ export default class VimMotionsPlugin extends Plugin {
             () => this.settings.escapeLeavesInsert,
         );
         installImageSelectKeys(this.app, this);
+        installNoteSwitchJumps(this.app, this, () => this.jumpList);
         this.neovimConnection = new NeovimConnection(
             this.app,
             () => this.registration,
@@ -2927,6 +2932,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.vimExtensionSlot.push(neovimDecorationExtension());
         this.vimExtensionSlot.push(neovimVisualSelectionExtension());
         this.vimExtensionSlot.push(neovimHostEditExtension());
+        this.vimExtensionSlot.push(noteCursorTracker());
         this.vimExtensionSlot.push(createTableCellCursorGuard());
         this.vimExtensionSlot.push(
             createTableNavExtension(this.app, this.settings, getVimApi),

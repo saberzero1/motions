@@ -61,6 +61,12 @@ Dot-repeat (`.`) after cycling pastes the final cycled text, not the original. W
 
 Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycling**, `vim.opt.yankring = false` in Lua, or `set noyankring` in vimrc.
 
+## Jump list across notes
+
+`<C-o>` and `<C-i>` walk back and forward through the notes you have moved between, as well as the jumps inside a note. Every change of note is a jump: following a link, picking a note, `]b`, a tab you click or reach with **Ctrl+Tab**, and a note Obsidian opens in the current tab. With notes `a`, `b` and `c` in three tabs, visiting them in that order and pressing `<C-o>`, `<C-o>`, `<C-i>` lands on `b`, `a`, `b`, which is what Neovim does with `:b` between three buffers. A note open in another tab is focused there rather than opened again in the current one, at the line you left it on.
+
+`:jumps` lists the history, and `set nojumplist` turns the cross-note part off. Jumps made inside a note after switching to it are walked after the previous note, not before it, as Neovim would; see [[known-limitations#Cross-note jump list]].
+
 ## Change list navigation
 
 `g;` and `g,` jump to older and newer change positions respectively, letting you quickly revisit locations where you made edits. The `:changes` ex command displays the full change list in a modal.

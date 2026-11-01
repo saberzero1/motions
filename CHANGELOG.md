@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`K` inside a preview put the preview's cursor back at the top instead of previewing the link under it** ([#208](https://github.com/saberzero1/motions/issues/208)). `K` always read the note's own editor and cursor, whichever editor it was pressed in, so inside a focused preview it acted as the note's second `K` and refocused the preview.
     - **Fix:** it now uses the editor it was pressed in. Inside a preview it opens the nested preview Obsidian's own hover would, with the preview's note as the hover parent and as the source the link resolves from. `KK` there moves into the nested preview.
     - Plugin: `src/workspace/navigation.ts` (`keywordContext`)
+- **`<C-o>` after switching tabs went to an older note instead of the tab before** ([#206](https://github.com/saberzero1/motions/issues/206)). Only the plugin's own navigations recorded a jump, such as `gd`, the pickers and `]b`. A tab clicked or reached with **Ctrl+Tab**, or a note Obsidian opened in the current tab, recorded nothing.
+    - **Fix:** every change of note is now a jump, recorded with the line the note was left at, as Neovim records a `:b` switch. With `a`, `b` and `c` in three tabs, visiting them in order and pressing `<C-o>`, `<C-o>`, `<C-i>` lands on `b`, `a`, `b`, matching Neovim 0.12.5, and focuses each note's own tab.
+    - A navigation that records its own jump, and the walk itself, are not recorded twice.
+    - **Remaining gap:** jumps made inside a note after switching to it are still walked after the previous note rather than before it, because they live in the fork's separate list. Measured values are in `KNOWN_LIMITATIONS.md`.
+    - Plugin: `src/workspace/note-switch-jumps.ts`, `src/workspace/navigate.ts`, `src/main.ts`
 
 ### Tests
 
@@ -34,6 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Reading the note's own editor, the old behaviour, opens no nested preview.
         - Using the note's view as the hover parent replaces the preview instead of nesting.
         - `KK` never focusing a nested preview leaves focus in the first, at index 0 instead of 1.
+- **`jump-list-note-switch.e2e.ts` switches between three notes in three tabs the way a tab click does, and walks back with `<C-o>`.**
+    - **Scenarios:**
+        - `a`, `b`, `c` then `<C-o>`, `<C-o>`, `<C-i>` lands on `b`, `a`, `b`;
+        - `<C-o>` returns to the line the note was left at;
+        - it focuses the previous tab without opening a fourth;
+        - a note opened in the same tab is a jump;
+        - `gd`, a heading picked in `:headings` and `]b` are each recorded once.
+    - **Negative controls:**
+        - Not installing the recorder fails the four switch scenarios, because `<C-o>` has nowhere to go and stays put: on `c` throughout the walk, on `b` instead of `a`'s line 3, and on `c` after the same-tab open.
+        - Not skipping a switch that left the list at the new note fails `gd` and `]b`, recording `a, c, a, c` and `a, b, a, b`.
+        - Not skipping one while a navigation is still opening its note fails `:headings`, recording `a, b, a, b`.
+        - Forgetting the cursor of a note whose tab has since been reused fails the same-tab scenario, landing on line 0 instead of 2.
 
 ## [1.5.0] - 2026-10-31
 

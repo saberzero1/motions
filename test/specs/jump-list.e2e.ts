@@ -183,6 +183,20 @@ describe('Jump list', function () {
         });
 
         it('gd should record cross-note entry in plugin jump list', async function () {
+            await obsidianPage.write('JLDataA.md', 'Hi\n[[JLDataB]]\nEnd');
+            await obsidianPage.write('JLDataB.md', 'Target');
+            await obsidianPage.openFile('JLDataA.md');
+            await browser.executeObsidian(({ app, obsidian }) => {
+                const view = app.workspace.getActiveViewOfType(
+                    obsidian.MarkdownView,
+                );
+                if (!view) return;
+                view.editor.setCursor(1, 2);
+                view.editor.focus();
+            });
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            // Opening the note is a jump of its own (#206); cleared after it,
+            // the list holds only what `gd` records.
             await browser.executeObsidian(({ app }) => {
                 const plugin = (
                     app as unknown as {
@@ -196,19 +210,6 @@ describe('Jump list', function () {
                 ).plugins?.plugins?.['vim-motions'];
                 plugin?.jumpList?.clear?.();
             });
-
-            await obsidianPage.write('JLDataA.md', 'Hi\n[[JLDataB]]\nEnd');
-            await obsidianPage.write('JLDataB.md', 'Target');
-            await obsidianPage.openFile('JLDataA.md');
-            await browser.executeObsidian(({ app, obsidian }) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) return;
-                view.editor.setCursor(1, 2);
-                view.editor.focus();
-            });
-            await browser.pause(PAUSE.EDITOR_SETTLE);
 
             await sendGotoDefinition();
 

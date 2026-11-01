@@ -9,6 +9,25 @@ import { getCmAdapter } from '../vim/vim-api';
 import { executeCommand } from '../util/commands';
 
 let jumpListInstance: JumpList | null = null;
+let recordedNavigations = 0;
+
+/**
+ * Whether a navigation that records its own jump is still opening its note.
+ * Obsidian can report the switch before the navigation records it, which
+ * would otherwise record it twice (note-switch-jumps.ts).
+ */
+export function isRecordedNavigationActive(): boolean {
+    return recordedNavigations > 0;
+}
+
+async function withRecordedNavigation<T>(run: () => Promise<T>): Promise<T> {
+    recordedNavigations++;
+    try {
+        return await run();
+    } finally {
+        recordedNavigations--;
+    }
+}
 
 export function setJumpListInstance(jumpList: JumpList | null): void {
     jumpListInstance = jumpList;
@@ -74,6 +93,22 @@ export async function navigateWithJump(
         ch?: number;
     },
 ): Promise<void> {
+    return withRecordedNavigation(() =>
+        navigateRecorded(app, target, sourcePath, options),
+    );
+}
+
+async function navigateRecorded(
+    app: App,
+    target: string,
+    sourcePath: string,
+    options?: {
+        newTab?: boolean;
+        split?: 'horizontal' | 'vertical';
+        line?: number;
+        ch?: number;
+    },
+): Promise<void> {
     const jumpList = getJumpListInstance();
     const source = jumpList ? getCurrentJumpEntry(app) : null;
     try {
@@ -104,6 +139,17 @@ export async function navigateWithJump(
 }
 
 export async function navigateWithJumpFile(
+    app: App,
+    leaf: WorkspaceLeaf,
+    file: TFile,
+    options?: { line?: number; ch?: number },
+): Promise<void> {
+    return withRecordedNavigation(() =>
+        navigateFileRecorded(app, leaf, file, options),
+    );
+}
+
+async function navigateFileRecorded(
     app: App,
     leaf: WorkspaceLeaf,
     file: TFile,
