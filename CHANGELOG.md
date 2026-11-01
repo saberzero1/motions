@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **A second race in the same mode:** table-nav sends `i` to the cell's vim only once the cell editor is up, 150 ms on. Keys typed in between ran as normal-mode commands, so `iq` started recording a macro and `iHi` typed nothing. They are now held and played after the `i`.
     - **Visual mode still ends at a native table:** Obsidian's widget moves the cursor into its cell editor as soon as a selection reaches it. `set tablewidget=reveal` keeps the table as lines, where `V` extends through its rows. This is recorded in `KNOWN_LIMITATIONS.md`.
     - Plugin: `src/vim/table-nav-controller.ts` (`holdEntryKeys`), `src/vim/table-nav-keymap.ts` (`typesIntoCell`, `heldEntryKey`, `replayEntryKeys`)
+- **The picker's "Results" title covered the first result** ([#171](https://github.com/saberzero1/motions/issues/171)). The title took its height from the theme's line height, so a theme with a taller one covered the first result again. At a line height of 2.4 it overlapped the first result's text by 13.6 px. Even in the default theme its edge sat 1.2 px into the first result's box. It now has a height of its own, centred on the border, and the list clears it by 3 px in any theme.
+    - Plugin: `styles.css`
 
 ### Tests
 
@@ -107,6 +109,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Not swallowing the stray keys types `uzzx` into the cell and the note, and `bxb` after the click.
         - Not holding keys during the 150 ms loses `Hi`, `H` and `Q`, and leaves the last scenario in insert mode.
         - Holding them but not typing them in insert mode loses the same text.
+- **`picker-results-title.e2e.ts` measures the "Results" title against the first result**, in the default theme and with a line height of 2.4.
+    - **Results:** the first result's box sits 3 px below the title, and its text 6 px below, in both themes.
+    - **Negative controls:**
+        - The 1.5.0 CSS fails both: −1.2 px and −16.6 px for the box, 1.8 px and −13.6 px for the text.
+        - Centring the title without giving it a height of its own still fails at a line height of 2.4, at −14.6 px.
 
 ## [1.5.0] - 2026-10-31
 
