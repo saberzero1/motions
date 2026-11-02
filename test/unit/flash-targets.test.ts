@@ -7,6 +7,7 @@ import {
 import {
     findFlashCharacterPositions,
     findFlashPatternMatches,
+    isFlashSearchPattern,
 } from '../../src/flash/character-match';
 
 function stubCm(lines: string[]) {
@@ -102,6 +103,14 @@ describe('findCharTargets matchLength', () => {
 });
 
 describe('Flash search pinyin patterns', () => {
+    it('claims only short standalone search prompts', () => {
+        expect(isFlashSearchPattern('/', 'aj')).toBe(true);
+        expect(isFlashSearchPattern('?', '大g')).toBe(true);
+        expect(isFlashSearchPattern(':', 'aj')).toBe(false);
+        expect(isFlashSearchPattern('/', 'ajpha')).toBe(false);
+        expect(isFlashSearchPattern('/', 'a.')).toBe(false);
+    });
+
     it('matches consecutive Chinese initials', () => {
         expect(findFlashPatternMatches('安静 氨基', 'aj')).toEqual([
             { index: 0, length: 2 },

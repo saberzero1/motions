@@ -54,6 +54,11 @@ export function isFlashPinyinPattern(pattern: string): boolean {
     );
 }
 
+/** Returns whether Flash should claim a standalone `/` or `?` prompt. */
+export function isFlashSearchPattern(prefix: string, pattern: string): boolean {
+    return (prefix === '/' || prefix === '?') && isFlashPinyinPattern(pattern);
+}
+
 /** Finds contiguous Flash search matches, preserving UTF-16 document offsets. */
 export function findFlashPatternMatches(
     text: string,
