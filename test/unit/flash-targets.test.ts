@@ -4,6 +4,7 @@ import {
     findCharTargets,
     findTillTargets,
 } from '../../src/easymotion/targets';
+import { findFlashCharacterPositions } from '../../src/flash/character-match';
 
 function stubCm(lines: string[]) {
     const totalLen = lines.reduce((sum, l) => sum + l.length + 1, 0);
@@ -66,6 +67,34 @@ describe('findCharTargets matchLength', () => {
         for (const t of targets) {
             expect(t.matchLength).toBeUndefined();
         }
+    });
+
+    it('matches Chinese characters by pinyin initial only when enabled', () => {
+        const cm = stubCm(['x啊安a行']);
+        cm.getCursor = () => ({ line: 0, ch: 0 });
+
+        expect(findCharTargets(cm, 'a', 'forward')).toEqual([
+            { line: 0, ch: 3 },
+        ]);
+        expect(
+            findCharTargets(cm, 'a', 'forward', (text, target) =>
+                findFlashCharacterPositions(text, -1, target, true, true),
+            ),
+        ).toEqual([
+            { line: 0, ch: 1 },
+            { line: 0, ch: 2 },
+            { line: 0, ch: 3 },
+        ]);
+    });
+
+    it('keeps UTF-16 columns when scanning past a surrogate pair', () => {
+        const cm = stubCm(['x😀啊']);
+        cm.getCursor = () => ({ line: 0, ch: 0 });
+        expect(
+            findCharTargets(cm, 'a', 'forward', (text, target) =>
+                findFlashCharacterPositions(text, -1, target, true, true),
+            ),
+        ).toEqual([{ line: 0, ch: 3 }]);
     });
 });
 

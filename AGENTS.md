@@ -113,6 +113,7 @@ npm run build
 
 - **Organize code into multiple files**: Split functionality across separate modules rather than putting everything in `main.ts`.
 - Source lives in `src/`. Keep `main.ts` small and focused on plugin lifecycle (loading, unloading, registering commands).
+- Flash character matching lives in `src/flash/character-match.ts` and uses the generated pinyin-initial data in `src/flash/pinyin-initials.ts`; keep this lookup synchronous and outside the hot scan loop.
 - **Example file structure**:
     ```
     src/

@@ -145,20 +145,30 @@ export function findCharTargets(
     cm: CmAdapter,
     char: string,
     direction: Direction,
+    matcher?: (text: string, target: string) => number[],
 ): Target[] {
     const { fromLine, toLine } = getVisibleRange(cm);
     const targets: Target[] = [];
     for (let line = fromLine; line <= toLine; line++) {
         const text = cm.getLine(line);
-        let idx = 0;
-        while (idx < text.length) {
-            const found = text.indexOf(char, idx);
-            if (found === -1) break;
-            targets.push({ line, ch: found });
-            idx = found + 1;
+        const positions = matcher
+            ? matcher(text, char)
+            : findLiteralCharacterPositions(text, char);
+        for (const ch of positions) {
+            targets.push({ line, ch });
         }
     }
     return filterByDirection(targets, cm, direction);
+}
+
+function findLiteralCharacterPositions(text: string, char: string): number[] {
+    const positions: number[] = [];
+    let index = text.indexOf(char);
+    while (index !== -1) {
+        positions.push(index);
+        index = text.indexOf(char, index + 1);
+    }
+    return positions;
 }
 
 export function findSubstringTargets(

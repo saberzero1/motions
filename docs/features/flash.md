@@ -10,6 +10,8 @@ Flash motions (inspired by [flash.nvim](https://github.com/folke/flash.nvim)) en
 
 When only one match exists, flash behaves identically to stock Vim: the cursor jumps immediately without showing labels.
 
+When Flash is enabled, a Latin target also matches Chinese characters by pinyin initial. For example, `fa` finds `啊` and `安`. The lookup is precomputed, so the extra matching does not call a pinyin conversion library during a jump. Ordinary Vim character motions keep their existing literal-character behavior.
+
 ## How it works
 
 1. Press `f` (or `F`, `t`, `T`) followed by a search character.

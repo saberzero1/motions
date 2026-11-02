@@ -246,6 +246,8 @@ Enhanced character search — when multiple matches are visible, labels appear f
 | `t{char}`  | Till before `{char}` forward                                   |
 | `T{char}`  | Till after `{char}` backward                                   |
 
+For Flash motions, a Latin `{char}` also matches Chinese characters with the same pinyin initial. For example, `fa` includes `啊` and `安`; this applies only while Flash is enabled.
+
 Flash works with operators (`df`, `cf`, `yf`) and visual mode (`vf`). Repeat with `;` and `,`.
 
 ### Flash jump mode
