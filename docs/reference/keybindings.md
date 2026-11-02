@@ -264,6 +264,8 @@ The trigger key is configurable via `set flashjumpkey=<key>`.
 
 After committing a `/` or `?` search, labels appear on all visible matches for direct jumping.
 
+Patterns up to four letters also match Chinese pinyin initials: `/aj` finds `安静` and `氨基`, and `/dg` finds `大g`. Patterns with five or more characters use ordinary Vim search matching.
+
 ## EasyMotion find motions
 
 Jump to specific characters forward, backward, or in both directions.

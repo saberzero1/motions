@@ -161,6 +161,8 @@ vim.opt.labelmatchfontsize = true
 
 After committing a search with `/pattern` + `Enter`, flash labels appear on all visible matches. Press a label key to jump directly to that match — no need to cycle with `n`/`N`.
 
+Search patterns of up to four letters also match Chinese pinyin initials: `/aj` finds `安静` and `氨基`, while `/dg` finds `大g`. Chinese and English characters can be mixed in the matched text. Patterns with five or more characters keep the ordinary Vim search behavior.
+
 Labels auto-clear when you press any non-label key, `Escape`, or `n`/`N`. This means the search dialog works exactly as expected during typing; labels only appear after you commit. Two-character labels are supported — typing the first character narrows the label set instead of dismissing labels.
 
 Disable with `set noflashsearch` or in **Settings → Vim Motions → Jump navigation → Flash search labels**.

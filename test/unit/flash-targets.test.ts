@@ -4,7 +4,10 @@ import {
     findCharTargets,
     findTillTargets,
 } from '../../src/easymotion/targets';
-import { findFlashCharacterPositions } from '../../src/flash/character-match';
+import {
+    findFlashCharacterPositions,
+    findFlashPatternMatches,
+} from '../../src/flash/character-match';
 
 function stubCm(lines: string[]) {
     const totalLen = lines.reduce((sum, l) => sum + l.length + 1, 0);
@@ -95,6 +98,34 @@ describe('findCharTargets matchLength', () => {
                 findFlashCharacterPositions(text, -1, target, true, true),
             ),
         ).toEqual([{ line: 0, ch: 3 }]);
+    });
+});
+
+describe('Flash search pinyin patterns', () => {
+    it('matches consecutive Chinese initials', () => {
+        expect(findFlashPatternMatches('安静 氨基', 'aj')).toEqual([
+            { index: 0, length: 2 },
+            { index: 3, length: 2 },
+        ]);
+    });
+
+    it('matches Chinese and English characters in one pattern', () => {
+        expect(findFlashPatternMatches('大g 小g', 'dg')).toEqual([
+            { index: 0, length: 2 },
+        ]);
+    });
+
+    it('keeps literal English matches and preserves UTF-16 offsets', () => {
+        expect(findFlashPatternMatches('😀abc 安静', 'abc')).toEqual([
+            { index: 2, length: 3 },
+        ]);
+    });
+
+    it('falls back to ordinary search for patterns longer than four characters', () => {
+        expect(findFlashPatternMatches('安静平和', 'ajph')).toEqual([
+            { index: 0, length: 4 },
+        ]);
+        expect(findFlashPatternMatches('安静平和安静', 'ajpha')).toBeNull();
     });
 });
 

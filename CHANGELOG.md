@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Flash character motions match Chinese pinyin initials** — with Flash enabled, `fa` can find Chinese characters such as `啊` and `安`; ordinary Vim character motions remain literal. The lookup is precomputed for responsive scans.
     - Plugin: `src/flash/character-match.ts`, `src/flash/pinyin-initials.ts`, `src/flash/char-mode.ts`, `src/easymotion/targets.ts`
+- **Flash `/` and `?` searches match up to four-character pinyin-initial patterns** — `/aj` finds `安静` and `氨基`, and `/dg` finds `大g`; longer patterns retain ordinary Vim search behavior.
 
 ### Tests
 

@@ -10,6 +10,7 @@ import type { OverlayHandle } from '../easymotion/overlay';
 import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
 import { FlashLabeler } from './labeler';
 import { recordInNoteJump } from '../workspace/in-note-jumps';
+import { findFlashPatternMatches } from './character-match';
 
 interface FlashSearchSettings {
     flashSearch: boolean;
@@ -44,6 +45,24 @@ function findSearchMatchTargets(cm: CmAdapter): Target[] {
     }
 
     const targets: Target[] = [];
+    const flashMatches = findFlashPatternMatches(
+        text,
+        query.source,
+        query.flags.includes('i'),
+    );
+    if (flashMatches) {
+        for (const match of flashMatches) {
+            const pos = cm.posFromIndex(match.index);
+            targets.push({
+                line: pos.line,
+                ch: pos.ch,
+                matchLength: match.length,
+            });
+            if (targets.length > 500) break;
+        }
+        return targets;
+    }
+
     let match: RegExpExecArray | null;
     while ((match = re.exec(text)) !== null) {
         const pos = cm.posFromIndex(match.index);
@@ -88,7 +107,16 @@ export function enableFlashSearch(
 
         const rawTargets = findSearchMatchTargets(cm);
         const targets = filterVisibleTargets(cm, rawTargets);
-        if (targets.length < 2) return;
+        if (targets.length === 0) return;
+        if (targets.length === 1) {
+            const target = targets[0]!;
+            const cursor = cm.getCursor();
+            if (target.line !== cursor.line || target.ch !== cursor.ch) {
+                recordInNoteJump(app, cm, cursor, target);
+                cm.setCursor(target.line, target.ch);
+            }
+            return;
+        }
 
         setFlashActive(true);
         const cursor = cm.getCursor();

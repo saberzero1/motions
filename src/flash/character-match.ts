@@ -1,4 +1,7 @@
-import { matchesPinyinInitialCodePoint } from './pinyin-initials';
+import {
+    isCjkCharacter,
+    matchesPinyinInitialCodePoint,
+} from './pinyin-initials';
 
 function isAsciiLetter(target: string): boolean {
     if (target.length !== 1) return false;
@@ -11,13 +14,75 @@ export function matchesFlashCharacterAt(
     index: number,
     target: string,
     enablePinyin: boolean,
+    ignoreCase = false,
 ): boolean {
     if (text[index] === target) return true;
+    if (
+        ignoreCase &&
+        isAsciiLetter(target) &&
+        text[index] !== undefined &&
+        text[index].toLowerCase() === target.toLowerCase()
+    ) {
+        return true;
+    }
     if (!enablePinyin || !isAsciiLetter(target)) return false;
 
     const codePoint = text.codePointAt(index);
     if (codePoint === undefined) return false;
     return matchesPinyinInitialCodePoint(codePoint, target);
+}
+
+export interface FlashPatternMatch {
+    index: number;
+    length: number;
+}
+
+/**
+ * Returns whether a search pattern is eligible for Flash's pinyin matching.
+ * Patterns outside this small shape remain ordinary Vim regular expressions.
+ */
+export function isFlashPinyinPattern(pattern: string): boolean {
+    const characters = [...pattern];
+    return (
+        characters.length > 0 &&
+        characters.length <= 4 &&
+        characters.every((character) => {
+            if (isAsciiLetter(character)) return true;
+            const codePoint = character.codePointAt(0);
+            return codePoint !== undefined && isCjkCharacter(codePoint);
+        })
+    );
+}
+
+/** Finds contiguous Flash search matches, preserving UTF-16 document offsets. */
+export function findFlashPatternMatches(
+    text: string,
+    pattern: string,
+    ignoreCase = false,
+): FlashPatternMatch[] | null {
+    if (!isFlashPinyinPattern(pattern)) return null;
+
+    const targets = [...pattern];
+    const matches: FlashPatternMatch[] = [];
+    for (let index = 0; index < text.length;) {
+        let cursor = index;
+        let matched = true;
+        for (const target of targets) {
+            if (
+                !matchesFlashCharacterAt(text, cursor, target, true, ignoreCase)
+            ) {
+                matched = false;
+                break;
+            }
+            const codePoint = text.codePointAt(cursor)!;
+            cursor += codePoint > 0xffff ? 2 : 1;
+        }
+        if (matched) matches.push({ index, length: cursor - index });
+
+        const codePoint = text.codePointAt(index)!;
+        index += codePoint > 0xffff ? 2 : 1;
+    }
+    return matches;
 }
 
 /** Finds character positions while preserving CodeMirror's UTF-16 columns. */

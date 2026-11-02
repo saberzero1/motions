@@ -77,7 +77,7 @@ function buildInitialMap(): Map<number, number> {
     return map;
 }
 
-function isCjkCharacter(codePoint: number): boolean {
+export function isCjkCharacter(codePoint: number): boolean {
     return (
         (codePoint >= 0x3400 && codePoint <= 0x4dbf) ||
         (codePoint >= 0x4e00 && codePoint <= 0x9fff) ||
