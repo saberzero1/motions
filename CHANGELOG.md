@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-01
+
 ### Added
 
 - **`set tablewidget=auto`, the new default: tables are revealed while the Neovim backend is connected, and use Obsidian's table editor otherwise.** It switches when the backend connects, disconnects or dies.
@@ -50,7 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - **Still differs from Neovim:** the list keeps an older entry on the same line as a newer one, where Neovim drops it. Both are recorded in `KNOWN_LIMITATIONS.md`.
     - Plugin: `src/workspace/note-switch-jumps.ts`, `src/workspace/in-note-jumps.ts`, `src/vim/jumplist.ts`, `src/workspace/global-defaults.ts`, `src/workspace/navigate.ts`, `src/flash/{jump,char,search}-mode.ts`, `src/easymotion/register.ts`, `src/main.ts`
     - Fork: `src/vim.js` (`setJumpRecordedCallback`), released as codemirror-vim 6.4.8
-
 - **In Obsidian's table editor, keys table-nav does not use were typed into the cell** ([#167](https://github.com/saberzero1/motions/issues/167)). Table-nav, on by default, holds vim off while it keeps the cell editor hidden but focused. So a key outside its keymap reached the cell as text and was written to the note: `u`, `zz` and `x` made `Name` into `uzzxName`. After a click on `bb`, `x` made it `bxb`. Such keys now do nothing.
     - **A second race in the same mode:** table-nav sends `i` to the cell's vim only once the cell editor is up, 150 ms on. Keys typed in between ran as normal-mode commands, so `iq` started recording a macro and `iHi` typed nothing. They are now held and played after the `i`.
     - **Visual mode still ends at a native table:** Obsidian's widget moves the cursor into its cell editor as soon as a selection reaches it. `set tablewidget=reveal` keeps the table as lines, where `V` extends through its rows. This is recorded in `KNOWN_LIMITATIONS.md`.
