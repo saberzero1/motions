@@ -59,6 +59,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The picker's "Results" title covered the first result** ([#171](https://github.com/saberzero1/motions/issues/171)). The title took its height from the theme's line height, so a theme with a taller one covered the first result again. At a line height of 2.4 it overlapped the first result's text by 13.6 px. Even in the default theme its edge sat 1.2 px into the first result's box. It now has a height of its own, centred on the border, and the list clears it by 3 px in any theme.
     - Plugin: `styles.css`
 
+### Changed
+
+- **Input method state follows the focused editing area** — the bundled IME manager now saves Markdown notes by vault and file path, tracks stable identities for plugin inputs and search boxes, serializes process queries and switches, and rejects stale restores after a newer focus event. Window `blur`/`focus` covers switches to and from other Windows applications, including systems that use Alt+Shift for input-method switching. Returning to the same stable area leaves the system-managed IM unchanged; only returning to a different area triggers a restore. The focusout-before-blur browser event order is handled so this rule is stable across application switches, and opening a new note in the same editor reconciles its Normal mode immediately.
+    - Plugin: `src/im/input-method-manager.ts`, `src/im/types.ts`, `src/im/im-mode-watcher.ts`, `src/main.ts`
+- **Configurable cross-application IM memory behavior** — **Settings → Input method → System remembers IM state across apps** defaults to enabled for the current behavior. Disable it to actively restore the focused area's input method every time Obsidian regains focus.
+    - Plugin: `src/settings.ts`, `src/im/input-method-manager.ts`
+
+### Added
+
+- **Search box default IM setting** — **Settings → Input method** now provides `Search box default IM`, defaulting to `1033` for a search box with no saved identity.
+    - Plugin: `src/settings.ts`
+
 ### Tests
 
 - **`vimrc-feature-key-overrides.e2e.ts` loads a vimrc with `nmap gw <Plug>(easymotion-bd-w)` and `nnoremap Y yy` the way Obsidian's start does.** That means a cold plugin load followed by exactly one leaf change. Earlier tests reloaded the vimrc after startup, which is what hid the defect.
@@ -143,6 +155,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Gating table-nav on the stored setting fails the no-backend scenario, A2 and A3.
         - Never moving `native` fails the first migration scenario.
         - A marker that defaults to `false` fails the first scenario and moves a `native` picked on fresh settings to `auto`.
+- **`test/unit/input-method-manager.test.ts` covers note-path persistence, same-area external-window return, focusout-before-blur ordering, same-editor note replacement, different-area restoration, stale restore cancellation, and Insert → Normal save ordering.** The negative controls remove same-area restore suppression, focusout-before-blur recovery, same-editor reconciliation, forced different-area restore, or the pre-mode save snapshot; the tests then observe an unwanted switch, an unwanted same-area restore, no Normal-mode switch, no target restore, or the old IM value respectively.
+    - **`test/unit/im-switcher.test.ts`** retains the compatibility surface and composition behavior while the implementation moves to `InputMethodManager`.
+
+### Documentation
+
+- `README.md`
+- `AGENTS.md`
+- `CONTRIBUTING.md`
+- `docs/configuration/settings.md`
+- `Vim_Motions_IME_重构需求与技术路线.md`
 
 ## [1.5.0] - 2026-10-31
 

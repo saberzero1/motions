@@ -138,6 +138,13 @@ npm run build
         metadata.ts            # Immutable heading ranges/titles and fence languages keyed by exact EditorState
       types/
         lua-modules.d.ts       # Text-loader declaration for bundled Lua companion sources
+      im/
+        input-method-manager.ts # Focus-scoped input method state, serialized queries/switches, and stale-operation guards
+        types.ts              # Input method area identities, modes, and stable key helpers
+        im-switcher.ts        # Compatibility export for the InputMethodManager public surface
+        im-mode-watcher.ts    # Per-view Vim mode events and EditorView lookup for IM switching
+        composition-tracker.ts # Per-view IME composition tracking
+        im-process.ts         # External IM binary process management
       lua/
         coordinates.ts        # Typed byte/character/display adapter, text/legacy-position/extmark boundaries and string codec
         coordinate-wire.ts    # Lua argument/result marshalling, including raw byte-string results
