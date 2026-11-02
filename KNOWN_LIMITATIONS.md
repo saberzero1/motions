@@ -1428,6 +1428,16 @@ This is inherent to CM6's coordinate-based `moveVertically` and cannot be fixed 
 
 **Golden test coverage**: 3 golden comparison cases in `test/neovim/golden-data/g-commands.json` (`gk over heading preserves column`, `gk over heading then above preserves column`, `gk gj round-trip preserves column`), registered as known deviations in `test/neovim/deviations.ts`.
 
+### Formatting Live Preview reveals around the cursor
+
+Live Preview shows the markup of a link, a bold span or inline code only while the cursor is in it. So a wrapped paragraph containing them re-wraps as the cursor moves out of one. `gj` keeps its column in pixels, measured with that markup shown, and the text then moves under it. Measured on Obsidian 1.15.0, the first `gj` from x 316 in such a paragraph landed at x 176, and in Obsidian's own Vim at x 198. Neovim's column counts characters, so concealed text never moves it.
+
+Lines that do not wrap are not affected the same way. In the list of wikilinks from [#228](https://github.com/saberzero1/motions/issues/228), walked from after "kompendium" with a fresh column, `gj` and `gk` kept column 25 on every item, in the plugin and in Obsidian's own Vim. With a column left over from before the cursor was placed, `gj` landed at unrelated columns in a list of links: from column 10, at columns 25, 25, 12 and 27 (measured, 1.15.0). A click left the column over until [#228](https://github.com/saberzero1/motions/issues/228).
+
+~~**`gj` after a click went back to the column of the `gj` before it**~~: Fixed ([#228](https://github.com/saberzero1/motions/issues/228)). A click now resets the column, as in Vim.
+
+~~**`gj` stopped short of a last display row shorter than the column**~~: Fixed ([#228](https://github.com/saberzero1/motions/issues/228)). It now moves to the end of that row, as Neovim's does.
+
 ## Per-mode cursor shapes require bundled fork mode
 
 The per-mode cursor shape settings (block, bar, underline, hollow) only take effect when Obsidian's built-in Vim mode is disabled. With built-in Vim enabled, Obsidian renders its own block cursor and the plugin has no control over its shape. The `set guicursor=...` vimrc command is also only effective in bundled fork mode.

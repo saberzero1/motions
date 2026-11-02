@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`gj` after a click went back to the column of the `gj` before it** ([#228](https://github.com/saberzero1/motions/issues/228)). A click moves the cursor without a motion, so the screen column `gj` and `gk` keep was not reset, and the next `gj` headed for wherever the earlier ones had been going. Vim resets the column on a click. Measured on Obsidian 1.15.0: after `gj` presses at x 348, a click on column 13 and then `gj` went back to x 348. Obsidian's own Vim key bindings have the same gap, from the same upstream code.
+    - **`gj` also stopped short of a last display row shorter than the column**, where Neovim moves to the end of that row. The check for "nothing to move to" compared the character column with the column in pixels. Obsidian's own Vim key bindings stop there too.
+    - **Not changed:** in a paragraph with links or bold text, Live Preview shows each span's markup only while the cursor is in it. The paragraph re-wraps as the cursor leaves, and `gj` loses the column, in Obsidian's own Vim as well. This is recorded in `KNOWN_LIMITATIONS.md`.
+    - Fork: codemirror-vim 6.4.9 (`handleExternalSelection`, `findPosV`)
+
+### Tests
+
+- **`display-line-goal.e2e.ts` presses `gj` after a real click, and onto a short last display row**, on Obsidian 1.13.7 and 1.15.0.
+    - **Negative controls:**
+        - Without the reset, `gj` after the click returns to the old column.
+        - With the old check, `gj` stays at column 239 instead of reaching the last row's end at 254.
+    - The fork's `gj_after_external_cursor_move` and `gj_onto_shorter_last_row` fail the same two ways, on `[0,14]` and `[0,59]`.
+
 ## [1.5.1] - 2026-11-01
 
 ### Added
