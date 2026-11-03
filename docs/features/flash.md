@@ -10,6 +10,8 @@ Flash motions (inspired by [flash.nvim](https://github.com/folke/flash.nvim)) en
 
 When only one match exists, flash behaves identically to stock Vim: the cursor jumps immediately without showing labels.
 
+When Flash is enabled, a Latin target also matches Chinese characters by pinyin initial. For example, `fa` finds `啊` and `安`. The lookup is precomputed, so the extra matching does not call a pinyin conversion library during a jump. Ordinary Vim character motions keep their existing literal-character behavior.
+
 ## How it works
 
 1. Press `f` (or `F`, `t`, `T`) followed by a search character.
@@ -158,6 +160,10 @@ vim.opt.labelmatchfontsize = true
 ## Search mode (`/` and `?`)
 
 After committing a search with `/pattern` + `Enter`, flash labels appear on all visible matches. Press a label key to jump directly to that match — no need to cycle with `n`/`N`.
+
+Search patterns of up to four letters also match Chinese pinyin initials: `/aj` finds `安静` and `氨基`, while `/dg` finds `大g`. Chinese and English characters can be mixed in the matched text. Patterns with five or more characters keep the ordinary Vim search behavior.
+
+For these short pinyin-enabled patterns, Flash handles the search submission itself so Vim does not report a false “no match” before the labels appear. Ex commands such as substitutions continue to use Vim's native command line.
 
 Labels auto-clear when you press any non-label key, `Escape`, or `n`/`N`. This means the search dialog works exactly as expected during typing; labels only appear after you commit. Two-character labels are supported — typing the first character narrows the label set instead of dismissing labels.
 

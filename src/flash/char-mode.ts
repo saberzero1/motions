@@ -20,6 +20,7 @@ import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
 import { assignFlashLabels } from './labeler';
 import { waitForFlashLabel } from './label-input';
 import { recordInNoteJump } from '../workspace/in-note-jumps';
+import { findFlashCharacterPositions } from './character-match';
 
 function findCharTargetsCurrentLine(
     cm: CmAdapter,
@@ -29,23 +30,14 @@ function findCharTargetsCurrentLine(
     const cursor = cm.getCursor();
     const text = cm.getLine(cursor.line);
     const targets: Target[] = [];
-
-    if (forward) {
-        let idx = cursor.ch + 1;
-        while (idx < text.length) {
-            const found = text.indexOf(char, idx);
-            if (found === -1) break;
-            targets.push({ line: cursor.line, ch: found });
-            idx = found + 1;
-        }
-    } else {
-        let idx = cursor.ch - 1;
-        while (idx >= 0) {
-            const found = text.lastIndexOf(char, idx);
-            if (found === -1) break;
-            targets.push({ line: cursor.line, ch: found });
-            idx = found - 1;
-        }
+    for (const ch of findFlashCharacterPositions(
+        text,
+        cursor.ch,
+        char,
+        forward,
+        true,
+    )) {
+        targets.push({ line: cursor.line, ch });
     }
 
     return targets;
@@ -61,7 +53,9 @@ function findTargetsForFlash(
         return findCharTargetsCurrentLine(cm, char, forward);
     }
     const direction = forward ? 'forward' : 'backward';
-    return findCharTargets(cm, char, direction);
+    return findCharTargets(cm, char, direction, (text, target) =>
+        findFlashCharacterPositions(text, -1, target, true, true),
+    );
 }
 
 function applyTillOffset(

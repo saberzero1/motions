@@ -10,6 +10,15 @@ import type { OverlayHandle } from '../easymotion/overlay';
 import { filterVisibleTargets, showOverlay } from '../easymotion/overlay';
 import { FlashLabeler } from './labeler';
 import { recordInNoteJump } from '../workspace/in-note-jumps';
+import {
+    findFlashPatternMatches,
+    isFlashSearchPattern,
+} from './character-match';
+
+interface FlashSearchPattern {
+    source: string;
+    flags: string;
+}
 
 interface FlashSearchSettings {
     flashSearch: boolean;
@@ -19,15 +28,27 @@ interface FlashSearchSettings {
     labelMatchFontSize: boolean;
 }
 
-function findSearchMatchTargets(cm: CmAdapter): Target[] {
+function findSearchMatchTargets(
+    cm: CmAdapter,
+    override?: FlashSearchPattern,
+): Target[] {
     const vim = getVimApi();
     if (!vim) return [];
 
-    const searchState = vim.getSearchState?.(cm);
-    if (!searchState) return [];
+    let source: string;
+    let flags: string;
+    if (override) {
+        source = override.source;
+        flags = override.flags;
+    } else {
+        const searchState = vim.getSearchState?.(cm);
+        if (!searchState) return [];
 
-    const query = searchState.getQuery?.();
-    if (!query?.source) return [];
+        const query = searchState.getQuery?.();
+        if (!query?.source) return [];
+        source = query.source;
+        flags = query.flags;
+    }
 
     const view = cm.cm6;
     if (!view) return [];
@@ -35,15 +56,31 @@ function findSearchMatchTargets(cm: CmAdapter): Target[] {
     const text = view.state.doc.toString();
     let re: RegExp;
     try {
-        const flags = query.flags.includes('g')
-            ? query.flags
-            : query.flags + 'g';
-        re = new RegExp(query.source, flags);
+        const regexFlags = flags.includes('g') ? flags : flags + 'g';
+        re = new RegExp(source, regexFlags);
     } catch {
         return [];
     }
 
     const targets: Target[] = [];
+    const flashMatches = findFlashPatternMatches(
+        text,
+        source,
+        flags.includes('i'),
+    );
+    if (flashMatches) {
+        for (const match of flashMatches) {
+            const pos = cm.posFromIndex(match.index);
+            targets.push({
+                line: pos.line,
+                ch: pos.ch,
+                matchLength: match.length,
+            });
+            if (targets.length > 500) break;
+        }
+        return targets;
+    }
+
     let match: RegExpExecArray | null;
     while ((match = re.exec(text)) !== null) {
         const pos = cm.posFromIndex(match.index);
@@ -65,6 +102,7 @@ export function enableFlashSearch(
 ): () => void {
     let lastAdapter: CmAdapter | null = null;
     let searchWasOpen = false;
+    let skipNextPostCommit = false;
     let postCommitHandler: ((e: KeyboardEvent) => void) | null = null;
     let postCommitOverlay: OverlayHandle | null = null;
 
@@ -82,13 +120,25 @@ export function enableFlashSearch(
         if (isFlashActive()) setFlashActive(false);
     };
 
-    const showPostCommitLabels = (cm: CmAdapter) => {
+    const showPostCommitLabels = (
+        cm: CmAdapter,
+        pattern?: FlashSearchPattern,
+    ) => {
         if (!settings.flashSearch) return;
         if (isFlashActive()) return;
 
-        const rawTargets = findSearchMatchTargets(cm);
+        const rawTargets = findSearchMatchTargets(cm, pattern);
         const targets = filterVisibleTargets(cm, rawTargets);
-        if (targets.length < 2) return;
+        if (targets.length === 0) return;
+        if (targets.length === 1) {
+            const target = targets[0]!;
+            const cursor = cm.getCursor();
+            if (target.line !== cursor.line || target.ch !== cursor.ch) {
+                recordInNoteJump(app, cm, cursor, target);
+                cm.setCursor(target.line, target.ch);
+            }
+            return;
+        }
 
         setFlashActive(true);
         const cursor = cm.getCursor();
@@ -177,11 +227,52 @@ export function enableFlashSearch(
             }
         } else if (searchWasOpen) {
             searchWasOpen = false;
+            if (skipNextPostCommit) {
+                skipNextPostCommit = false;
+                return;
+            }
             const adapter = lastAdapter;
             window.setTimeout(() => {
                 showPostCommitLabels(adapter);
             }, 100);
         }
+    };
+
+    const flashSearchSubmitHandler = (e: KeyboardEvent) => {
+        if (!settings.flashSearch || e.isComposing || e.key !== 'Enter') {
+            return;
+        }
+
+        const adapter = lastAdapter;
+        const dialog = adapter?.state?.dialog;
+        if (!adapter || !dialog) return;
+
+        const prefix = getDialogPrefix(dialog);
+        if (prefix !== '/' && prefix !== '?') return;
+
+        const input = dialog.querySelector<HTMLInputElement>('input');
+        if (!input) return;
+        const source = input.value;
+        if (!isFlashSearchPattern(prefix, source)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        skipNextPostCommit = true;
+
+        const vim = getVimApi();
+        const ignoreCase =
+            vim?.getOption('ignorecase') === true &&
+            (vim.getOption('smartcase') !== true || !/[A-Z]/.test(source));
+        vim?.clearInputState?.(adapter, 'flash-search');
+        input.blur();
+
+        window.setTimeout(() => {
+            showPostCommitLabels(adapter, {
+                source,
+                flags: ignoreCase ? 'i' : '',
+            });
+        }, 0);
     };
 
     const attachToAdapter = (adapter: CmAdapter) => {
@@ -202,9 +293,15 @@ export function enableFlashSearch(
 
     leafChangeHandler();
     app.workspace.on('active-leaf-change', leafChangeHandler);
+    activeDocument.addEventListener('keydown', flashSearchSubmitHandler, true);
 
     return () => {
         cleanupPostCommit();
+        activeDocument.removeEventListener(
+            'keydown',
+            flashSearchSubmitHandler,
+            true,
+        );
         if (lastAdapter) {
             lastAdapter.off('dialog', dialogHandler);
             lastAdapter = null;

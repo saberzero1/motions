@@ -246,6 +246,8 @@ Enhanced character search — when multiple matches are visible, labels appear f
 | `t{char}`  | Till before `{char}` forward                                   |
 | `T{char}`  | Till after `{char}` backward                                   |
 
+For Flash motions, a Latin `{char}` also matches Chinese characters with the same pinyin initial. For example, `fa` includes `啊` and `安`; this applies only while Flash is enabled.
+
 Flash works with operators (`df`, `cf`, `yf`) and visual mode (`vf`). Repeat with `;` and `,`.
 
 ### Flash jump mode
@@ -261,6 +263,8 @@ The trigger key is configurable via `set flashjumpkey=<key>`.
 ### Flash search labels
 
 After committing a `/` or `?` search, labels appear on all visible matches for direct jumping.
+
+Patterns up to four letters also match Chinese pinyin initials: `/aj` finds `安静` and `氨基`, and `/dg` finds `大g`. Patterns with five or more characters use ordinary Vim search matching.
 
 ## EasyMotion find motions
 
