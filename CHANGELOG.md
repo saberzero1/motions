@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visual-line mode (`V`) now gives the editor the whole lines it selects** ([#231](https://github.com/saberzero1/motions/issues/231)). It used to give it only a cursor, so `EditorState.selection` and `listSelections()` showed nothing selected, and other plugins could not see the selection. It now works like `v`, like upstream codemirror-vim and like Obsidian's own Vim key bindings.
     - **What you will see:** in Live Preview, links, formatting marks and callouts on the selected lines show as source, as they already do under `v`. A table stays rendered and keeps its highlight.
     - **The cursor keeps its column**, as in Neovim. It was drawn at column 0. Measured in Neovim 0.12.5: `wwVj` reports `col('.') == 12`.
-    - Fork: codemirror-vim (`updateCmSelection`, `makeCmSelection`, `measureCursor`)
+    - Fork: codemirror-vim 6.4.10 (`updateCmSelection`, `makeCmSelection`, `measureCursor`)
     - Plugin: `src/vim/visual-line-cursor.ts`, `src/vim/animated-cursor/controller.ts`
 
 ### Removed
