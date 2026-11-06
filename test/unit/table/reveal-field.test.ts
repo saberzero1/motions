@@ -4,6 +4,7 @@ import {
     EditorState,
     StateEffect,
     StateField,
+    type Extension,
     type Range,
 } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType } from '@codemirror/view';
@@ -113,9 +114,20 @@ const DOC = [
     'Below',
 ].join('\n');
 
-function setup(widget?: FakeTableWidget): EditorState {
+const UNRELATED = StateEffect.define<null>();
+
+/**
+ * Obsidian's fold filter, reduced to its shape: on every edit it returns
+ * `[tr, spec]` rather than a transaction, which has CodeMirror resolve the
+ * transaction again — extenders included — before running them once more.
+ */
+const obsidianFoldFilter = EditorState.transactionFilter.of((tr) =>
+    tr.docChanged ? [tr, { effects: UNRELATED.of(null) }] : tr,
+);
+
+function setup(widget?: FakeTableWidget, extra: Extension[] = []): EditorState {
     expect(captureHighlightChannel(fakeEditor)).not.toBeNull();
-    const extensions = [obsidianHighlights, revealStateExtension()];
+    const extensions = [obsidianHighlights, revealStateExtension(), ...extra];
     if (widget) {
         extensions.push(
             EditorView.decorations.of(
@@ -370,6 +382,54 @@ describe('reveal extender', () => {
         const start = setup(widget);
         start.update({ selection: { anchor: lineStart(start, 8) } });
         expect(widget.start).toBe(12);
+    });
+
+    // #167: `yyp` on a row drew a search ring on the pasted row. The filter
+    // made the extender run twice, and each run added the new row's mark.
+    it('marks a pasted row once when a filter has the extender run twice', () => {
+        const start = setup(undefined, [obsidianFoldFilter]);
+        const inside = start.update({
+            selection: { anchor: lineStart(start, 5) + 2 },
+        }).state;
+        const end = inside.doc.line(5).to;
+        const pasted = inside.update({
+            changes: { from: end, insert: '\n| aa   | 11    |' },
+            selection: { anchor: end + 1 },
+        }).state;
+        expect(marks(pasted)).toEqual(rows(pasted, 3, 7));
+        expect(pasted.field(revealField).highlights).toEqual(marks(pasted));
+    });
+
+    it('keeps no mark behind when it withdraws after a filter ran it twice', () => {
+        const start = setup(undefined, [obsidianFoldFilter]);
+        const inside = start.update({
+            selection: { anchor: lineStart(start, 5) + 2 },
+        }).state;
+        const end = inside.doc.line(5).to;
+        const pasted = inside.update({
+            changes: { from: end, insert: '\n| aa   | 11    |' },
+            selection: { anchor: end + 1 },
+        }).state;
+        const outside = pasted.update({
+            selection: { anchor: lineStart(pasted, 9) },
+        }).state;
+        expect(marks(outside)).toEqual([]);
+    });
+
+    // CodeMirror keeps the rest of a mark whose start a deletion takes; a
+    // record that dropped it could not filter it out, and it stayed drawn.
+    it('follows a deletion across a row’s start, in its own record and in Obsidian’s', () => {
+        const start = setup();
+        const inside = start.update({
+            selection: { anchor: lineStart(start, 5) + 2 },
+        }).state;
+        const from = lineStart(inside, 5) + 4;
+        const deleted = inside.update({
+            changes: { from, to: lineStart(inside, 6) + 3 },
+            selection: { anchor: lineStart(inside, 5) + 2 },
+        }).state;
+        expect(marks(deleted)).toEqual(rows(deleted, 3, 5));
+        expect(deleted.field(revealField).highlights).toEqual(marks(deleted));
     });
 
     it('reveals every table a visual selection spans', () => {

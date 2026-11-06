@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Plugins reading the selection saw nothing in visual-line mode** ([#231](https://github.com/saberzero1/motions/issues/231)). `cm.listSelections()` and `EditorState.selection` put the anchor and head at one point, while only `Editor.getSelection()` returned the lines. See **Changed**.
 - **Escape in a focused nested preview left the preview beneath it open for good** ([#208](https://github.com/saberzero1/motions/issues/208)). Closing the focused preview left the focus nowhere. The next Escape went to the note, and the preview beneath stayed open with no key left to close it. Closing a focused preview, by Escape or `q`, now returns you to where it was opened from: the preview beneath it, with its cursor where it was, or the note. This is what closing a Neovim float does.
     - Plugin: `src/vim/escape-guard.ts` (`dismissParentPopover`)
+- **A revealed table drew Obsidian's blue search ring around rows after an edit** ([#167](https://github.com/saberzero1/motions/issues/167)). `yyp` drew it around the pasted row, pasting several rows drew one around each, and a deletion that took the start of a row drew one around what was left. The reveal keeps a table as source with one search-match highlight per row, styled to stay invisible. Two bugs left a second one on a row, which looks like a real search match:
+    - **The reveal ran twice on every edit.** Obsidian's own fold filter makes CodeMirror run transaction extenders a second time. Both runs added each new row's highlight, and only one of them could be removed.
+    - **A deletion across a row's start dropped that row from the plugin's record**, while CodeMirror kept the rest of the highlight. The plugin could not remove what it no longer knew about.
+    - **Not font-dependent.** Measured from the report's video, every character in the revealed rows has the same advance. The uneven pipes there come from a row with more padding than the rows above it; `:tablerealign`, or `tableautorealign`, lines them up.
+    - Plugin: `src/vim/table/reveal/reveal-field.ts` (`revealExtender`, `mapReveal`)
 
 ### Tests
 
@@ -47,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - The synthetic #157 test that pressed `<Esc>` before `replaceSelection()` was retired. It exercised the removed snapshot rather than a user path. The real command-palette Note Composer extract still runs.
 - **`keyword-preview.e2e.ts` presses Escape twice in a nested preview opened by `K`/`KK`**, and `q` once.
     - **Negative control:** without the refocus, the focus is lost after the first Escape (`focusedIndex` -1), and the first preview is still open after the second (`count` 1). The `q` case fails the same way.
+- **`table-reveal-highlight-rings-issue167.e2e.ts` reads Obsidian's own highlight field after `yyp`, `yjP` and a deletion across a row's start**, and the nested highlights that draw the ring. `reveal-field.test.ts` adds the same cases behind a filter shaped like Obsidian's fold filter.
+    - **Negative controls**, recorded in `table-reveal-negative-controls.md` (E11, E12, U8, U9):
+        - Rebuilding from the start state on the second run leaves a second mark on each pasted row, nested at lines 4 and 5 for `yjP`.
+        - Mapping a row's start with `TrackDel` leaves `4:5-4:20`, the rest of the deleted row's mark.
 
 ## [1.5.1] - 2026-11-01
 

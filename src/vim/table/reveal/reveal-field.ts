@@ -1,6 +1,5 @@
 import {
     EditorState,
-    MapMode,
     StateEffect,
     StateField,
     type ChangeDesc,
@@ -41,11 +40,15 @@ export const requestReveal = StateEffect.define<null>();
 /**
  * Maps the state through `changes` the way CodeMirror maps a mark range.
  *
- * A mark maps its start with a positive association under
- * `MapMode.TrackDel` — dropped when a deletion spans it — and its end with a
- * negative one, and is dropped when the two meet. Mirroring that exactly keeps
- * this record equal to what Obsidian's highlight field holds, which is what
- * lets teardown remove precisely our highlights and nobody else's.
+ * Obsidian's highlight mark is not inclusive, so `RangeSet.map` maps its
+ * start with a positive association and its end with a negative one, and
+ * drops it once the two meet. `MapMode.TrackDel` plays no part: CodeMirror
+ * applies a value's map mode to empty ranges only. A deletion that takes a
+ * row's start but not its end therefore leaves the rest of that row's mark in
+ * Obsidian's field. Mirroring that exactly keeps this record equal to what the
+ * field holds, which is what lets the next filter remove precisely our
+ * highlights and nobody else's; a record that dropped the remainder left it in
+ * place, drawn as a search ring (#167).
  */
 function mapReveal(value: RevealState, changes: ChangeDesc): RevealState {
     if (value.highlights.length === 0 && value.tables.length === 0) {
@@ -53,8 +56,7 @@ function mapReveal(value: RevealState, changes: ChangeDesc): RevealState {
     }
     const highlights: RevealedSpan[] = [];
     for (const span of value.highlights) {
-        const from = changes.mapPos(span.from, 1, MapMode.TrackDel);
-        if (from === null) continue;
+        const from = changes.mapPos(span.from, 1);
         const to = changes.mapPos(span.to, -1);
         if (from < to) highlights.push({ from, to });
     }
@@ -70,12 +72,25 @@ const key = (from: number, to: number): string => `${from}:${to}`;
 export const revealField = StateField.define<RevealState>({
     create: () => EMPTY,
     update(value, tr) {
-        for (const effect of tr.effects) {
-            if (effect.is(setReveal)) return effect.value;
-        }
+        const set = lastReveal(tr.effects);
+        if (set) return set;
         return tr.docChanged ? mapReveal(value, tr.changes) : value;
     },
 });
+
+/**
+ * The reveal a transaction already records, if the extender has run on it.
+ * The last one wins, since a later run builds on the earlier.
+ */
+function lastReveal(
+    effects: readonly StateEffect<unknown>[],
+): RevealState | null {
+    let found: RevealState | null = null;
+    for (const effect of effects) {
+        if (effect.is(setReveal)) found = effect.value;
+    }
+    return found;
+}
 
 /** The part of an `EditorView` the extender needs: whether IME is composing. */
 interface ComposingSource {
@@ -158,7 +173,19 @@ function revealExtender(): Extension {
         // Obsidian built a widget that took the caret into a cell editor.
         if (viewOfState.get(tr.startState)?.composing) return null;
 
-        const external = tr.effects.some((e) => e.is(channel.filter));
+        // The extender can run more than once on one transaction. A
+        // transaction filter that returns a spec rather than a transaction
+        // has CodeMirror resolve it again, extenders included, and then the
+        // extenders run once more on the result — which already carries this
+        // extender's effects. Obsidian's own fold filter returns `[tr, …]` on
+        // every edit. Rebuilding from the start state then added each new
+        // row's highlight twice, and the second filter, keyed on the start
+        // state, could not remove the first: two nested marks, drawn as a
+        // search ring (#167). A later run builds on what the earlier recorded,
+        // and its own filter effect is not Obsidian clearing highlights.
+        const prior = lastReveal(tr.effects);
+        const external =
+            prior === null && tr.effects.some((e) => e.is(channel.filter));
         const requested = tr.effects.some((e) => e.is(requestReveal));
         if (!tr.docChanged && !tr.selection && !external && !requested) {
             return null;
@@ -167,9 +194,9 @@ function revealExtender(): Extension {
         const doc = tr.newDoc;
         const tables = tablesTouchedBy(doc, tr.newSelection);
         const desired = tables.flatMap((t) => rowRanges(doc, t));
-        const mapped = tr.docChanged
-            ? mapReveal(previous, tr.changes)
-            : previous;
+        const mapped =
+            prior ??
+            (tr.docChanged ? mapReveal(previous, tr.changes) : previous);
         if (!external && sameSpans(mapped.highlights, desired)) return null;
 
         const fresh = tables.filter(
