@@ -30,7 +30,18 @@ const CALLOUT_DOC = [
     'Trailing paragraph',
 ].join('\n');
 
+const TABLE_DOC = [
+    '# Heading',
+    '',
+    '| a | b |',
+    '| - | - |',
+    '| 1 | 2 |',
+    '',
+    'Trailing paragraph',
+].join('\n');
+
 const STALE = '.cm-vim-linewise-widget-selection';
+const TABLE_WIDGET = '.cm-content .cm-embed-block.cm-table-widget';
 const CALLOUT_WIDGET = '.cm-content > .cm-embed-block.cm-callout';
 
 interface CalloutState {
@@ -47,6 +58,17 @@ async function calloutState(): Promise<CalloutState> {
             highlighted: document.querySelectorAll(staleSel).length,
         }),
         CALLOUT_WIDGET,
+        STALE,
+    )) as CalloutState;
+}
+
+async function tableState(): Promise<CalloutState> {
+    return (await browser.executeObsidian(
+        (_ctx, widgetSel: string, staleSel: string) => ({
+            rendered: document.querySelector(widgetSel) !== null,
+            highlighted: document.querySelectorAll(staleSel).length,
+        }),
+        TABLE_WIDGET,
         STALE,
     )) as CalloutState;
 }
@@ -119,24 +141,25 @@ describe('Linewise widget selection over callouts (#190)', function () {
         expect(after.highlighted).toBe(0);
     });
 
-    it('still highlights a callout the selection covers, and clears it on yank', async function () {
+    // A selection that covers a callout now reaches the editor (#231), so Live
+    // Preview shows the callout as source, as it does under `v`. A table stays
+    // a widget under a selection, so it is what proves the feature still
+    // paints: "nothing is highlighted" would otherwise also pass for a build
+    // that highlights nothing at all.
+    it('still highlights a table the selection covers, and clears it on yank', async function () {
+        await setupEditor(TABLE_DOC, { line: 0, ch: 0 });
+        await sendVimEscape();
+        await browser.pause(150);
         await press('V');
         await press('G');
 
-        // The cursor never enters the callout here, so it stays a widget for
-        // the whole selection. Proves the feature under test still paints —
-        // "nothing is highlighted" would otherwise also pass for a build that
-        // highlights nothing at all.
-        const during = await calloutState();
-        expect(during.rendered).toBe(true);
-        expect(during.highlighted).toBe(1);
+        const during = await tableState();
+        expect(during).toEqual({ rendered: true, highlighted: 1 });
 
         await press('y');
         await browser.pause(500);
 
-        const after = await calloutState();
-        expect(after.rendered).toBe(true);
-        expect(after.highlighted).toBe(0);
+        expect(await tableState()).toEqual({ rendered: true, highlighted: 0 });
     });
 
     it('leaving visual-line mode inside a callout leaves no highlight behind', async function () {

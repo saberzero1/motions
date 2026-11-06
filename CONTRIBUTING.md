@@ -175,7 +175,7 @@ src/
     undo-tree-view.ts      # Undo tree sidebar view (DOM rendering, keyboard nav, click-to-navigate)
     yank-highlight.ts      # Yank highlight flash effect (mark decorations + YankWidgetHighlight for rendered blocks)
     yank-ring.ts           # Yank-ring paste cycling
-    visual-line-command-fix.ts  # Visual line command edge-case fixes
+    visual-line-cursor.ts  # Where a visual-line selection draws its cursor: vim's head, not the linewise range's end
     linewise-widget-highlight.ts  # Visual-line highlight for replaced widget blocks
     block-widgets.ts       # blockWidgetSpans(): rendered block widgets with the document lines they replace — mark decorations cannot reach these
     fold-sync.ts               # Fold state synchronization + Neovim-compatible foldopen (annotation-gated unfold) + unfoldEffect range normalizer + propertiesFoldObserver (is-collapsed filter)

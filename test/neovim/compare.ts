@@ -46,14 +46,31 @@ export async function getObsidianState(): Promise<EditorState> {
             .cm as Record<string, unknown>;
         const vim = (cm?.cm as Record<string, unknown> | undefined)?.state as
             Record<string, unknown> | undefined;
-        const vimState = vim?.vim as Record<string, unknown> | undefined;
+        const vimState = vim?.vim as
+            | (Record<string, unknown> & {
+                  sel?: { head: { line: number; ch: number } };
+              })
+            | undefined;
         if (!vimState) return null;
-        if (vimState.visualBlock) return 'blockwise';
-        if (vimState.visualLine) return 'linewise';
-        if (vimState.visualMode) return 'charwise';
+        if (vimState.visualBlock) return { mode: 'blockwise' as const };
+        if (vimState.visualLine) {
+            const head = vimState.sel?.head;
+            return {
+                mode: 'linewise' as const,
+                head: head ? { line: head.line, ch: head.ch } : undefined,
+            };
+        }
+        if (vimState.visualMode) return { mode: 'charwise' as const };
         return null;
-    })) as 'charwise' | 'linewise' | 'blockwise' | null;
-    state.visualMode = visualInfo;
+    })) as {
+        mode: 'charwise' | 'linewise' | 'blockwise';
+        head?: { line: number; ch: number };
+    } | null;
+    state.visualMode = visualInfo?.mode ?? null;
+    // A visual-line selection reaches the editor as whole lines (#231), so
+    // the editor's head is a line boundary and says nothing of the cursor.
+    // Neovim reports vim's own head, which keeps its column.
+    if (visualInfo?.head) state.cursor = visualInfo.head;
 
     return state;
 }

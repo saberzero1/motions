@@ -11,25 +11,12 @@ import {
 /**
  * Issue #138 — Note Refactor "Extract selection" did not remove content in V-LINE.
  *
- * Root cause hypothesis: The `withExpandedSelection` wrapper in
- * `visual-line-command-fix.ts` expands the CM6 selection synchronously,
- * calls the command callback, then immediately restores cursor-only in the
- * `finally` block. But community plugins like Note Refactor have ASYNC
- * callbacks — by the time they call `editor.replaceSelection()`, the CM6
- * selection has already been restored to cursor-only.
- *
- * Flow (Note Refactor):
- *   1. executeCommand → withExpandedSelection expands CM6 selection
- *   2. callback fires (async): editModeGuard → extractSelectionFirstLine
- *   3. withExpandedSelection's `finally` block restores cursor-only IMMEDIATELY
- *   4. ...awaits: createFile, writeContent, generateLink...
- *   5. doc.replaceSelection(link) — CM6 selection is now cursor-only → NOOP
- *
- * This regression suite verifies:
- *   1. getSelection() works in V-LINE (already patched) ✓
- *   2. Synchronous replaceSelection() works in V-LINE (via executeCommand) ✓
- *   3. Async replaceSelection() works in V-LINE.
- *   4. Direct replaceSelection() without executeCommand works.
+ * The fork gave the editor a cursor-only selection in visual-line mode, and a
+ * wrapper expanded it only for the duration of a command's synchronous
+ * callback. Note Refactor's callback is async: by the time it called
+ * `editor.replaceSelection()` the selection had collapsed again, so nothing
+ * was replaced. The editor now holds the real linewise selection (#231), so
+ * an async caller finds it where it left it.
  *
  * @see https://github.com/saberzero1/motions/issues/138
  * @see https://github.com/lynchjames/note-refactor-obsidian (Note Refactor)

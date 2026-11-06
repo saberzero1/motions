@@ -293,4 +293,44 @@ describe('animated cursor and edits (#181)', function () {
         expect(after.painted).toBe(true);
         expect(Math.abs(after.left - caret)).toBeLessThan(2);
     });
+
+    // A visual-line selection hands the editor whole lines (#231), so the
+    // selection's head is the end of the last line. The cursor is vim's head,
+    // which keeps its column: column 6, the `b` of `beta`.
+    it('in visual-line mode stays on the column, not the line end', async function () {
+        await setupEditor('alpha beta\nsecond line here', { line: 0, ch: 6 });
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await browser.keys(['V']);
+        await browser.pause(150);
+        const cursor = await paintedNow();
+        const columns = (await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const cm = (
+                view?.editor as unknown as {
+                    cm?: {
+                        coordsAtPos(
+                            pos: number,
+                            side?: number,
+                        ): {
+                            left: number;
+                        } | null;
+                    };
+                }
+            )?.cm;
+            return {
+                column: cm?.coordsAtPos(6, 1)?.left ?? Number.NaN,
+                lineEnd: cm?.coordsAtPos(9, 1)?.left ?? Number.NaN,
+            };
+        })) as { column: number; lineEnd: number };
+        await browser.keys(['Escape']);
+
+        expect({
+            painted: cursor.painted,
+            onColumn: Math.abs(cursor.left - columns.column) < 2,
+            onLineEnd: Math.abs(cursor.left - columns.lineEnd) < 2,
+        }).toEqual({ painted: true, onColumn: true, onLineEnd: false });
+    });
 });

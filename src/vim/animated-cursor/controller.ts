@@ -24,6 +24,7 @@ import {
     isReducedMotion,
 } from './config';
 import { getCmAdapterFromEditorView } from '../vim-api';
+import { visualLineCursorPos } from '../visual-line-cursor';
 import { resolveVimModeWithExternal } from '../external-mode';
 import {
     setCursorSuppressedForView,
@@ -547,8 +548,9 @@ class CursorController implements Tickable {
     private refreshTarget(): void {
         try {
             const sel = this.view.state.selection.main;
-            let pos = sel.head;
-            if (sel.anchor < sel.head) {
+            const visualLine = visualLineCursorPos(this.view);
+            let pos = visualLine ?? sel.head;
+            if (visualLine === null && sel.anchor < sel.head) {
                 const line = this.view.state.doc.lineAt(pos);
                 if (pos > line.from) pos--;
             }

@@ -7,12 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Visual-line mode (`V`) now gives the editor the whole lines it selects** ([#231](https://github.com/saberzero1/motions/issues/231)). It used to give it only a cursor, so `EditorState.selection` and `listSelections()` showed nothing selected, and other plugins could not see the selection. It now works like `v`, like upstream codemirror-vim and like Obsidian's own Vim key bindings.
+    - **What you will see:** in Live Preview, links, formatting marks and callouts on the selected lines show as source, as they already do under `v`. A table stays rendered and keeps its highlight.
+    - **The cursor keeps its column**, as in Neovim. It was drawn at column 0. Measured in Neovim 0.12.5: `wwVj` reports `col('.') == 12`.
+    - Fork: codemirror-vim (`updateCmSelection`, `makeCmSelection`, `measureCursor`)
+    - Plugin: `src/vim/visual-line-cursor.ts`, `src/vim/animated-cursor/controller.ts`
+
+### Removed
+
+- **The workaround layer for the old visual-line selection.** `src/vim/visual-line-command-fix.ts` patched Obsidian's `Editor` methods, the command registry and every command's `checkCallback`. The fork also widened the selection for each key vim did not handle. With the real selection, Obsidian's commands, Note Composer and async callers such as Note Refactor see it unaided.
+
 ### Fixed
 
 - **`gj` after a click went back to the column of the `gj` before it** ([#228](https://github.com/saberzero1/motions/issues/228)). A click moves the cursor without a motion, so the screen column `gj` and `gk` keep was not reset, and the next `gj` headed for wherever the earlier ones had been going. Vim resets the column on a click. Measured on Obsidian 1.15.0: after `gj` presses at x 348, a click on column 13 and then `gj` went back to x 348. Obsidian's own Vim key bindings have the same gap, from the same upstream code.
     - **`gj` also stopped short of a last display row shorter than the column**, where Neovim moves to the end of that row. The check for "nothing to move to" compared the character column with the column in pixels. Obsidian's own Vim key bindings stop there too.
     - **Not changed:** in a paragraph with links or bold text, Live Preview shows each span's markup only while the cursor is in it. The paragraph re-wraps as the cursor leaves, and `gj` loses the column, in Obsidian's own Vim as well. This is recorded in `KNOWN_LIMITATIONS.md`.
     - Fork: codemirror-vim 6.4.9 (`handleExternalSelection`, `findPosV`)
+- **Plugins reading the selection saw nothing in visual-line mode** ([#231](https://github.com/saberzero1/motions/issues/231)). `cm.listSelections()` and `EditorState.selection` put the anchor and head at one point, while only `Editor.getSelection()` returned the lines. See **Changed**.
 
 ### Tests
 
@@ -21,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Without the reset, `gj` after the click returns to the old column.
         - With the old check, `gj` stays at column 239 instead of reaching the last row's end at 254.
     - The fork's `gj_after_external_cursor_move` and `gj_onto_shorter_last_row` fail the same two ways, on `[0,14]` and `[0,59]`.
+- **`visual-line-editor-selection.e2e.ts` reads what a `V` selection gives the editor**: `EditorState.selection`, `listSelections()`, `getSelection()` and the column the cursor is drawn at, for `V`, `Vj` and an upward `Vk`. `animated-cursor-edits.e2e.ts` checks the animated cursor's column.
+    - **Negative controls:**
+        - With the old fork, every case fails as the report describes: head equal to anchor at `(0,0)`, and `getSelection()` empty. The visual-line command, Note Composer and Note Refactor specs fail too, now that the workaround layer is gone.
+        - With the fork's cursor branch removed, the cursor is drawn at the end of the range: `ch` 10 and 16 instead of 6.
+        - With the plugin helper removed, the animated cursor sits on the line end.
+    - The fork's `visual_line_editor_selection` and `visual_line_editor_selection_backwards` fail on the old bundle.
+    - **Golden comparisons now read a `V` cursor from vim's head**, since the editor's head is now a line boundary.
+    - `linewise-widget-selection-issue190.e2e.ts` proves the widget highlight on a table, which stays rendered under the selection, instead of a callout, which now shows as source.
+    - The synthetic #157 test that pressed `<Esc>` before `replaceSelection()` was retired. It exercised the removed snapshot rather than a user path. The real command-palette Note Composer extract still runs.
 
 ## [1.5.1] - 2026-11-01
 

@@ -10,15 +10,14 @@ import {
 } from '../helpers';
 
 /**
- * Issue #137: Note Composer "Extract current selection" doesn't work in V-LINE
+ * Issue #137: Note Composer "Extract current selection" didn't work in V-LINE.
  *
- * Root cause: In visual-line mode, the codemirror-vim fork sets a cursor-only
- * CM6 selection (to avoid uncollapsing hidden markup). This means
- * editor.somethingSelected() returns false, so commands that check for a
- * selection (like Note Composer's "Extract current selection") silently fail.
- *
- * The existing visual-line-command-fix patches executeCommand, but the command
- * palette calls the command's checkCallback directly (bypassing executeCommand).
+ * The fork used to give the editor a cursor-only selection in visual-line
+ * mode, so `editor.somethingSelected()` was false and selection commands
+ * silently did nothing; a patch layer over Obsidian's `Editor` and command
+ * registry papered over it. The editor now holds the real linewise selection
+ * (#231) and the patch layer is gone, so these are checks that Obsidian's own
+ * commands see a visual-line selection with nothing in between.
  */
 describe('Visual-line mode command integration (#137)', function () {
     before(async function () {
@@ -144,78 +143,6 @@ describe('Visual-line mode command integration (#137)', function () {
             .filter((l: string) => /^\d+\.\s/.test(l));
 
         expect(numberedLines.length).toBe(3);
-    });
-
-    it('replaceSelection should work after visual-line mode is exited (#157)', async function () {
-        await setupEditor('alpha\nbeta\ngamma\ndelta\nepsilon', {
-            line: 1,
-            ch: 0,
-        });
-
-        await sendVimEscape();
-        await browser.pause(PAUSE.MODE_SWITCH);
-        await browser.keys(['V']);
-        await browser.pause(PAUSE.KEY_GAP);
-        await browser.keys(['j']);
-        await browser.pause(PAUSE.EDITOR_SETTLE);
-
-        const mode = await getVimMode();
-        expect(mode).toBe('visual');
-
-        const result = await browser.executeObsidian(({ app, obsidian }) => {
-            return new Promise<{
-                selection: string;
-                valueAfter: string;
-            }>((resolve) => {
-                const view = app.workspace.getActiveViewOfType(
-                    obsidian.MarkdownView,
-                );
-                if (!view) {
-                    resolve({ selection: '', valueAfter: '' });
-                    return;
-                }
-                const editor = view.editor;
-
-                const sel = editor.getSelection();
-
-                const editorView = (
-                    editor as unknown as {
-                        cm: import('@codemirror/view').EditorView;
-                    }
-                ).cm;
-                const cm = (editorView as unknown as { cm?: unknown }).cm;
-                const vimApi = (
-                    window as unknown as {
-                        CodeMirrorAdapter?: {
-                            Vim?: {
-                                handleKey: (cm: unknown, key: string) => void;
-                            };
-                        };
-                    }
-                ).CodeMirrorAdapter?.Vim;
-                if (vimApi && cm) {
-                    vimApi.handleKey(cm, '<Esc>');
-                }
-
-                setTimeout(() => {
-                    editor.replaceSelection('[[extracted]]');
-                    setTimeout(() => {
-                        resolve({
-                            selection: sel,
-                            valueAfter: editor.getValue(),
-                        });
-                    }, 100);
-                }, 200);
-            });
-        });
-
-        expect(result.selection).toContain('beta');
-        expect(result.selection).toContain('gamma');
-        expect(result.valueAfter).toContain('[[extracted]]');
-        expect(result.valueAfter).not.toContain('beta');
-        expect(result.valueAfter).not.toContain('gamma');
-        expect(result.valueAfter).toContain('alpha');
-        expect(result.valueAfter).toContain('delta');
     });
 
     it('real command palette: toggle numbered list in visual-line mode (#157)', async function () {

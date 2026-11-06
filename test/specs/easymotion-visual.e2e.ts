@@ -195,8 +195,7 @@ describe('EasyMotion visual mode', function () {
                 await browser.keys([secondLabel]);
                 await browser.pause(300);
 
-                // Visual-line uses cursor-only CM6 selection, so
-                // getSelection() returns "". Yank and check the register.
+                // Yank and check the register, which is what the jump selected.
                 await browser.keys(['y']);
                 await browser.pause(300);
                 const reg = await getRegisterContent('"');

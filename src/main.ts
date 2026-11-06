@@ -176,10 +176,6 @@ import { navigateToHarpoonPin } from './vim/harpoon-nav';
 import { createHarpoonSource } from './picker/sources/harpoon';
 import type { VimYankEvent, CmAdapter, MapContext } from './types/vim-api';
 
-import {
-    installVisualLineCommandFix,
-    visualLineSelectionSyncExtension,
-} from './vim/visual-line-command-fix';
 import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
 import { createAnimatedCursorExtension } from './vim/animated-cursor/controller';
 import {
@@ -385,7 +381,6 @@ export default class VimMotionsPlugin extends Plugin {
     insertEscapeHandler: InsertEscapeHandler | null = null;
     whichKeyOverlay: WhichKeyOverlay | null = null;
     private flashSearchCleanup: (() => void) | null = null;
-    private uninstallVisualLineFix: (() => void) | null = null;
     private uninstallTableCellMotions: (() => void) | null = null;
 
     private yankHighlightCleanup: (() => void) | null = null;
@@ -3031,9 +3026,7 @@ export default class VimMotionsPlugin extends Plugin {
         installEscapeGuard(this.app);
         this.installTokenClassifier();
 
-        this.uninstallVisualLineFix = installVisualLineCommandFix(this.app);
         this.vimExtensionSlot.push(linewiseWidgetHighlightExtension());
-        this.vimExtensionSlot.push(visualLineSelectionSyncExtension());
 
         this.initializing = false;
     }
@@ -3113,8 +3106,6 @@ export default class VimMotionsPlugin extends Plugin {
         this.globalKeyHandler = null;
         this.globalRegistry = null;
         this.cleanupHintModeWindows();
-        this.uninstallVisualLineFix?.();
-        this.uninstallVisualLineFix = null;
         this.uninstallTableCellMotions?.();
         this.uninstallTableCellMotions = null;
         this.exSuggest?.destroy();
