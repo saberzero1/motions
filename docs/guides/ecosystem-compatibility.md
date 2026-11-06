@@ -19,9 +19,7 @@ These mechanisms are not targeted at specific plugins — they ensure compatibil
 
 ## Built-in vim mode
 
-When built-in vim is enabled, the plugin extends Obsidian's bundled codemirror-vim instance. The Vim API is accessed via `window.CodeMirrorAdapter.Vim` without any bridge — it's the standard path. All ecosystem plugins work as expected.
-
-The difference is that fork-only features (async motions, surround, cursor shapes) are not available in this mode.
+When built-in vim is enabled, `window.CodeMirrorAdapter.Vim` is Obsidian's own codemirror-vim, with no bridge, so ecosystem plugins work against it as they would without Vim Motions. Vim Motions itself stands its Vim layer down in this mode and adds nothing to that instance; see [[recommended-setup#Using built-in vim mode]].
 
 ## Potential conflicts
 

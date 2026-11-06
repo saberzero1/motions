@@ -96,6 +96,9 @@ async function openJumpEntry(
     if (targetLeaf) {
         app.workspace.setActiveLeaf(targetLeaf, { focus: true });
     } else {
+        // Asked of `getLeaf(false)`, not taken from the active leaf: tab
+        // plugins such as Open Tab Settings patch it to open a note in a tab
+        // of its own (#206, `jump-list-open-tab-settings.e2e.ts`).
         const leaf =
             app.workspace.getLeaf(false) ?? app.workspace.getMostRecentLeaf();
         if (!leaf) return null;

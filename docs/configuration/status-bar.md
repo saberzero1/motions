@@ -73,7 +73,7 @@ let g:mode_prompt_insert_normal = "(i)"
 Supports any text including emoji — e.g., `vim.g.mode_prompt_normal = "🟢"`.
 
 > [!info] Fork mode required
-> Select, V-Replace, Command, Search, and Insert-Normal indicators require the fork's vim engine or the Neovim backend, which reports its own mode into the status bar. In built-in vim mode, only NORMAL, INSERT, VISUAL, and REPLACE are shown.
+> The mode indicator is the plugin's, so it needs the fork's vim engine or the Neovim backend, which reports its own mode into the status bar. With Obsidian's built-in Vim mode on, the plugin's Vim layer is off and shows no mode; see [[recommended-setup#Using built-in vim mode]].
 
 ## Chord display
 

@@ -41,7 +41,7 @@ Flash works with operators. `df{char}` deletes from cursor to the target — eit
 - `yf{char}{label}` — yank to labeled target
 
 > [!info]
-> Operator-pending flash requires the **bundled fork mode** (Obsidian's built-in Vim mode disabled). With built-in Vim mode, flash works for navigation but operator-pending falls back to stock behavior.
+> Flash needs Obsidian's built-in Vim mode off, like every Vim feature of the plugin; see [[recommended-setup#Using built-in vim mode]]. Operator-pending flash relies on the fork's async motion support.
 
 ## Visual mode
 

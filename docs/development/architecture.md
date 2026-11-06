@@ -13,7 +13,7 @@ Vim Motions provides an enhanced Vim experience for Obsidian, built on a special
 
 The plugin operates in two distinct modes to ensure flexibility and stability:
 
-- **Built-in vim mode**: When Obsidian's native Vim mode is enabled, the plugin uses the bundled `codemirror-vim` instance via `window.CodeMirrorAdapter.Vim`.
+- **Built-in vim mode**: When Obsidian's native Vim mode is enabled, the plugin stands its Vim layer down: `onload()` skips `setupVimSubsystems()`, `enableVim()` and the toggle commands refuse, and turning native Vim on at runtime runs `disableVim()`. Only extensions registered outside `vimExtensionSlot` remain, such as the reveal table surface (`tableRevealSlot`).
 - **Bundled fork mode**: When native Vim is disabled, the plugin registers its own fork as a CodeMirror 6 extension. It installs a bridge at `window.CodeMirrorAdapter.Vim` so other plugins (like `obsidian-vimrc-support`) can still discover the Vim API.
 
 The bundled fork is preferred for its advanced features, including async motion support for EasyMotion, Neovim-correct cursor positioning in Live Preview, and various behavioral fixes not present in the upstream library.

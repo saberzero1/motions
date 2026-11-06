@@ -9,7 +9,7 @@ tags:
 The surround feature brings the power of [nvim-surround](https://github.com/kylechui/nvim-surround) (the Lua successor to tpope's vim-surround) to Obsidian. It allows you to add, change, and delete surrounding delimiters like brackets, quotes, and HTML tags. This implementation includes native support for Markdown formatting marks, function wrapping, and custom surround pairs.
 
 > [!info]
-> For the best experience, disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings**. This enables the plugin's bundled fork mode, which provides full surround support and Neovim-correct behavior.
+> Surround needs Obsidian's built-in Vim mode off (**Settings → Editor → Vim key bindings**), like every Vim feature of the plugin; see [[recommended-setup#Using built-in vim mode]].
 
 ## Keybindings
 
@@ -158,7 +158,7 @@ the alias itself (`b`) leaves `)` on the built-in.
 > the character rather than rebind it, so registration fails instead.
 
 > [!info] Fork mode required
-> Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings** for full support.
+> Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings**.
 
 See [[lua-config#Custom surround pairs]] for the full API reference.
 

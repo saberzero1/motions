@@ -56,6 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Negative controls**, recorded in `table-reveal-negative-controls.md` (E11, E12, U8, U9):
         - Rebuilding from the start state on the second run leaves a second mark on each pasted row, nested at lines 4 and 5 for `yjP`.
         - Mapping a row's start with `TrackDel` leaves `4:5-4:20`, the rest of the deleted row's mark.
+- **`jump-list-open-tab-settings.e2e.ts` runs `<C-o>` to a closed tab with Open Tab Settings 3.4.0 enabled** ([#206](https://github.com/saberzero1/motions/issues/206)). The note opens in a new tab and the current tab keeps its note; without the plugin it opens in the current tab, as Vim reuses the current window. The jump list asks `getLeaf(false)` for the leaf, which Open Tab Settings patches, so no integration code is needed. The plugin is added to `wdio.conf.mts` disabled, like the other community plugins there.
+    - **Negative control:** taking the active leaf instead of asking `getLeaf(false)` opens the note in the current tab with Open Tab Settings on, which is the behaviour the report describes (`newLeaf` false, `OtsC.md` gone).
+
+### Documentation
+
+- **The pages describing plugin features under Obsidian's built-in Vim mode were wrong.** Since the Vim toggle commands (2026-08-31), the plugin stands its whole Vim layer down while built-in Vim mode is on, so none of its motions, text objects, flash, EasyMotion, which-key, jump list or configuration apply there. Measured on 1.13.7: `]h` does not move, and `<C-o>` never leaves the note. `recommended-setup.md` now says so, and `README.md`, the flash, EasyMotion, surround, which-key, status bar, jump list, architecture and ecosystem pages point to it. The reveal table mode, registered outside the Vim layer, still applies.
 
 ## [1.5.1] - 2026-11-01
 

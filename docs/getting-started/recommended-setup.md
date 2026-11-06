@@ -27,17 +27,12 @@ The bundled fork provides:
 
 ## Using built-in vim mode
 
-The plugin also works with built-in vim mode enabled — it extends whatever vim engine is active. You get all the plugin features (text objects, navigation, EasyMotion, workspace control, etc.) but without the fork's Neovim-correct behavior and async motion support.
+> [!warning] The plugin's Vim features are off while built-in Vim mode is on
+> With **Settings → Editor → Vim key bindings** on, Obsidian's own Vim engine owns the editor and Vim Motions stands its Vim layer down. None of its motions, text objects, operators, surround, flash, EasyMotion, hint mode, which-key, jump list, workspace keys, vimrc or Lua configuration are installed, and the **Toggle Vim mode** commands decline with "Disable Obsidian's built-in Vim mode first." Turning built-in Vim mode on while the plugin's Vim is running turns the plugin's off.
 
-> [!info] Not available in built-in vim mode
-> These features require the bundled fork (built-in vim disabled):
->
-> - Operator-pending EasyMotion (`d` + easymotion)
-> - Surround (vim-surround)
-> - Neovim-correct cursor positioning
-> - Visual-line mode Live Preview fixes
->
-> Per-mode cursor shapes need the bundled fork **or** the [[neovim-backend|Neovim backend]]; only built-in vim mode lacks them.
+What still applies is what does not depend on the plugin's Vim engine: the [[tables#Reveal mode|reveal table mode]], which edits a table as lines of the note under whichever Vim is running, and the plugin's settings and commands that are not Vim keys.
+
+Measured on Obsidian 1.13.7: with built-in Vim mode on, `]h` leaves the cursor where it was, where the plugin's engine moves to the next heading.
 
 ## Ecosystem compatibility
 

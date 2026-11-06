@@ -60,7 +60,7 @@ Search for "Vim Motions" in **Settings → Community plugins → Browse**.
 
 **Disable** Obsidian's built-in Vim mode (**Settings → Editor → Vim key bindings → off**). Vim Motions provides its own enhanced vim engine — a [fork of codemirror-vim](https://github.com/saberzero1/codemirror-vim) — with Neovim-correct behavior, async motion support, correct cursor positioning in Live Preview, and theme-aligned styling.
 
-The plugin also works with built-in vim mode enabled, but the fork provides a more accurate Vim experience. See the [recommended setup guide](https://saberzero1.github.io/motions/getting-started/recommended-setup) for details.
+The plugin's Vim features — motions, text objects, flash, EasyMotion, which-key, the jump list and the rest — need built-in Vim mode off; with it on, Vim Motions stands its Vim layer down. See the [recommended setup guide](https://saberzero1.github.io/motions/getting-started/recommended-setup) for details.
 
 ## Documentation
 

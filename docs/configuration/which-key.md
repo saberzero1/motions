@@ -30,7 +30,7 @@ All user keymaps (vimrc, Lua) are available in embedded editors since the vim ke
 In embedded editors, the popup show delay is bypassed — partial chords show completions immediately for fast, focused editing sessions.
 
 > [!info] Bundled vim mode only
-> Which-key in embedded editors requires the bundled vim fork (Obsidian's built-in vim mode disabled). Embedded editors do not receive vim in built-in vim mode.
+> Which-key, in the note and in embedded editors, needs Obsidian's built-in Vim mode off, like every Vim feature of the plugin; see [[recommended-setup#Using built-in vim mode]].
 
 ## Popup delay
 

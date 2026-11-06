@@ -36,6 +36,9 @@ export const config: WebdriverIO.Config = {
                     { id: 'obsidian-tasks-plugin', enabled: false },
                     { id: 'dataview', enabled: false },
                     { id: 'obsidian-meta-bind-plugin', enabled: false },
+                    // Patches Workspace.getLeaf and WorkspaceLeaf.openFile;
+                    // jump-list-open-tab-settings.e2e.ts enables it (#206).
+                    { id: 'open-tab-settings', enabled: false },
                 ],
                 vault: 'test-vault',
             },

@@ -46,7 +46,7 @@ EasyMotion supports operator-pending mode for `d`, `c`, `y`, and `ys` (surround)
 Motions follow native Vim inclusivity semantics — `f`, `t`, `e`, `s` are inclusive (the target character is included in the operation), while `w`, `b`, `F`, `T` are exclusive (matching their Vim counterparts). For example, `y<leader><leader>fk{label}` yanks text including the target `k`.
 
 > [!info]
-> Operator-pending support requires the **bundled fork mode** (Obsidian's built-in Vim mode disabled). It uses the fork's async motion support to resolve the jump target before applying the operator.
+> EasyMotion needs Obsidian's built-in Vim mode off, like every Vim feature of the plugin; see [[recommended-setup#Using built-in vim mode]]. Operator-pending support uses the fork's async motion support to resolve the jump target before applying the operator.
 
 Dot-repeat (`.`) works with operator-pending EasyMotion — the fork stores the resolved position and replays the operator to the same relative offset without re-showing the label overlay.
 

@@ -67,7 +67,7 @@ Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycli
 
 The jumps you make inside a note are in the same list, where they happened among the note switches. Switch to `b`, press `G`, and `<C-o>` first goes back to where `G` started, then to `a`. Their positions move with the text when you edit above them. A move that is not a jump, such as `j`, leaves no entry, and `<C-i>` comes back to wherever you pressed `<C-o>`. Flash and EasyMotion jumps count too.
 
-`:jumps` lists the history, and `set nojumplist` turns the cross-note part off. With Obsidian's own Vim key bindings, or the Neovim backend, the jumps inside a note stay in that engine's own list and are walked after the previous note. Unlike Neovim, the list keeps an older entry on the same line as a newer one; see [[known-limitations#Cross-note jump list]].
+`:jumps` lists the history, and `set nojumplist` turns the cross-note part off. With the Neovim backend, the jumps inside a note stay in Neovim's own list and are walked after the previous note. With Obsidian's own Vim key bindings on, the plugin's Vim layer, this list included, is off; see [[recommended-setup#Using built-in vim mode]]. Unlike Neovim, the list keeps an older entry on the same line as a newer one; see [[known-limitations#Cross-note jump list]].
 
 ## Change list navigation
 

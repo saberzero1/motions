@@ -1810,7 +1810,7 @@ target, and tag-name prompt respectively). Dropping an override from the config
 and reloading restores the built-in. See [[surround#Overriding the built-in pairs]].
 
 > [!info] Fork mode required
-> Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings** for full support.
+> Custom surround pairs require the plugin's bundled fork mode. Disable Obsidian's built-in Vim mode in **Settings → Editor → Vim key bindings**.
 
 ### Leader bindings (`vim.obsidian.leader`)
 
