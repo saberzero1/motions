@@ -34,14 +34,20 @@ because the corrected sabotages are only meaningful next to them.
 
 ## `tableAutoRealign`
 
-| #   | Sabotage                                                           | Scenario                                                       | Observed                                                                                         |
-| --- | ------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| S5  | Realign labelled `input.type` instead of `input.type.compose`      | takes back the edit and the realign with one u                 | after `u` expected the original, received `\| aaxxxx   \| 11    \|`: only the realign was undone |
-| S6  | Rows without a closing pipe are realigned too                      | does not rebuild a table whose row is still being typed        | row expected `\| bb   \| 22    \| extra`, received `\| bb   \| 22    \|`: the text was dropped   |
-| S7  | Changes made before the adapter signals insert mode are not seeded | realigns after a change that only deletes                      | header expected `\|     \| Value \|`, received `\|  \| Value \|`                                 |
-| S8  | Blockquote prefix dropped                                          | keeps the blockquote markers of a quoted table                 | rows expected `> \| a    \| b   \|`…, received `\| a    \| b   \|`…                              |
-| S9  | Caret not mapped through the realign                               | keeps the caret on its character when an earlier column widens | `ch` expected `11`, received `13`                                                                |
-| S10 | The setting ignored                                                | leaves the table as typed when the setting is off              | header expected `\| Name \| Value \|`, received `\| Name   \| Value \|`                          |
+| #   | Sabotage                                                                                    | Scenario                                                       | Observed                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| S5  | Realign labelled `input.type` instead of `input.type.compose`                               | takes back the edit and the realign with one u                 | after `u` expected the original, received `\| aaxxxx   \| 11    \|`: only the realign was undone                            |
+| S6  | Rows without a closing pipe are realigned too                                               | does not rebuild a table whose row is still being typed        | row expected `\| bb   \| 22    \| extra`, received `\| bb   \| 22    \|`: the text was dropped                              |
+| S7  | Changes made before the adapter signals insert mode are not seeded                          | realigns after a change that only deletes                      | header expected `\|     \| Value \|`, received `\|  \| Value \|`                                                            |
+| S8  | Blockquote prefix dropped                                                                   | keeps the blockquote markers of a quoted table                 | rows expected `> \| a    \| b   \|`…, received `\| a    \| b   \|`…                                                         |
+| S9  | Caret not mapped through the realign                                                        | keeps the caret on its character when an earlier column widens | `ch` expected `11`, received `13`                                                                                           |
+| S10 | The setting ignored                                                                         | leaves the table as typed when the setting is off              | header expected `\| Name \| Value \|`, received `\| Name   \| Value \|`                                                     |
+| S11 | Live realign never scheduled                                                                | realigns the table as you type, before insert mode ends        | rows still `\| Name \| Value \|`, `\| aaxxxx   \| 11    \|` in insert mode                                                  |
+| S12 | Live realign dispatched without `notTypedAnnotation`                                        | repeats only the typed text with .                             | line expected `Bxxxxelow the table here`, received `Bx ---- \| ----- xx - x - elow the table here` — the padding typed back |
+| S13 | Row added by `Tab` without `notTypedAnnotation`                                             | does not replay the row Tab adds                               | `added` expected `0`, received `1`; the line became `Bx`                                                                    |
+| S14 | Move to the next cell without `notTypedAnnotation`                                          | repeats the text typed on both sides of a Tab to the next cell | expected `abcdBelow the table here`, received `cdBelow the table here`                                                      |
+| S15 | vimrc `set tableautorealign` with no value read as `''` (unit, `known-set-options.test.ts`) | reads each vimrc form as a mode                                | `bare` expected `insertleave`, received `unset` — red before the fix                                                        |
+| S16 | Live realign not held in a cell's trailing space                                            | keeps a space typed between words                              | row expected `\| aa b c \| 11    \|`, received `\| aa bc \| 11    \|`; caret `ch` 7 for 8                                   |
 
 ## Typing a pipe
 
@@ -78,7 +84,7 @@ because the corrected sabotages are only meaningful next to them.
 | N1  | same (`table-reveal-editing.e2e.ts`)                              | does not move between cells in normal mode                 | failed: Obsidian indented the row                                                                      |
 | P1  | Key delegation does not forward `Tab` (`rpc-table-reveal.e2e.ts`) | R5 leaves insert-mode Tab to Neovim                        | Neovim's row expected to change, received `\| cc   \| dd   \|`                                         |
 | L1  | The previous `settings.ts` (`table-settings-labels.e2e.ts`)       | lists the table widget modes as short labels               | received the old sentences, e.g. `Use Obsidian's built-in table editor with vim support (recommended)` |
-| L2  | Realign setting renamed                                           | offers the realign setting as a toggle                     | `found` expected `true`, received `false`                                                              |
+| L2  | Realign setting renamed                                           | offers the three realign modes as a dropdown               | `found` expected `true`, received `false`                                                              |
 
 Red before the fix, rather than sabotaged:
 

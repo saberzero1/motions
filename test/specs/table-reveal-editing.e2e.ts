@@ -86,8 +86,11 @@ async function moveTo(line: number, ch: number): Promise<void> {
     await browser.pause(400);
 }
 
-async function setAutoRealign(on: boolean): Promise<void> {
-    await setPluginSettingAndReload('tableAutoRealign', on);
+async function setAutoRealign(
+    mode: boolean | 'off' | 'insertleave' | 'typing',
+): Promise<void> {
+    const value = mode === true ? 'insertleave' : mode === false ? 'off' : mode;
+    await setPluginSettingAndReload('tableAutoRealign', value);
 }
 
 interface ColumnStatus {
@@ -411,6 +414,187 @@ describe('Table reveal editing assists', function () {
                 '> | 1234 | 2   |',
             ]);
             await ensureLivePreview();
+        });
+    });
+
+    describe('tableAutoRealign typing', function () {
+        it('realigns the table as you type, before insert mode ends', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText('xxxx');
+            const typing = {
+                rows: (await getEditorValue()).split('\n').slice(2, 6),
+                cursor: await getCursorPos(),
+                mode: await getVimMode(),
+            };
+            await keys('Escape');
+
+            expect(typing).toEqual({
+                rows: [
+                    '| Name   | Value |',
+                    '| ------ | ----- |',
+                    '| aaxxxx | 11    |',
+                    '| bb     | 22    |',
+                ],
+                cursor: { line: 4, ch: 8 },
+                mode: 'insert',
+            });
+        });
+
+        it('takes back the edits and their realigns with one u', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText('xxxx');
+            await keys('Escape');
+            const realigned = await getEditorValue();
+            await keys('u');
+
+            expect(realigned).not.toBe(DOC);
+            expect(await getEditorValue()).toBe(DOC);
+        });
+
+        // #66 and #67 ended an earlier realign-on-`|`: it moved the caret to
+        // the left of a typed `|`, and mishandled an escaped one.
+        it('leaves a | typed outside a table, with the caret after it', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(7, 0);
+            await keys('A');
+            await typeText(' | x');
+
+            expect({
+                line: (await getEditorValue()).split('\n')[7],
+                cursor: await getCursorPos(),
+            }).toEqual({
+                line: 'Below the table here | x',
+                cursor: { line: 7, ch: 24 },
+            });
+            await keys('Escape');
+        });
+
+        it('keeps the caret after a | that adds a column', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText('|z');
+
+            expect({
+                rows: (await getEditorValue()).split('\n').slice(2, 6),
+                cursor: await getCursorPos(),
+            }).toEqual({
+                rows: [
+                    '| Name | Value |     |',
+                    '| ---- | ----- | --- |',
+                    '| aa   | z     | 11  |',
+                    '| bb   | 22    |     |',
+                ],
+                cursor: { line: 4, ch: 10 },
+            });
+            await keys('Escape');
+        });
+
+        it('keeps an escaped pipe as text of its cell', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText('\\|q');
+
+            expect({
+                row: (await getEditorValue()).split('\n')[4],
+                cursor: await getCursorPos(),
+            }).toEqual({
+                row: '| aa\\|q | 11    |',
+                cursor: { line: 4, ch: 7 },
+            });
+            await keys('Escape');
+        });
+
+        // A space typed at the end of a cell's text looks like padding; a
+        // realign then would trim it, and `b c` came out `bc`.
+        it('keeps a space typed between words', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText(' b c');
+
+            expect({
+                row: (await getEditorValue()).split('\n')[4],
+                cursor: await getCursorPos(),
+            }).toEqual({
+                row: '| aa b c | 11    |',
+                cursor: { line: 4, ch: 8 },
+            });
+            await keys('Escape');
+        });
+
+        // Without `notTypedAnnotation` the vim engine records the padding the
+        // realign adds to the other rows as typed text, and `.` types it.
+        it('repeats only the typed text with .', async function () {
+            await setAutoRealign('typing');
+            await setupEditor(DOC, { line: 0, ch: 0 });
+            await browser.pause(400);
+            await moveTo(4, 3);
+            await keys('a');
+            await typeText('xxxx');
+            await keys('Escape');
+            await moveTo(7, 0);
+            await keys('.');
+
+            expect((await getEditorValue()).split('\n')[7]).toBe(
+                'Bxxxxelow the table here',
+            );
+        });
+    });
+
+    // Neovim 0.12.6 leaves text a `<Cmd>` mapping sets through the API out of
+    // `.`, and its cursor move does not start a new insert: `ax`, a mapping
+    // that adds a line and moves to it, `y<Esc>` repeats `xy`; a mapping that
+    // only moves the cursor between `ab` and `cd` repeats `abcd`.
+    describe('dot-repeat across the cell keys', function () {
+        it('does not replay the row Tab adds', async function () {
+            await moveTo(5, 10);
+            await keys('a');
+            await typeText('x');
+            await keys('Tab');
+            await typeText('y');
+            await keys('Escape');
+            const lines = (await getEditorValue()).split('\n').length;
+            await moveTo(8, 0);
+            await keys('.');
+            const after = (await getEditorValue()).split('\n');
+
+            expect({ line: after[8], added: after.length - lines }).toEqual({
+                line: 'Bxyelow the table here',
+                added: 0,
+            });
+        });
+
+        it('repeats the text typed on both sides of a Tab to the next cell', async function () {
+            await moveTo(4, 2);
+            await keys('i');
+            await typeText('ab');
+            await keys('Tab');
+            await typeText('cd');
+            await keys('Escape');
+            await moveTo(7, 0);
+            await keys('.');
+
+            expect((await getEditorValue()).split('\n')[7]).toBe(
+                'abcdBelow the table here',
+            );
         });
     });
 

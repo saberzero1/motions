@@ -148,7 +148,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators                                  | on      |
 | `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`                             | on      |
 | `tablenav`             | `tn`   | Table cell navigation                                          | on      |
-| `tableautorealign`     | —      | Realign an edited table on leaving insert mode (`reveal` mode) | off     |
+| `tableautorealign`     | —      | Realign every revealed table: `off`, `insertleave` or `typing` | off     |
 | `tablecolumnhighlight` | —      | Highlight every cell of the cursor's column (`reveal` mode)    | on      |
 | `workspacenav`         | `wn`   | Pane/tab/sidebar control                                       | on      |
 | `number`               | `nu`   | Show absolute line numbers                                     | off     |

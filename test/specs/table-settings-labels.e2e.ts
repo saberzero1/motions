@@ -105,13 +105,24 @@ describe('Table settings as rendered', function () {
         expect(widget.description).toContain('Raw: deprecated');
     });
 
-    it('offers the realign setting as a toggle', async function () {
+    it('offers the three realign modes as a dropdown', async function () {
         const realign = await renderedSetting(
-            'Realign tables after insert mode',
+            'Realign revealed tables on edits',
         );
 
-        expect(realign.found).toBe(true);
-        expect(realign.toggles).toBe(1);
-        expect(realign.description).toContain('insert mode');
+        expect({
+            found: realign.found,
+            toggles: realign.toggles,
+            options: realign.options,
+        }).toEqual({
+            found: true,
+            toggles: 0,
+            options: [
+                ['off', 'Off'],
+                ['insertleave', 'When leaving insert mode'],
+                ['typing', 'While typing'],
+            ],
+        });
+        expect(realign.description).toContain('While typing');
     });
 });

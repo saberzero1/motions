@@ -197,7 +197,11 @@ export interface VimMotionsSettings {
      * one-time move to `auto`; see `migrateTableWidgetMode`.
      */
     tableWidgetAutoMigrated: boolean;
-    tableAutoRealign: boolean;
+    /**
+     * When a revealed table is realigned on its own: never, when insert mode
+     * ends after an edit, or after every typed edit (and when insert ends).
+     */
+    tableAutoRealign: TableAutoRealign;
     tableColumnHighlight: boolean;
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
@@ -305,6 +309,17 @@ export interface VimMotionsSettings {
  * The table widget dropdown: short option labels, with what each mode does in
  * the description, shared by both settings implementations.
  */
+export type TableAutoRealign = 'off' | 'insertleave' | 'typing';
+
+export const TABLE_AUTO_REALIGN_OPTIONS: Record<TableAutoRealign, string> = {
+    off: 'Off',
+    insertleave: 'When leaving insert mode',
+    typing: 'While typing',
+};
+
+const TABLE_AUTO_REALIGN_DESCRIPTION =
+    "In reveal mode, realign a table's columns on its own. When leaving insert mode: after you edit it, the way Obsidian's table editor does when it commits a cell. While typing: after every edit, and again when insert mode ends. Either way one undo takes back an edit and its realign together, and . repeats only what you typed. Off: tables are realigned only by :tablerealign.";
+
 const TABLE_WIDGET_OPTIONS: Record<
     VimMotionsSettings['tableWidgetMode'],
     string
@@ -371,7 +386,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     // Fresh settings have nothing to move; stored settings without the field
     // are read from the raw data, before these defaults apply.
     tableWidgetAutoMigrated: true,
-    tableAutoRealign: false,
+    tableAutoRealign: 'off',
     tableColumnHighlight: true,
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,
@@ -1002,10 +1017,10 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 },
                             },
                             {
-                                name: 'Realign tables after insert mode',
+                                name: 'Realign revealed tables on edits',
                                 desc: this.describeOverride(
                                     'tableAutoRealign',
-                                    "In reveal mode, realign a table's columns when you leave insert mode after editing it, the way Obsidian's table editor does when it commits a cell. One undo takes back the edit and the realign together. When disabled, tables are realigned only by :tablerealign.",
+                                    TABLE_AUTO_REALIGN_DESCRIPTION,
                                 ),
                                 aliases: [
                                     'table',
@@ -1014,9 +1029,9 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     'tableautorealign',
                                 ],
                                 control: {
-                                    type: 'toggle' as const,
+                                    type: 'dropdown' as const,
                                     key: 'tableAutoRealign',
-                                    defaultValue: false,
+                                    options: TABLE_AUTO_REALIGN_OPTIONS,
                                     disabled: () =>
                                         this.isOverridden('tableAutoRealign'),
                                 },
@@ -3677,19 +3692,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName('Realign tables after insert mode')
+            .setName('Realign revealed tables on edits')
             .setDesc(
                 describeOverride(
                     'tableAutoRealign',
-                    "In reveal mode, realign a table's columns when you leave insert mode after editing it, the way Obsidian's table editor does when it commits a cell. One undo takes back the edit and the realign together. When disabled, tables are realigned only by :tablerealign.",
+                    TABLE_AUTO_REALIGN_DESCRIPTION,
                 ),
             )
-            .addToggle((toggle) =>
-                toggle
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOptions(TABLE_AUTO_REALIGN_OPTIONS)
                     .setValue(this.plugin.settings.tableAutoRealign)
                     .setDisabled(isOverridden('tableAutoRealign'))
                     .onChange(async (value) => {
-                        this.plugin.settings.tableAutoRealign = value;
+                        this.plugin.settings.tableAutoRealign =
+                            value as TableAutoRealign;
                         this.plugin.clearSettingOverride('tableAutoRealign');
                         await this.plugin.saveSettings();
                     }),

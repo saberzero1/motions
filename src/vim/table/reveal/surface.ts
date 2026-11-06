@@ -24,15 +24,16 @@ import { rowRanges, tablesTouchedBy } from './table-extent';
 import { revealGridDecorations } from './grid-decorations';
 import { releaseNativeCellEditor, revealWidgetInput } from './widget-input';
 import { revealCellKeys } from './cell-keys';
-import { realignOnInsertLeave } from './realign-on-leave';
+import type { TableAutoRealign } from '../../../settings';
+import { autoRealign } from './auto-realign';
 import { revealTypingAssists } from './typing';
 import { revealColumnStatus, type TableColumnInfo } from './column-status';
 
 export interface TableRevealOptions {
     /** Called once if Obsidian's highlight channel cannot be captured. */
     onUnavailable: () => void;
-    /** Whether to realign an edited table when insert mode ends. */
-    autoRealign: () => boolean;
+    /** When to realign an edited table on its own. */
+    autoRealign: () => TableAutoRealign;
     /** Whether every cell of the caret's column is highlighted. */
     columnHighlight: () => boolean;
     /** Receives the caret's column in a revealed table, or null. */
@@ -151,7 +152,7 @@ export function createTableReveal(options: TableRevealOptions): Extension {
         revealCellKeys(),
         revealTypingAssists(),
         revealColumnStatus(options.columnStatus),
-        realignOnInsertLeave(options.autoRealign),
+        autoRealign(options.autoRealign),
         ViewPlugin.define((view) => new RevealLifecycle(view, options)),
     ];
 }

@@ -213,7 +213,7 @@ src/
         widget-input.ts      # A click on an idle table, or a cell editor Obsidian opens anyway, becomes the parent's caret in that cell; stops after a placement that did not reveal
         cells.ts             # Cell boundaries of one row (unescaped pipes, with virtual ones for missing outer pipes), the cell at a column, and where a cell's content starts
         cell-keys.ts         # Insert-mode Tab/Shift-Tab between cells, Enter to the same column of the next row, Shift-Enter for <br>; adds a row from the last one, as Obsidian's table editor does
-        realign-on-leave.ts  # tableAutoRealign: realigns each table an insert session edited when it ends, joined to the edit's undo step via input.type.compose; skips a table with an unpiped row
+        auto-realign.ts      # tableAutoRealign: insertleave realigns each table an insert session edited when it ends; typing also realigns after every typed edit, marked notTypedAnnotation so . replays only typed text; joined to the edit's undo step via input.type.compose; skips a table with an unpiped row
         typing.ts            # inputHandler: a | typed inside an unclosed [[ becomes \|, and || under a header with no separator becomes the separator
         column-status.ts     # Reports the caret's column, the column count, the header text and the row's cell count to the status bar
     jumplist.ts            # Cross-note jump list data structure

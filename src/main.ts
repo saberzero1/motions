@@ -208,6 +208,7 @@ import {
     migrateConfigModeSettings,
     migrateCursorlineoptSettings,
     migrateSigncolumnSettings,
+    migrateTableAutoRealign,
     migrateTableWidgetMode,
 } from './settings-migration';
 import type { lua_State } from './lib/fengari';
@@ -6472,6 +6473,11 @@ export default class VimMotionsPlugin extends Plugin {
             modePrompts: { ...this.settings.modePrompts },
         };
         this.configOverrides = savedOverrides ?? {};
+        // A vimrc or Lua override saved while the option was a boolean.
+        const overrideRealign = migrateTableAutoRealign(this.configOverrides);
+        if (overrideRealign) {
+            this.configOverrides.tableAutoRealign = overrideRealign;
+        }
         if (this.settings.configMode === 'settings') {
             this.configOverrides = {};
         } else {
@@ -6528,6 +6534,10 @@ export default class VimMotionsPlugin extends Plugin {
         const migratedTableMode = migrateTableWidgetMode(raw);
         if (migratedTableMode) {
             this.settings.tableWidgetMode = migratedTableMode;
+        }
+        const migratedRealign = migrateTableAutoRealign(raw);
+        if (migratedRealign) {
+            this.settings.tableAutoRealign = migratedRealign;
         }
         delete (this.settings as unknown as Record<string, unknown>)
             .formattingMarkMode;

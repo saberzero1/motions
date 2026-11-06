@@ -52,6 +52,10 @@ interface StrOpt {
     // absurd to enumerate in validValues; normalize collapses them to the
     // canonical spelling, or returns null to reject.
     normalize?: (value: string) => string | null;
+    /** The value `set name` with no value means, for an option that was boolean. */
+    bare?: string;
+    /** The value `set noname` means, for an option that was boolean. */
+    negated?: string;
 }
 
 interface SideEffectOpt {
@@ -108,7 +112,15 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     lc: { type: 'boolean', settingsKey: 'listContinuationOnOpen' },
     tablenav: { type: 'boolean', settingsKey: 'enableTableNav' },
     tn: { type: 'boolean', settingsKey: 'enableTableNav' },
-    tableautorealign: { type: 'boolean', settingsKey: 'tableAutoRealign' },
+    // Was boolean; `set tableautorealign` still means realign when insert
+    // mode ends, and `set notableautorealign` turns it off.
+    tableautorealign: {
+        type: 'string',
+        settingsKey: 'tableAutoRealign',
+        validValues: ['off', 'insertleave', 'typing'],
+        bare: 'insertleave',
+        negated: 'off',
+    },
     tablecolumnhighlight: {
         type: 'boolean',
         settingsKey: 'tableColumnHighlight',
@@ -729,7 +741,16 @@ function applyKnownSetOption(
         return true;
     }
 
-    const raw = typeof optValue === 'string' ? optValue : '';
+    // The parser gives `set name` the value `''`.
+    const bare =
+        (optValue === undefined || optValue === '') && spec.bare !== undefined;
+    const raw = bare
+        ? (spec.bare ?? '')
+        : typeof optValue === 'string'
+          ? optValue
+          : optValue === false && spec.negated !== undefined
+            ? spec.negated
+            : '';
     const normalized = spec.normalize ? spec.normalize(raw) : raw;
     if (normalized === null) return true;
     const str = normalized;

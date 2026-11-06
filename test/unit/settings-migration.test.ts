@@ -23,6 +23,7 @@ import { DEFAULT_SETTINGS } from '../../src/settings';
 import {
     migrateConfigModeSettings,
     migrateCursorlineoptSettings,
+    migrateTableAutoRealign,
     migrateTableWidgetMode,
 } from '../../src/settings-migration';
 
@@ -216,5 +217,24 @@ describe('tableWidgetMode moves from native to auto once', () => {
                 migrateTableWidgetMode({ tableWidgetMode: mode }),
             ),
         ).toEqual([null, null]);
+    });
+});
+
+// `tableAutoRealign` was a boolean until it gained `typing`; `true` meant
+// realign when insert mode ends.
+describe('migrateTableAutoRealign', () => {
+    it('maps the stored booleans to the modes they meant', () => {
+        expect({
+            on: migrateTableAutoRealign({ tableAutoRealign: true }),
+            off: migrateTableAutoRealign({ tableAutoRealign: false }),
+        }).toEqual({ on: 'insertleave', off: 'off' });
+    });
+
+    it('leaves a mode, a missing value and fresh settings alone', () => {
+        expect({
+            typing: migrateTableAutoRealign({ tableAutoRealign: 'typing' }),
+            missing: migrateTableAutoRealign({}),
+            fresh: migrateTableAutoRealign(null),
+        }).toEqual({ typing: null, missing: null, fresh: null });
     });
 });

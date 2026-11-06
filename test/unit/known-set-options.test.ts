@@ -23,7 +23,10 @@ vi.mock('obsidian', () => ({
 }));
 
 import { DEFAULT_SETTINGS } from '../../src/settings';
-import { KNOWN_SET_OPTIONS } from '../../src/vimrc/loader';
+import { applyVimrcCommands, KNOWN_SET_OPTIONS } from '../../src/vimrc/loader';
+import { parseVimrc } from '../../src/vimrc/parser';
+import { tableAutoRealignValue } from '../../src/vim/options';
+import type { VimApi } from '../../src/types/vim-api';
 
 /**
  * Settings keys that are intentionally excluded from KNOWN_SET_OPTIONS.
@@ -337,5 +340,62 @@ describe('tablewidget', () => {
         } finally {
             warn.mockRestore();
         }
+    });
+});
+
+// Three-way since `typing` was added. The boolean forms it had still work:
+// bare means realign when insert mode ends, `no` means off.
+describe('tableautorealign', () => {
+    function settingFrom(line: string): unknown {
+        const writes: unknown[] = [];
+        const vim = new Proxy(
+            {},
+            { get: () => () => undefined },
+        ) as unknown as VimApi;
+        applyVimrcCommands(
+            parseVimrc(line),
+            vim,
+            null,
+            '\\',
+            undefined,
+            (key, value) => {
+                if (key === 'tableAutoRealign') writes.push(value);
+            },
+        );
+        return writes.length > 0 ? writes[writes.length - 1] : 'unset';
+    }
+
+    it('reads each vimrc form as a mode', () => {
+        expect({
+            bare: settingFrom('set tableautorealign'),
+            negated: settingFrom('set notableautorealign'),
+            typing: settingFrom('set tableautorealign=typing'),
+            insertleave: settingFrom('set tableautorealign=insertleave'),
+            off: settingFrom('set tableautorealign=off'),
+            invalid: settingFrom('set tableautorealign=sometimes'),
+        }).toEqual({
+            bare: 'insertleave',
+            negated: 'off',
+            typing: 'typing',
+            insertleave: 'insertleave',
+            off: 'off',
+            invalid: 'unset',
+        });
+    });
+
+    it('maps the engine option value, booleans from vim.opt included', () => {
+        expect(
+            [true, false, 'typing', 'insertleave', 'off', 'sometimes', 1].map(
+                tableAutoRealignValue,
+            ),
+        ).toEqual([
+            'insertleave',
+            'off',
+            'typing',
+            'insertleave',
+            'off',
+            null,
+            null,
+        ]);
     });
 });

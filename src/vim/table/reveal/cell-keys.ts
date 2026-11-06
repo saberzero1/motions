@@ -6,6 +6,7 @@ import {
     type Text,
 } from '@codemirror/state';
 import { keymap, type EditorView } from '@codemirror/view';
+import { notTypedAnnotation } from '@replit/codemirror-vim';
 import { getAnyVimAdapter } from '../../vim-api';
 import { findUnescapedPipes } from '../../table-utils';
 import {
@@ -39,6 +40,13 @@ import { findTableAt, type TableExtent } from './table-extent';
  * org-mode, because a selection is not an insert-mode state in Vim.
  * `Shift-Tab` in the first cell does nothing, where Obsidian inserts a row
  * above the header.
+ *
+ * Moving to a cell and adding a row are not typed text: they are marked with
+ * `notTypedAnnotation`, so `.` does not replay the row and the move does not
+ * start a new insert — Neovim's answer for a `<Cmd>` mapping that does the
+ * same (0.12.6: `ax`, a row-adding mapping, `y<Esc>` repeats `xy`). The `<br>`
+ * of `Shift-Enter` is typed at the caret, so `.` repeats it, as it repeats a
+ * key mapping to `<br>`.
  *
  * Anything that claims these keys first keeps them: a snippet expanding or
  * walking its tabstops, a completion popup, an insert-mode mapping (Vim sees
@@ -121,6 +129,7 @@ function place(
         selection: EditorSelection.cursor(target.from + col),
         scrollIntoView: true,
         userEvent: 'select',
+        annotations: notTypedAnnotation.of(true),
     });
 }
 
@@ -231,5 +240,6 @@ function appendRow(
         selection: EditorSelection.cursor(at + 1 + col),
         scrollIntoView: true,
         userEvent: 'input.type',
+        annotations: notTypedAnnotation.of(true),
     });
 }

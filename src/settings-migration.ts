@@ -125,3 +125,15 @@ export function migrateTableWidgetMode(
 function toAuto(raw: Record<string, unknown>): boolean {
     return raw.tableWidgetAutoMigrated !== true;
 }
+
+/**
+ * `tableAutoRealign` was a boolean before it gained `typing`. `true` meant
+ * realign when insert mode ends, which is now `insertleave`. Returns the value
+ * to store, or null when nothing needs to change.
+ */
+export function migrateTableAutoRealign(
+    raw: Record<string, unknown> | null,
+): 'off' | 'insertleave' | null {
+    if (!raw || typeof raw.tableAutoRealign !== 'boolean') return null;
+    return raw.tableAutoRealign ? 'insertleave' : 'off';
+}

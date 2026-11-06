@@ -175,14 +175,14 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}escapeleavesinsert`,
         );
     });
-    vim.defineOption('tableautorealign', false, 'boolean', [], (value) => {
+    // Three-way since `typing` was added; it was a boolean, and `true`/`false`
+    // still arrive from `set notableautorealign` and `vim.opt` as `on` meant
+    // realign when insert mode ends.
+    vim.defineOption('tableautorealign', 'off', 'string', [], (value) => {
         if (value === undefined) return;
-        const enabled = !!value;
-        notify(
-            'tableAutoRealign',
-            enabled,
-            `set ${enabled ? '' : 'no'}tableautorealign`,
-        );
+        const mode = tableAutoRealignValue(value);
+        if (mode)
+            notify('tableAutoRealign', mode, `set tableautorealign=${mode}`);
     });
     vim.defineOption('tablecolumnhighlight', true, 'boolean', [], (value) => {
         if (value === undefined) return;
@@ -847,4 +847,19 @@ export function parseGuicursor(value: string): Partial<CursorShapes> {
         }
     }
     return result;
+}
+
+/**
+ * The `tableautorealign` mode a value names: one of the three modes, or a
+ * boolean from the option's earlier form. Null for anything else.
+ */
+export function tableAutoRealignValue(
+    value: unknown,
+): 'off' | 'insertleave' | 'typing' | null {
+    if (value === true) return 'insertleave';
+    if (value === false) return 'off';
+    if (value === 'off' || value === 'insertleave' || value === 'typing') {
+        return value;
+    }
+    return null;
 }

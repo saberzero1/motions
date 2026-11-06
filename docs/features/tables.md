@@ -66,8 +66,8 @@ Vim Motions includes built-in auto-formatting for tables:
 
 - **Manual realignment**: Use `<Leader>tr` or `:tablerealign` to realign a table's columns at any time. In table-nav mode, `=` does the same.
 - **The same output as Obsidian**: `:tablerealign` writes exactly what Obsidian's table editor writes for the same table — each column as wide as its longest cell plus one space either side, content placed by the separator's colons (right-aligned against the right edge, centred with the odd space after it), and width counted the way Obsidian counts it, in UTF-16 code units. A table therefore does not change when you switch between `native` and `reveal`. The cost is that a row containing CJK characters or emoji does not line up in reveal's monospace grid, exactly as it does not in Source mode.
-- **By default, Vim Motions never reformats a table on its own** — not while you type, not when the cursor leaves the table. Realignment happens only when you ask for it, so the cursor stays where you expect it.
-- **Obsidian does realign automatically, in `native` mode**: its table editor realigns the columns when it commits a cell edit. In `reveal` mode, which never uses Obsidian's cell editor, the same happens only if you turn on `tableautorealign` — see [[tables#Reveal mode]].
+- **By default, Vim Motions never reformats a table on its own** — not while you type, not when the cursor leaves the table. Realignment happens only when you ask for it, so the cursor stays where you expect it. In `reveal` mode, `tableautorealign` can do it for you.
+- **Obsidian does realign automatically, in `native` mode**: its table editor realigns the columns when it commits a cell edit. In `reveal` mode, which never uses Obsidian's cell editor, the same happens only if you set `tableautorealign` to `insertleave`, or to `typing` to realign as you type — see [[tables#Reveal mode]].
 
 ## Table widget in Live Preview
 
@@ -118,7 +118,7 @@ Each item below is covered by a test in `test/specs/table-reveal*.e2e.ts` or `te
 - The [[animated-cursor|animated cursor]] is painted on the caret inside the table
 - In insert mode, `Tab` and `Shift-Tab` move to the next and previous cell, wrapping across rows and skipping the separator, and `Tab` in the last cell adds an empty row
 - In insert mode, inside a cell, `Enter` moves to the same column in the next row, adding a row from the last one, and `Shift-Enter` inserts a `<br>` line break; at the end of a row both start a new line, so a table can still be typed row by row
-- With `tableautorealign` on, leaving insert mode realigns the table you edited, keeping the cursor on its character; one `u` undoes the edit and the realign together
+- With `tableautorealign=insertleave`, leaving insert mode realigns the table you edited, keeping the cursor on its character; with `tableautorealign=typing` the columns follow your text as you type. One `u` undoes an edit and its realign together, and `.` repeats only what you typed
 - A `|` typed inside `[[…]]` is written as `\|`, and `||` typed under a header with no separator yet becomes the separator
 - The status bar shows the cursor's column and its header, and every cell of that column is highlighted (`tablecolumnhighlight`, on by default)
 - The cell motions `]|`, `[|`, `]r`, `[r` and the text objects `i|`, `a|`
@@ -130,7 +130,7 @@ Each item below is covered by a test in `test/specs/table-reveal*.e2e.ts` or `te
 
 The active table is shown in a monospace font with ligatures off, so a realigned table's columns line up. Every bit of inline Markdown inside it — `**bold**`, `[[links]]`, inline math — is shown as source, not rendered, which is what keeps the columns aligned. The delimiters and the separator row are dimmed, the header row is tinted, and the cell holding the cursor is highlighted, with a fainter highlight on the rest of its column. The tint, the dimming and the cell highlight use your theme's table variables; the column highlight uses its hover colour.
 
-Run `:tablerealign` (or `<Leader>tr`) to pad the columns, or turn on `tableautorealign` to have that happen when you leave insert mode.
+Run `:tablerealign` (or `<Leader>tr`) to pad the columns, or set `tableautorealign` to have that happen when you leave insert mode (`insertleave`) or as you type (`typing`).
 
 ### Moving between cells, line breaks and realigning
 
@@ -140,7 +140,15 @@ In insert mode, `Tab` moves to the start of the next cell's content and `Shift-T
 
 Obsidian's own table editor moves the same way, but it selects the content of the cell it moves to. Here the cursor lands at the start of that content instead, as it does in mkdnflow.nvim, table-nvim and org-mode, because a selection is not an insert-mode state in Vim. Outside a table, and in normal mode, `Tab` does what it did before. A snippet that can expand or walk its tabstops keeps `Tab`, and so does an insert-mode mapping of your own.
 
-With `tableautorealign` on (**Settings → Vim Motions → General → Realign tables after insert mode**, `set tableautorealign` or `vim.opt.tableautorealign = true`), leaving insert mode realigns each table you edited during that insert, with the same output as `:tablerealign`. The cursor stays on the character it was on, in the same cell, and one `u` undoes the edit and the realign together. `<C-o>` does not count as leaving insert mode. A table is left alone if any of its rows does not both start and end with a pipe, so a row you are still typing is never rebuilt under you, and a quoted table keeps its `>` markers.
+`tableautorealign` (**Settings → Vim Motions → General → Realign revealed tables on edits**, `set tableautorealign=…` or `vim.opt.tableautorealign = "…"`) has three values:
+
+- **`off`** (default): only `:tablerealign` realigns.
+- **`insertleave`**: leaving insert mode realigns each table you edited during that insert. `set tableautorealign`, with no value, means this, as it did when the option was a toggle.
+- **`typing`**: every edit you type realigns the table straight away, so the columns widen and narrow with your text, and leaving insert mode realigns once more. A realign changes only the padding that differs, so it costs well under a millisecond even for a 1,000-row table. During an IME composition it waits for the commit.
+
+Either way the output is the same as `:tablerealign`. The cursor stays on the character it was on, in the same cell, and one `u` undoes an edit and its realign together. `.` and macros repeat only what you typed, not the padding a realign added: Neovim leaves text an insert-mode `<Cmd>` mapping sets out of `.` in the same way. `<C-o>` does not count as leaving insert mode. A table is left alone if any of its rows does not both start and end with a pipe, so a row you are still typing is never rebuilt under you, and a quoted table keeps its `>` markers.
+
+The cell keys follow the same rule. A row that `Tab` or `Enter` adds is not repeated by `.`, and moving to another cell does not split what `.` repeats: `iab`, `Tab`, `cd`, then `.` inserts `abcd`, as Neovim does across a `<Cmd>` mapping. The `<br>` of `Shift-Enter` is typed at the cursor, so `.` repeats it.
 
 None of these keys, nor `tableautorealign`, applies under the [[neovim-backend|Neovim backend]], where Neovim owns every key and every mode change, so `Tab` and `Enter` are Neovim's.
 
@@ -161,7 +169,7 @@ While the cursor is in a revealed table, the status bar shows its column, the nu
 - **The table changes size when the cursor enters or leaves it**, since a formatted table and its source are not the same shape.
 - **Long rows wrap.** A revealed row is an editor line, and an editor line cannot scroll sideways on its own; a table wider than the note wraps until the cursor leaves it.
 - **Mouse selection across the cells of an idle table is not available**, because a click places the cursor instead. Select with `<C-v>` once the table is revealed.
-- **Obsidian does not realign a table after an edit**, because its cell editor is never used. Use `:tablerealign`, or turn on `tableautorealign`.
+- **Obsidian does not realign a table after an edit**, because its cell editor is never used. Use `:tablerealign`, or set `tableautorealign`.
 - **A snippet whose body contains a `|` or a newline damages the row**, exactly as typing one would. Obsidian's cell editor escapes these; a revealed table is plain source. Escape the pipe in the snippet definition.
 
 ### When it falls back

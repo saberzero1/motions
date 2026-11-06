@@ -239,14 +239,14 @@ describe('Table reveal surface with Obsidian’s own Vim key bindings', function
     });
 
     it('realigns an edited table on leaving insert mode when tableAutoRealign is on', async function () {
-        await setPluginSettingAndReload('tableAutoRealign', true);
+        await setPluginSettingAndReload('tableAutoRealign', 'insertleave');
         await setupEditor(DOC, { line: 0, ch: 0 });
         await browser.pause(400);
         await keys('Escape');
         await keys('j', 'j', 'j', 'j', 'l', 'l', 'l', 'a');
         await keys('x', 'x', 'x', 'x', 'Escape');
         const lines = (await getEditorValue()).split('\n');
-        await setPluginSettingAndReload('tableAutoRealign', false);
+        await setPluginSettingAndReload('tableAutoRealign', 'off');
 
         expect(lines.slice(2, 6)).toEqual([
             '| Name   | Value |',
