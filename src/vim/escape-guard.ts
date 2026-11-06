@@ -22,6 +22,11 @@ interface PopoverNode {
     hide?: () => void;
     /** Shown popovers whose link target lies inside this one. */
     childHovers?: PopoverNode[];
+    /**
+     * What the popover was opened from: the note's view, or the embed of the
+     * preview beneath it. Either has the editor its link was in.
+     */
+    parent?: { editor?: { focus(): void } } | null;
 }
 
 /**
@@ -51,15 +56,23 @@ function popoverContaining(
  * first one, and Obsidian's `hide()` keeps a child popover that still holds
  * the focus, so Escape in the topmost preview closed the preview beneath it
  * and left the focused one open (#210).
+ *
+ * Closing the focused popover hands the focus back to the editor it was
+ * opened from — the preview beneath it, or the note — as closing a Neovim
+ * float returns the cursor to the window it came from. Obsidian leaves the
+ * focus on `body`, where Escape reaches no editor: the next one landed in the
+ * note and the preview beneath stayed open for good (#208).
  */
 function dismissParentPopover(app: App, focused: Element): boolean {
     const view = app.workspace.getActiveViewOfType(MarkdownView);
     const root = (view as unknown as { hoverPopover?: PopoverNode } | null)
         ?.hoverPopover;
     if (!root?.hide) return false;
-    const target = popoverContaining(root, focused) ?? root;
+    const holder = popoverContaining(root, focused);
+    const target = holder ?? root;
     if (target.hide) target.hide();
     else root.hide();
+    if (holder) holder.parent?.editor?.focus();
     return true;
 }
 

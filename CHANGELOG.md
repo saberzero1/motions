@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Not changed:** in a paragraph with links or bold text, Live Preview shows each span's markup only while the cursor is in it. The paragraph re-wraps as the cursor leaves, and `gj` loses the column, in Obsidian's own Vim as well. This is recorded in `KNOWN_LIMITATIONS.md`.
     - Fork: codemirror-vim 6.4.9 (`handleExternalSelection`, `findPosV`)
 - **Plugins reading the selection saw nothing in visual-line mode** ([#231](https://github.com/saberzero1/motions/issues/231)). `cm.listSelections()` and `EditorState.selection` put the anchor and head at one point, while only `Editor.getSelection()` returned the lines. See **Changed**.
+- **Escape in a focused nested preview left the preview beneath it open for good** ([#208](https://github.com/saberzero1/motions/issues/208)). Closing the focused preview left the focus nowhere. The next Escape went to the note, and the preview beneath stayed open with no key left to close it. Closing a focused preview, by Escape or `q`, now returns you to where it was opened from: the preview beneath it, with its cursor where it was, or the note. This is what closing a Neovim float does.
+    - Plugin: `src/vim/escape-guard.ts` (`dismissParentPopover`)
 
 ### Tests
 
@@ -43,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Golden comparisons now read a `V` cursor from vim's head**, since the editor's head is now a line boundary.
     - `linewise-widget-selection-issue190.e2e.ts` proves the widget highlight on a table, which stays rendered under the selection, instead of a callout, which now shows as source.
     - The synthetic #157 test that pressed `<Esc>` before `replaceSelection()` was retired. It exercised the removed snapshot rather than a user path. The real command-palette Note Composer extract still runs.
+- **`keyword-preview.e2e.ts` presses Escape twice in a nested preview opened by `K`/`KK`**, and `q` once.
+    - **Negative control:** without the refocus, the focus is lost after the first Escape (`focusedIndex` -1), and the first preview is still open after the second (`count` 1). The `q` case fails the same way.
 
 ## [1.5.1] - 2026-11-01
 

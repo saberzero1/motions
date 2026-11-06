@@ -219,6 +219,124 @@ describe('K previews', function () {
         expect(intoNested).toBe(1);
     });
 
+    /** `K` `K` into the first preview, then `K` `K` into one nested in it. */
+    async function focusNestedPreview(): Promise<void> {
+        await placeCursor(2, 'KeywordTarget');
+        await browser.keys(['K']);
+        await waitForPreview();
+        await browser.keys(['K']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await browser.keys(['j']);
+        await browser.keys(['f']);
+        await browser.keys(['K']);
+        await browser.pause(PAUSE.MODE_SWITCH);
+        await browser.keys(['K']);
+        await browser.waitUntil(async () => (await preview()).count === 2, {
+            timeout: 5000,
+            interval: 100,
+            timeoutMsg: 'no nested preview opened',
+        });
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        await browser.keys(['K']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+    }
+
+    interface FocusState {
+        count: number;
+        /** Index among the open previews of the one holding the focus. */
+        focusedIndex: number;
+        /** The focus is in the note's own editor. */
+        inNote: boolean;
+        /** The first preview's cursor, where `K` was pressed in it. */
+        firstPreviewCursor: { line: number; ch: number } | null;
+    }
+
+    async function focusState(): Promise<FocusState> {
+        return (await browser.executeObsidian(({ app, obsidian }) => {
+            const pops = Array.from(
+                document.querySelectorAll('.hover-popover'),
+            );
+            const active = document.activeElement;
+            const focused = active?.closest('.hover-popover');
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            const first = (
+                view as unknown as {
+                    hoverPopover?: {
+                        embed?: {
+                            editor?: {
+                                getCursor(): { line: number; ch: number };
+                            };
+                        };
+                    } | null;
+                } | null
+            )?.hoverPopover?.embed?.editor?.getCursor();
+            return {
+                count: pops.length,
+                focusedIndex: focused ? pops.indexOf(focused) : -1,
+                inNote: !!view?.contentEl.contains(active ?? null) && !focused,
+                firstPreviewCursor: first
+                    ? { line: first.line, ch: first.ch }
+                    : null,
+            };
+        })) as FocusState;
+    }
+
+    // Closing a Neovim float returns the cursor to the window it came from.
+    // Obsidian left the focus on `body`: the next Escape landed in the note,
+    // and the preview beneath stayed open with no key left to close it (#208).
+    // Measured before the fix: after the first Escape the focus was `BODY`,
+    // and after two more the first preview was still open.
+    it('Escape in a nested preview returns to the preview beneath, then to the note', async function () {
+        await focusNestedPreview();
+        const inNested = await focusState();
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        const afterFirst = await focusState();
+        await browser.keys(['Escape']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        const afterSecond = await focusState();
+
+        expect({
+            inNested: { ...inNested, firstPreviewCursor: undefined },
+            afterFirst,
+            afterSecond,
+        }).toEqual({
+            inNested: {
+                count: 2,
+                focusedIndex: 1,
+                inNote: false,
+                firstPreviewCursor: undefined,
+            },
+            // Back in the first preview, its cursor still on the link.
+            afterFirst: {
+                count: 1,
+                focusedIndex: 0,
+                inNote: false,
+                firstPreviewCursor: inNested.firstPreviewCursor,
+            },
+            afterSecond: {
+                count: 0,
+                focusedIndex: -1,
+                inNote: true,
+                firstPreviewCursor: null,
+            },
+        });
+        expect(inNested.firstPreviewCursor?.line).toBe(1);
+    });
+
+    it('q in a nested preview also returns to the preview beneath', async function () {
+        await focusNestedPreview();
+        await browser.keys(['q']);
+        await browser.pause(PAUSE.EDITOR_SETTLE);
+        const state = await focusState();
+        expect({
+            count: state.count,
+            focusedIndex: state.focusedIndex,
+        }).toEqual({ count: 1, focusedIndex: 0 });
+    });
+
     it('K after moving the cursor does not focus the open preview', async function () {
         await placeCursor(2, 'KeywordTarget');
         await browser.keys(['K']);
