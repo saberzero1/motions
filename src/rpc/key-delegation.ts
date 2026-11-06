@@ -94,13 +94,14 @@ export class NeovimKeyDelegation {
 
     private readonly forwardKeydown = (event: KeyboardEvent): void => {
         if (
-            event
-                .composedPath()
-                .some(
-                    (target) =>
-                        target instanceof Element &&
-                        target.closest('.metadata-container') !== null,
-                )
+            event.composedPath().some(
+                // Cross-window: an element of a pop-out is not an
+                // instance of the main window's Element. Window and
+                // Document in the path have no instanceOf().
+                (target) =>
+                    (target as Partial<Node>).instanceOf?.(Element) === true &&
+                    (target as Element).closest('.metadata-container') !== null,
+            )
         )
             return;
         if (isKeyInterceptActive()) {

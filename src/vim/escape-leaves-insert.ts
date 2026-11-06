@@ -28,7 +28,10 @@ export function installEscapeLeavesInsert(
     const onKeydown = (e: KeyboardEvent): void => {
         if (e.key !== 'Escape' || !e.defaultPrevented || !enabled()) return;
         if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
-        const target = e.target instanceof Element ? e.target : null;
+        // `instanceof Element` is false for an element of a pop-out window,
+        // which has an `Element` of its own.
+        const node = e.targetNode;
+        const target = node?.instanceOf(Element) ? node : null;
         const editorEl = target?.closest<HTMLElement>('.cm-editor');
         const view = editorEl ? EditorView.findFromDOM(editorEl) : null;
         const cm = view ? getCmAdapterFromEditorView(view) : null;

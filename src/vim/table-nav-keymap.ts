@@ -61,7 +61,8 @@ export function createTableNavKeyHandler(
 
     const handle = (e: KeyboardEvent): boolean => {
         if (e.ctrlKey || e.altKey || e.metaKey) return false;
-        if (document.querySelector('.modal-container')) return false;
+        // A modal in the window the key was pressed in, which may be a pop-out.
+        if (e.view?.document.querySelector('.modal-container')) return false;
 
         if (pendingD) {
             pendingD = false;

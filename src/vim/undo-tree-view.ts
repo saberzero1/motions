@@ -185,7 +185,7 @@ export class UndoTreeView extends View {
             if (node.saved) {
                 row.createSpan({
                     cls: 'vim-motions-undo-flags',
-                    text: 'saved',
+                    text: 'Saved',
                 });
             }
 

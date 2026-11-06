@@ -89,7 +89,11 @@ export function getTableDebugState(app: App): TableDebugState | null {
 
     const nav = getTableNavSessionSnapshot(editorView);
 
-    const statusBar = document.querySelector('.vim-motions-mode');
+    // The status bar is in the main window only; pop-outs have none.
+    const statusBar =
+        app.workspace.containerEl.ownerDocument.querySelector(
+            '.vim-motions-mode',
+        );
     const statusBarText = (statusBar as HTMLElement)?.textContent ?? '';
     const statusBarDataAttr =
         (statusBar as HTMLElement)?.dataset?.['vimMode'] ?? '';

@@ -45,9 +45,36 @@ interface DirtyRect {
     h: number;
 }
 
+/**
+ * The canvas the cursors of one window's editors are drawn on. Each window,
+ * the main one and every pop-out, has a document of its own, and an editor's
+ * coordinates are its own window's, so each gets its own canvas.
+ */
+interface Surface {
+    doc: Document;
+    win: Window;
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+    resizeObserver: ResizeObserver;
+    themeObserver: MutationObserver;
+    dprQuery: MediaQueryList;
+    onDprChange: () => void;
+    onVisibilityChange: () => void;
+    width: number;
+    height: number;
+    dirtyRegion: DirtyRect | null;
+    prevDirtyRegion: DirtyRect | null;
+}
+
 export class AnimatedCursorManager {
-    private controllers = new Set<Tickable>();
+    /** Each controller, with the document of the editor it draws for. */
+    private controllers = new Map<Tickable, Document>();
+    private surfaces = new Map<Document, Surface>();
+    /** The surface being drawn, which `markDirty()` applies to. */
+    private drawing: Surface | null = null;
     private rafId: number | null = null;
+    /** The window `rafId` was requested from, to cancel it there. */
+    private rafWin: Window | null = null;
     private lastTime = 0;
     private lastLoopTime = 0;
     private lastFrameTime = 0;
@@ -55,23 +82,12 @@ export class AnimatedCursorManager {
     private wakeRequested = false;
     private gear: Gear = 'stopped';
     private warmTimerId: number | null = null;
-    private canvas: HTMLCanvasElement | null = null;
-    private ctx: CanvasRenderingContext2D | null = null;
-    private resizeObserver: ResizeObserver | null = null;
-    private themeObserver: MutationObserver | null = null;
-    private dprQuery: MediaQueryList | null = null;
-    private onDprChange: (() => void) | null = null;
     private heartbeatId: number | null = null;
     private tickErrorLogged = false;
-    private onVisibilityChange: (() => void) | null = null;
     private crossingHandoff: CellCrossingHandoff | null = null;
     private crossingTokenCounter = 0;
-    private cachedViewportWidth = 0;
-    private cachedViewportHeight = 0;
-    private dirtyRegion: DirtyRect | null = null;
-    private prevDirtyRegion: DirtyRect | null = null;
 
-    register(controller: Tickable): void {
+    register(controller: Tickable, doc: Document): void {
         if (this.controllers.size >= MAX_CONTROLLERS) {
             console.warn(
                 `Vim Motions: animated cursor controller limit reached (${MAX_CONTROLLERS}). ` +
@@ -79,20 +95,23 @@ export class AnimatedCursorManager {
             );
             return;
         }
-        this.controllers.add(controller);
+        this.controllers.set(controller, doc);
         devAssert(
             this.controllers.size <= MAX_CONTROLLERS,
             `Controller count (${this.controllers.size}) exceeds MAX_CONTROLLERS (${MAX_CONTROLLERS})`,
         );
-        this.ensureCanvas();
+        this.ensureSurface(doc);
         this.wake();
     }
 
     deregister(controller: Tickable): void {
+        const doc = this.controllers.get(controller);
         this.controllers.delete(controller);
+        if (doc && ![...this.controllers.values()].includes(doc)) {
+            this.removeSurface(doc);
+        }
         if (this.controllers.size === 0) {
             this.stop();
-            this.removeCanvas();
         }
     }
 
@@ -109,101 +128,114 @@ export class AnimatedCursorManager {
         this.running = true;
         this.tickErrorLogged = false;
         this.lastTime = performance.now();
-        this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+        this.requestFrame();
         this.startHeartbeat();
     }
 
-    private ensureCanvas(): void {
-        if (this.canvas) return;
-        const doc = document;
+    /**
+     * The next frame, from the window that has focus. A hidden or occluded
+     * window gets no animation frames, so a pop-out's cursor would freeze
+     * while the main window is minimised.
+     */
+    private requestFrame(): void {
+        let win: Window = window;
+        for (const surface of this.surfaces.values()) {
+            if (surface.doc.hasFocus()) {
+                win = surface.win;
+                break;
+            }
+        }
+        this.rafWin = win;
+        this.rafId = win.requestAnimationFrame((t) => this.loop(t));
+    }
+
+    private ensureSurface(doc: Document): void {
+        if (this.surfaces.has(doc)) return;
+        const win = doc.defaultView ?? window;
         const container =
             doc.querySelector<HTMLElement>('.app-container') ?? doc.body;
-        this.canvas = container.createEl('canvas', {
+        const canvas = container.createEl('canvas', {
             cls: 'vim-motions-animated-cursor-canvas',
             attr: { role: 'presentation', 'aria-hidden': 'true' },
         });
-        this.ctx = this.canvas.getContext('2d');
-        if (!this.ctx) {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
             console.warn(
                 'Vim Motions: failed to get 2d context for animated cursor canvas.',
             );
-            this.canvas.remove();
-            this.canvas = null;
+            canvas.remove();
             return;
         }
-        this.sizeCanvas();
-        this.resizeObserver = new ResizeObserver(() => this.sizeCanvas());
-        this.resizeObserver.observe(doc.documentElement);
-
-        this.themeObserver = new MutationObserver(() => {
-            themeDirty = true;
-        });
-        this.themeObserver.observe(doc.body, {
+        const surface: Surface = {
+            doc,
+            win,
+            canvas,
+            ctx,
+            resizeObserver: new ResizeObserver(() => this.sizeCanvas(surface)),
+            themeObserver: new MutationObserver(() => {
+                themeDirty = true;
+            }),
+            dprQuery: win.matchMedia(
+                `(resolution: ${win.devicePixelRatio}dppx)`,
+            ),
+            onDprChange: () => this.sizeCanvas(surface),
+            // Re-wake the rAF loop when the page becomes visible again.
+            // Chromium pauses rAF for hidden/occluded tabs; on Windows 11 the
+            // occlusion tracker is more aggressive than on Linux, so re-waking
+            // on visibility change is essential.
+            onVisibilityChange: () => {
+                if (!doc.hidden && this.controllers.size > 0) {
+                    this.wake();
+                }
+            },
+            width: 0,
+            height: 0,
+            dirtyRegion: null,
+            prevDirtyRegion: null,
+        };
+        this.surfaces.set(doc, surface);
+        this.sizeCanvas(surface);
+        surface.resizeObserver.observe(doc.documentElement);
+        surface.themeObserver.observe(doc.body, {
             attributes: true,
             attributeFilter: ['class'],
         });
-
-        this.onDprChange = () => this.sizeCanvas();
-        this.dprQuery = window.matchMedia(
-            `(resolution: ${window.devicePixelRatio}dppx)`,
-        );
-        this.dprQuery.addEventListener('change', this.onDprChange);
-
-        // Re-wake the rAF loop when the page becomes visible again.
-        // Chromium pauses rAF for hidden/occluded tabs; on Windows 11 the
-        // occlusion tracker is more aggressive than on Linux, so re-waking
-        // on visibility change is essential.
-        this.onVisibilityChange = () => {
-            if (!doc.hidden && this.controllers.size > 0) {
-                this.wake();
-            }
-        };
-        doc.addEventListener('visibilitychange', this.onVisibilityChange);
+        surface.dprQuery.addEventListener('change', surface.onDprChange);
+        doc.addEventListener('visibilitychange', surface.onVisibilityChange);
     }
 
-    private removeCanvas(): void {
-        this.stopHeartbeat();
-        if (this.onVisibilityChange) {
-            document.removeEventListener(
-                'visibilitychange',
-                this.onVisibilityChange,
-            );
-            this.onVisibilityChange = null;
-        }
-        this.resizeObserver?.disconnect();
-        this.resizeObserver = null;
-        this.themeObserver?.disconnect();
-        this.themeObserver = null;
-        if (this.dprQuery && this.onDprChange) {
-            this.dprQuery.removeEventListener('change', this.onDprChange);
-            this.dprQuery = null;
-            this.onDprChange = null;
-        }
-        this.canvas?.remove();
-        this.canvas = null;
-        this.ctx = null;
+    private removeSurface(doc: Document): void {
+        const surface = this.surfaces.get(doc);
+        if (!surface) return;
+        this.surfaces.delete(doc);
+        if (this.drawing === surface) this.drawing = null;
+        doc.removeEventListener('visibilitychange', surface.onVisibilityChange);
+        surface.resizeObserver.disconnect();
+        surface.themeObserver.disconnect();
+        surface.dprQuery.removeEventListener('change', surface.onDprChange);
+        surface.canvas.remove();
     }
 
-    private sizeCanvas(): void {
-        if (!this.canvas || !this.ctx) return;
-        const dpr = window.devicePixelRatio || 1;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        this.cachedViewportWidth = w;
-        this.cachedViewportHeight = h;
+    private sizeCanvas(surface: Surface): void {
+        const { canvas, ctx, win } = surface;
+        const dpr = win.devicePixelRatio || 1;
+        const w = win.innerWidth;
+        const h = win.innerHeight;
+        surface.width = w;
+        surface.height = h;
         // Round to avoid fractional backing-store sizes on Windows displays
         // with 125 %/150 % scaling (devicePixelRatio 1.25/1.5).  Without
         // rounding, the non-integer canvas dimensions cause sub-pixel
         // aliasing and continuous compositor re-uploads.
         const pw = Math.round(w * dpr);
         const ph = Math.round(h * dpr);
-        if (this.canvas.width !== pw || this.canvas.height !== ph) {
-            this.canvas.width = pw;
-            this.canvas.height = ph;
-            this.canvas.style.width = w + 'px';
-            this.canvas.style.height = h + 'px';
-            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            this.prevDirtyRegion = null;
+        if (canvas.width !== pw || canvas.height !== ph) {
+            canvas.width = pw;
+            canvas.height = ph;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            surface.prevDirtyRegion = null;
         }
     }
 
@@ -216,7 +248,7 @@ export class AnimatedCursorManager {
         if (this.gear === 'hot') {
             const now = performance.now();
             if (now - this.lastFrameTime < HOT_FRAME_MIN_MS) {
-                this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+                this.requestFrame();
                 return;
             }
             this.lastFrameTime = now;
@@ -225,7 +257,7 @@ export class AnimatedCursorManager {
         const dt = (timestamp - this.lastTime) / 1000;
         this.lastTime = timestamp;
 
-        if (!this.ctx) {
+        if (this.surfaces.size === 0) {
             this.running = false;
             this.rafId = null;
             return;
@@ -238,29 +270,32 @@ export class AnimatedCursorManager {
         let anyActive = false;
         let anyNeedsBlink = false;
         try {
-            this.checkCanvasSize();
-
-            if (this.prevDirtyRegion) {
-                const p = this.prevDirtyRegion;
-                this.ctx.clearRect(p.x, p.y, p.w, p.h);
-            } else {
-                this.ctx.clearRect(
-                    0,
-                    0,
-                    this.cachedViewportWidth,
-                    this.cachedViewportHeight,
-                );
+            for (const surface of this.surfaces.values()) {
+                this.checkCanvasSize(surface);
+                const ctx = surface.ctx;
+                const p = surface.prevDirtyRegion;
+                if (p) {
+                    ctx.clearRect(p.x, p.y, p.w, p.h);
+                } else {
+                    ctx.clearRect(0, 0, surface.width, surface.height);
+                }
+                surface.dirtyRegion = null;
+                this.drawing = surface;
+                for (const [c, doc] of this.controllers) {
+                    if (doc !== surface.doc) continue;
+                    c.tick(dt, ctx);
+                    if (c.isActive()) anyActive = true;
+                    if (c.needsBlink()) anyNeedsBlink = true;
+                }
+                this.drawing = null;
+                // Set by markDirty() during tick(), which TypeScript does not see.
+                const d = surface.dirtyRegion as DirtyRect | null;
+                surface.prevDirtyRegion = d
+                    ? { x: d.x, y: d.y, w: d.w, h: d.h }
+                    : null;
             }
-            this.dirtyRegion = null;
-
-            for (const c of this.controllers) {
-                c.tick(dt, this.ctx);
-                if (c.isActive()) anyActive = true;
-                if (c.needsBlink()) anyNeedsBlink = true;
-            }
-
-            this.snapshotDirtyRegion();
         } catch (e: unknown) {
+            this.drawing = null;
             if (!this.tickErrorLogged) {
                 this.tickErrorLogged = true;
                 console.error(
@@ -276,36 +311,29 @@ export class AnimatedCursorManager {
         this.scheduleNext(anyActive, anyNeedsBlink);
     }
 
-    private checkCanvasSize(): void {
-        if (!this.canvas) return;
-        const dpr = window.devicePixelRatio || 1;
-        const pw = Math.round(this.cachedViewportWidth * dpr);
-        const ph = Math.round(this.cachedViewportHeight * dpr);
-        if (this.canvas.width !== pw || this.canvas.height !== ph) {
-            this.sizeCanvas();
+    private checkCanvasSize(surface: Surface): void {
+        const dpr = surface.win.devicePixelRatio || 1;
+        const pw = Math.round(surface.width * dpr);
+        const ph = Math.round(surface.height * dpr);
+        if (surface.canvas.width !== pw || surface.canvas.height !== ph) {
+            this.sizeCanvas(surface);
         }
     }
 
-    private snapshotDirtyRegion(): void {
-        const d = this.dirtyRegion;
-        if (d) {
-            this.prevDirtyRegion = { x: d.x, y: d.y, w: d.w, h: d.h };
-        } else {
-            this.prevDirtyRegion = null;
-        }
-    }
-
+    /** Marks a region of the surface being drawn as painted this frame. */
     markDirty(x: number, y: number, w: number, h: number): void {
+        const surface = this.drawing;
+        if (!surface) return;
         const PAD = 2;
         const px = x - PAD;
         const py = y - PAD;
         const pw = w + PAD * 2;
         const ph = h + PAD * 2;
-        if (!this.dirtyRegion) {
-            this.dirtyRegion = { x: px, y: py, w: pw, h: ph };
+        if (!surface.dirtyRegion) {
+            surface.dirtyRegion = { x: px, y: py, w: pw, h: ph };
             return;
         }
-        const d = this.dirtyRegion;
+        const d = surface.dirtyRegion;
         const nx = Math.min(d.x, px);
         const ny = Math.min(d.y, py);
         d.w = Math.max(d.x + d.w, px + pw) - nx;
@@ -321,7 +349,7 @@ export class AnimatedCursorManager {
         }
         if (anyActive) {
             this.gear = 'hot';
-            this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+            this.requestFrame();
         } else if (anyNeedsBlink) {
             this.gear = 'warm';
             this.running = false;
@@ -332,7 +360,7 @@ export class AnimatedCursorManager {
                 this.running = true;
                 this.gear = 'warm';
                 this.lastTime = performance.now();
-                this.rafId = window.requestAnimationFrame((t) => this.loop(t));
+                this.requestFrame();
             }, BLINK_HALF_CYCLE);
         } else {
             this.gear = 'stopped';
@@ -386,8 +414,9 @@ export class AnimatedCursorManager {
         this.running = false;
         this.gear = 'stopped';
         if (this.rafId !== null) {
-            cancelAnimationFrame(this.rafId);
+            (this.rafWin ?? window).cancelAnimationFrame(this.rafId);
             this.rafId = null;
+            this.rafWin = null;
         }
         this.cancelWarmTimer();
         this.stopHeartbeat();
@@ -415,7 +444,7 @@ export class AnimatedCursorManager {
     destroy(): void {
         this.stop();
         this.controllers.clear();
-        this.removeCanvas();
+        for (const doc of [...this.surfaces.keys()]) this.removeSurface(doc);
     }
 }
 

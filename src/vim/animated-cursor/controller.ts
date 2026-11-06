@@ -157,7 +157,8 @@ class CursorController implements Tickable {
             }
         }
 
-        getAnimatedCursorManager().register(this);
+        // Drawn on the canvas of the editor's own window, which may be a pop-out.
+        getAnimatedCursorManager().register(this, view.dom.ownerDocument);
     }
 
     private onCompositionStart = (): void => {
@@ -488,7 +489,7 @@ class CursorController implements Tickable {
             let charHeight: number | undefined;
             try {
                 const textNode = domAtPos.node;
-                const range = document.createRange();
+                const range = this.view.dom.ownerDocument.createRange();
                 range.setStart(textNode, domAtPos.offset);
                 range.setEnd(
                     textNode,

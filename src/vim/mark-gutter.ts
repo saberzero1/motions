@@ -39,7 +39,7 @@ export function scheduleMarkGutterRefresh(
 export function cancelMarkGutterRefresh(view: EditorView): void {
     const id = pendingRefresh.get(view);
     if (id !== undefined) {
-        cancelAnimationFrame(id);
+        window.cancelAnimationFrame(id);
         pendingRefresh.delete(view);
     }
 }

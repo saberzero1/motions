@@ -961,14 +961,24 @@ export default class VimMotionsPlugin extends Plugin {
             );
         }
 
-        this.registerDomEvent(window, 'focus', () => {
-            void this.refreshClipboardCache();
-        });
-        this.registerDomEvent(document, 'visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
+        // Refresh when any window, the main one or a pop-out, gets focus or
+        // becomes visible again.
+        const watchClipboard = (win: Window): void => {
+            this.registerDomEvent(win, 'focus', () => {
                 void this.refreshClipboardCache();
-            }
-        });
+            });
+            this.registerDomEvent(win.document, 'visibilitychange', () => {
+                if (win.document.visibilityState === 'visible') {
+                    void this.refreshClipboardCache();
+                }
+            });
+        };
+        watchClipboard(window);
+        this.registerEvent(
+            this.app.workspace.on('window-open', (_workspaceWindow, win) =>
+                watchClipboard(win),
+            ),
+        );
         void this.refreshClipboardCache();
 
         // --- Mobile gate ---
@@ -3721,7 +3731,7 @@ export default class VimMotionsPlugin extends Plugin {
                         '.cm-tooltip-autocomplete',
                     );
                     if (
-                        !(el instanceof HTMLElement) ||
+                        !el?.instanceOf(HTMLElement) ||
                         el.style.top !== '-10000px'
                     )
                         return;

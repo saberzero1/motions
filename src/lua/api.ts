@@ -1237,8 +1237,9 @@ function readGlobalOption(callbacks: VimApiCallbacks, key: string): unknown {
         return value;
     }
     if (globalOptionShadow.has(key)) return globalOptionShadow.get(key);
-    if (key === 'background' && typeof document !== 'undefined') {
-        return document.body?.classList.contains('theme-light')
+    // Every window's body carries the theme class, pop-outs included.
+    if (key === 'background' && typeof activeDocument !== 'undefined') {
+        return activeDocument.body?.classList.contains('theme-light')
             ? 'light'
             : 'dark';
     }

@@ -163,7 +163,7 @@ describe('Lua API compatibility options and current handles', () => {
     });
 
     it('derives background from the active theme unless overridden', () => {
-        vi.stubGlobal('document', {
+        vi.stubGlobal('activeDocument', {
             body: {
                 classList: {
                     contains: (name: string) => name === 'theme-light',

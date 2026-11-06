@@ -115,24 +115,34 @@ function recordingMacro(): boolean {
  * and not while recording a macro, so `q` still ends a recording (#208).
  */
 export function installHoverPreviewQuit(app: App, owner: Component): void {
+    const onKeydown = (e: KeyboardEvent): void => {
+        if (e.key !== 'q' || e.ctrlKey || e.altKey || e.metaKey) return;
+        // `instanceof Element` is false for an element of a pop-out window,
+        // which has an `Element` of its own.
+        const node = e.targetNode;
+        const target = node?.instanceOf(Element) ? node : null;
+        if (!target?.closest('.hover-popover')) return;
+        const editorEl = target.closest<HTMLElement>('.cm-editor');
+        const view = editorEl ? EditorView.findFromDOM(editorEl) : null;
+        const cm = view ? getCmAdapterFromEditorView(view) : null;
+        const vim = (cm as unknown as { state?: { vim?: QuitState } } | null)
+            ?.state?.vim;
+        if (!idleNormal(vim) || recordingMacro()) return;
+        if (!dismissParentPopover(app, target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+    };
+    // The main window and each pop-out, whose hover previews are in its own
+    // document.
     owner.registerDomEvent(
-        document,
+        app.workspace.containerEl.ownerDocument,
         'keydown',
-        (e: KeyboardEvent) => {
-            if (e.key !== 'q' || e.ctrlKey || e.altKey || e.metaKey) return;
-            const target = e.target instanceof Element ? e.target : null;
-            if (!target?.closest('.hover-popover')) return;
-            const editorEl = target.closest<HTMLElement>('.cm-editor');
-            const view = editorEl ? EditorView.findFromDOM(editorEl) : null;
-            const cm = view ? getCmAdapterFromEditorView(view) : null;
-            const vim = (
-                cm as unknown as { state?: { vim?: QuitState } } | null
-            )?.state?.vim;
-            if (!idleNormal(vim) || recordingMacro()) return;
-            if (!dismissParentPopover(app, target)) return;
-            e.preventDefault();
-            e.stopPropagation();
-        },
+        onKeydown,
         true,
+    );
+    owner.registerEvent(
+        app.workspace.on('window-open', (_workspaceWindow, win) => {
+            owner.registerDomEvent(win.document, 'keydown', onKeydown, true);
+        }),
     );
 }

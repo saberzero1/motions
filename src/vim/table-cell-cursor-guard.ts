@@ -150,7 +150,7 @@ const cellEditorCursorGuard = ViewPlugin.fromClass(
                 const vimLayer =
                     cv.scrollDOM.querySelector('.cm-vimCursorLayer');
                 if (
-                    vimLayer instanceof HTMLElement &&
+                    vimLayer?.instanceOf(HTMLElement) &&
                     vimLayer.style.display === 'none'
                 ) {
                     vimLayer.removeAttribute('style');

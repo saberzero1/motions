@@ -409,6 +409,10 @@ describe('AnimatedCursorManager', () => {
         };
     });
 
+    // The document an editor's controller draws in, here the stub above.
+    const stubDoc = () =>
+        (globalThis as Record<string, unknown>).document as Document;
+
     const restoreDoc = () => {
         const g = globalThis as Record<string, unknown>;
         g.document = savedDocument;
@@ -428,7 +432,7 @@ describe('AnimatedCursorManager', () => {
             didDraw: () => false,
             needsBlink: () => false,
         };
-        manager.register(stub);
+        manager.register(stub, stubDoc());
         expect(
             (manager as unknown as { controllers: Set<unknown> }).controllers
                 .size,
@@ -459,8 +463,8 @@ describe('AnimatedCursorManager', () => {
             didDraw: () => false,
             needsBlink: () => false,
         };
-        manager.register(stub1);
-        manager.register(stub2);
+        manager.register(stub1, stubDoc());
+        manager.register(stub2, stubDoc());
         expect(
             (manager as unknown as { controllers: Set<unknown> }).controllers
                 .size,
@@ -480,12 +484,15 @@ describe('AnimatedCursorManager', () => {
             await import('../../src/vim/animated-cursor/manager');
         const manager = new AnimatedCursorManager();
         for (let i = 0; i < 17; i++) {
-            manager.register({
-                tick: vi.fn(),
-                isActive: () => false,
-                didDraw: () => false,
-                needsBlink: () => false,
-            });
+            manager.register(
+                {
+                    tick: vi.fn(),
+                    isActive: () => false,
+                    didDraw: () => false,
+                    needsBlink: () => false,
+                },
+                stubDoc(),
+            );
         }
         expect(warnSpy).toHaveBeenCalled();
         expect(
@@ -494,6 +501,89 @@ describe('AnimatedCursorManager', () => {
         ).toBe(16);
         manager.destroy();
         warnSpy.mockRestore();
+        restoreDoc();
+    });
+
+    it('draws each controller on the canvas of its own window', async () => {
+        vi.resetModules();
+        const savedMO = (globalThis as Record<string, unknown>)
+            .MutationObserver;
+        (globalThis as Record<string, unknown>).MutationObserver = class {
+            observe() {}
+            disconnect() {}
+        };
+        const { AnimatedCursorManager } =
+            await import('../../src/vim/animated-cursor/manager');
+        // A document whose canvas has a context, in a window of its own.
+        const makeDoc = (name: string) => {
+            const ctx = {
+                name,
+                clearRect: vi.fn(),
+                setTransform: vi.fn(),
+            };
+            const canvas = {
+                getContext: () => ctx,
+                remove: vi.fn(),
+                style: {},
+                width: 0,
+                height: 0,
+            };
+            const win = {
+                devicePixelRatio: 1,
+                innerWidth: 100,
+                innerHeight: 50,
+                matchMedia: () => ({
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                }),
+                requestAnimationFrame: vi.fn(() => 1),
+                cancelAnimationFrame: vi.fn(),
+            };
+            const doc = {
+                defaultView: win,
+                querySelector: () => null,
+                body: { createEl: () => canvas },
+                documentElement: {},
+                hidden: false,
+                hasFocus: () => false,
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+            };
+            return { doc: doc as unknown as Document, ctx, canvas, win };
+        };
+        const main = makeDoc('main');
+        const popout = makeDoc('popout');
+        const stub = () => ({
+            tick: vi.fn(),
+            isActive: () => false,
+            didDraw: () => false,
+            needsBlink: () => false,
+        });
+        const inMain = stub();
+        const inPopout = stub();
+        const manager = new AnimatedCursorManager();
+        manager.register(inMain, main.doc);
+        manager.register(inPopout, popout.doc);
+
+        (manager as unknown as { loop(t: number): void }).loop(16);
+        expect(inMain.tick).toHaveBeenCalledWith(expect.any(Number), main.ctx);
+        expect(inPopout.tick).toHaveBeenCalledWith(
+            expect.any(Number),
+            popout.ctx,
+        );
+
+        // The pop-out's canvas and listener go with its last controller.
+        manager.deregister(inPopout);
+        expect(popout.canvas.remove).toHaveBeenCalled();
+        expect(popout.doc.removeEventListener).toHaveBeenCalledWith(
+            'visibilitychange',
+            expect.any(Function),
+        );
+        expect(main.canvas.remove).not.toHaveBeenCalled();
+
+        manager.destroy();
+        expect(main.canvas.remove).toHaveBeenCalled();
+        (globalThis as Record<string, unknown>).MutationObserver = savedMO;
         restoreDoc();
     });
 

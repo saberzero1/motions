@@ -94,8 +94,10 @@ export class TextareaVimManager {
     }
 
     private onFocusIn(e: FocusEvent): void {
-        const target = e.target;
-        if (!(target instanceof HTMLTextAreaElement)) return;
+        // Cross-window: a pop-out's textarea is not an instance of the main
+        // window's HTMLTextAreaElement.
+        const target = e.targetNode;
+        if (!target?.instanceOf(HTMLTextAreaElement)) return;
         if (shouldSkip(target)) return;
         if (this.recentlyExited?.deref() === target) return;
 

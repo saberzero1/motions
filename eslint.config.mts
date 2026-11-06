@@ -38,13 +38,11 @@ export default defineConfig(
                 projectService: {
                     allowDefaultProject: [
                         'eslint.config.mts',
-                        'manifest.json',
                         'vitest.config.ts',
                     ],
                 },
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- import.meta.dirname typed as string | undefined by obsidian-typings globals
                 tsconfigRootDir: import.meta.dirname,
-                extraFileExtensions: ['.json'],
             },
         },
     },
@@ -54,6 +52,13 @@ export default defineConfig(
         linterOptions: {
             reportUnusedDisableDirectives: 'off',
         },
+    },
+
+    {
+        // Scoped to source: since eslint-plugin-obsidianmd 0.5.0 the recommended
+        // config also lints manifest.json and LICENSE, where the
+        // @typescript-eslint and import plugins are not registered.
+        files: ['**/*.{ts,cts,mts,tsx,js,cjs,mjs,jsx}'],
         rules: {
             // The preset sets `args: 'none'`, which is how a parameter that was
             // accepted and then ignored while the behaviour it should have

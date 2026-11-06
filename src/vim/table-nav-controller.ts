@@ -1361,7 +1361,7 @@ const tableNavScrollHandler = EditorView.scrollHandler.of(
         if (!widget) return false;
 
         const cell = widget.querySelector('.' + NAV_HIGHLIGHT_CLASS);
-        if (!(cell instanceof HTMLElement)) return false;
+        if (!cell?.instanceOf(HTMLElement)) return false;
 
         const scroller = view.scrollDOM;
         const cellRect = cell.getBoundingClientRect();

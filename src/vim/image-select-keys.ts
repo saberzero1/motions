@@ -46,7 +46,10 @@ export function installImageSelectKeys(app: App, owner: Component): void {
         if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
         const forward = FORWARD[e.key];
         if (forward === undefined || isKeyInterceptActive()) return;
-        const target = e.target instanceof Element ? e.target : null;
+        // `instanceof Element` is false for an element of a pop-out window,
+        // which has an `Element` of its own.
+        const node = e.targetNode;
+        const target = node?.instanceOf(Element) ? node : null;
         const editorEl = target?.closest<HTMLElement>('.cm-editor');
         const view = editorEl ? EditorView.findFromDOM(editorEl) : null;
         const vim = view ? getCmAdapterFromEditorView(view)?.state.vim : null;
