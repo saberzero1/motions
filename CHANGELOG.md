@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`set tablecolumnhighlight`, to turn off the highlight on the cursor's column in a revealed table** ([#167](https://github.com/saberzero1/motions/issues/167)). On by default, as before. Off, only the cursor's own cell is highlighted. Also **Settings → Vim Motions → General → Highlight table cursor column**, in both settings implementations, and `vim.opt.tablecolumnhighlight`. A change restyles an open table at once, without the cursor moving.
+    - Plugin: `src/vim/table/reveal/grid-decorations.ts`, `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+
 ### Changed
 
 - **Visual-line mode (`V`) now gives the editor the whole lines it selects** ([#231](https://github.com/saberzero1/motions/issues/231)). It used to give it only a cursor, so `EditorState.selection` and `listSelections()` showed nothing selected, and other plugins could not see the selection. It now works like `v`, like upstream codemirror-vim and like Obsidian's own Vim key bindings.
@@ -56,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Negative controls**, recorded in `table-reveal-negative-controls.md` (E11, E12, U8, U9):
         - Rebuilding from the start state on the second run leaves a second mark on each pasted row, nested at lines 4 and 5 for `yjP`.
         - Mapping a row's start with `TrackDel` leaves `4:5-4:20`, the rest of the deleted row's mark.
+- **`table-reveal-editing.e2e.ts` turns `tablecolumnhighlight` off and on with the cursor still**, and reads the highlighted column and cell each time.
+    - **Negative controls:** with the setting ignored, and with the setting read only when the decorations would rebuild anyway, the column stays highlighted after `set notablecolumnhighlight` (`Value`, `11`, `22`).
 - **`jump-list-open-tab-settings.e2e.ts` runs `<C-o>` to a closed tab with Open Tab Settings 3.4.0 enabled** ([#206](https://github.com/saberzero1/motions/issues/206)). The note opens in a new tab and the current tab keeps its note; without the plugin it opens in the current tab, as Vim reuses the current window. The jump list asks `getLeaf(false)` for the leaf, which Open Tab Settings patches, so no integration code is needed. The plugin is added to `wdio.conf.mts` disabled, like the other community plugins there.
     - **Negative control:** taking the active leaf instead of asking `getLeaf(false)` opens the note in the current tab with Open Tab Settings on, which is the behaviour the report describes (`newLeaf` false, `OtsC.md` gone).
 

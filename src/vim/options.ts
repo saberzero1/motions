@@ -184,6 +184,15 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}tableautorealign`,
         );
     });
+    vim.defineOption('tablecolumnhighlight', true, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'tableColumnHighlight',
+            enabled,
+            `set ${enabled ? '' : 'no'}tablecolumnhighlight`,
+        );
+    });
     vim.defineOption('jumplist', true, 'boolean', [], (value) => {
         if (value === undefined) return jumpListEnabled;
         const enabled = !!value;

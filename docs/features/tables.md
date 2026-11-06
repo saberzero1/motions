@@ -120,7 +120,7 @@ Each item below is covered by a test in `test/specs/table-reveal*.e2e.ts` or `te
 - In insert mode, inside a cell, `Enter` moves to the same column in the next row, adding a row from the last one, and `Shift-Enter` inserts a `<br>` line break; at the end of a row both start a new line, so a table can still be typed row by row
 - With `tableautorealign` on, leaving insert mode realigns the table you edited, keeping the cursor on its character; one `u` undoes the edit and the realign together
 - A `|` typed inside `[[…]]` is written as `\|`, and `||` typed under a header with no separator yet becomes the separator
-- The status bar shows the cursor's column and its header, and every cell of that column is highlighted
+- The status bar shows the cursor's column and its header, and every cell of that column is highlighted (`tablecolumnhighlight`, on by default)
 - The cell motions `]|`, `[|`, `]r`, `[r` and the text objects `i|`, `a|`
 - The column alignment commands, `<Leader>tal`, `<Leader>tac` and `<Leader>tar`
 - Obsidian's own **Vim key bindings**, instead of the bundled engine: the same entering, editing, visual block and click behaviour
@@ -154,7 +154,7 @@ To start a table, type its header row, then `||` as the whole of the next line: 
 
 ### Which column you are in
 
-While the cursor is in a revealed table, the status bar shows its column, the number of columns and the column's header, for example `Col 2/3 · Value`. When the cursor's row has a different number of cells from the header, it adds a warning, for example `row has 4 cells`, so a stray or missing pipe shows up while you type. Every cell of the cursor's column is highlighted, more faintly than the cursor's own cell.
+While the cursor is in a revealed table, the status bar shows its column, the number of columns and the column's header, for example `Col 2/3 · Value`. When the cursor's row has a different number of cells from the header, it adds a warning, for example `row has 4 cells`, so a stray or missing pipe shows up while you type. Every cell of the cursor's column is highlighted, more faintly than the cursor's own cell. To highlight only the cursor's cell, turn off **Settings → Vim Motions → General → Highlight table cursor column**, or use `set notablecolumnhighlight` or `vim.opt.tablecolumnhighlight = false`.
 
 ### What is different from the other modes
 

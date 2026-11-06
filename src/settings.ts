@@ -198,6 +198,7 @@ export interface VimMotionsSettings {
      */
     tableWidgetAutoMigrated: boolean;
     tableAutoRealign: boolean;
+    tableColumnHighlight: boolean;
     yankHighlightMode: 'off' | 'solid' | 'fade';
     yankHighlightDuration: number;
 
@@ -371,6 +372,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     // are read from the raw data, before these defaults apply.
     tableWidgetAutoMigrated: true,
     tableAutoRealign: false,
+    tableColumnHighlight: true,
     yankHighlightMode: 'solid',
     yankHighlightDuration: 200,
 
@@ -552,6 +554,7 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'listContinuationOnOpen',
         'enableTableNav',
         'tableWidgetMode',
+        'tableColumnHighlight',
         'yankHighlightMode',
         'enableWorkspaceNav',
         'enableEasyMotion',
@@ -1016,6 +1019,28 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     defaultValue: false,
                                     disabled: () =>
                                         this.isOverridden('tableAutoRealign'),
+                                },
+                            },
+                            {
+                                name: 'Highlight table cursor column',
+                                desc: this.describeOverride(
+                                    'tableColumnHighlight',
+                                    "In reveal mode, highlight every cell of the cursor's column, more faintly than the cursor's own cell. The cursor's cell stays highlighted either way.",
+                                ),
+                                aliases: [
+                                    'table',
+                                    'column',
+                                    'highlight',
+                                    'tablecolumnhighlight',
+                                ],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'tableColumnHighlight',
+                                    defaultValue: true,
+                                    disabled: () =>
+                                        this.isOverridden(
+                                            'tableColumnHighlight',
+                                        ),
                                 },
                             },
                             {
@@ -3667,6 +3692,28 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         this.plugin.settings.tableAutoRealign = value;
                         this.plugin.clearSettingOverride('tableAutoRealign');
                         await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Highlight table cursor column')
+            .setDesc(
+                describeOverride(
+                    'tableColumnHighlight',
+                    "In reveal mode, highlight every cell of the cursor's column, more faintly than the cursor's own cell. The cursor's cell stays highlighted either way.",
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.tableColumnHighlight)
+                    .setDisabled(isOverridden('tableColumnHighlight'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.tableColumnHighlight = value;
+                        this.plugin.clearSettingOverride(
+                            'tableColumnHighlight',
+                        );
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
                     }),
             );
 

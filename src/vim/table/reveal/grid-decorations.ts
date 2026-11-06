@@ -90,7 +90,10 @@ function isTableRowLine(state: EditorState, line: Line): boolean {
     return found;
 }
 
-function buildDecorations(view: EditorView): DecorationSet {
+function buildDecorations(
+    view: EditorView,
+    columnHighlight: boolean,
+): DecorationSet {
     const state = view.state;
     const reveal = state.field(revealField, false);
     if (!reveal || reveal.tables.length === 0) return Decoration.none;
@@ -156,7 +159,9 @@ function buildDecorations(view: EditorView): DecorationSet {
                     value: cellMark(
                         layout.alignments[cell.column] ?? 'none',
                         cell === active,
-                        active !== null && cell.column === active.column,
+                        columnHighlight &&
+                            active !== null &&
+                            cell.column === active.column,
                     ),
                 });
             }
@@ -181,20 +186,30 @@ function buildDecorations(view: EditorView): DecorationSet {
  * Rows get a line class by kind, so the stylesheet can set the monospace font
  * that makes padded columns line up; delimiters and cells get marks carrying
  * each column's alignment; and the cell holding the caret is marked active,
- * with every cell of its column marked as the active column.
+ * with every cell of its column marked as the active column unless
+ * `columnHighlight` says not to.
  * Only rows Obsidian's parser confirms are styled — see `isTableRowLine`.
+ *
+ * The setting is read on every update, so turning it off restyles an open
+ * table on the reconfiguration the settings change dispatches.
  */
-export function revealGridDecorations(): Extension {
+export function revealGridDecorations(
+    columnHighlight: () => boolean,
+): Extension {
     return ViewPlugin.fromClass(
         class {
             decorations: DecorationSet;
+            private column: boolean;
 
             constructor(view: EditorView) {
-                this.decorations = buildDecorations(view);
+                this.column = columnHighlight();
+                this.decorations = buildDecorations(view, this.column);
             }
 
             update(update: ViewUpdate): void {
+                const column = columnHighlight();
                 if (
+                    column !== this.column ||
                     update.docChanged ||
                     update.selectionSet ||
                     update.viewportChanged ||
@@ -204,7 +219,8 @@ export function revealGridDecorations(): Extension {
                         update.state.field(editorLivePreviewField, false) ||
                     syntaxTree(update.startState) !== syntaxTree(update.state)
                 ) {
-                    this.decorations = buildDecorations(update.view);
+                    this.column = column;
+                    this.decorations = buildDecorations(update.view, column);
                 }
             }
         },

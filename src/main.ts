@@ -3517,6 +3517,7 @@ export default class VimMotionsPlugin extends Plugin {
                         );
                     },
                     autoRealign: () => this.settings.tableAutoRealign,
+                    columnHighlight: () => this.settings.tableColumnHighlight,
                     columnStatus: (info) => this.renderTableColumnStatus(info),
                 }),
         );

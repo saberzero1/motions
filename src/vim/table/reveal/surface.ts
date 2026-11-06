@@ -33,6 +33,8 @@ export interface TableRevealOptions {
     onUnavailable: () => void;
     /** Whether to realign an edited table when insert mode ends. */
     autoRealign: () => boolean;
+    /** Whether every cell of the caret's column is highlighted. */
+    columnHighlight: () => boolean;
     /** Receives the caret's column in a revealed table, or null. */
     columnStatus: (info: TableColumnInfo | null) => void;
 }
@@ -144,7 +146,7 @@ class RevealLifecycle implements PluginValue {
 export function createTableReveal(options: TableRevealOptions): Extension {
     return [
         revealStateExtension(),
-        revealGridDecorations(),
+        revealGridDecorations(options.columnHighlight),
         revealWidgetInput(),
         revealCellKeys(),
         revealTypingAssists(),

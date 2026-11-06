@@ -549,6 +549,53 @@ describe('Table reveal editing assists', function () {
             expect(outside.activeColumn).toEqual([]);
         });
 
+        // Restyled in place: neither step moves the cursor, so only the
+        // setting can change what is highlighted.
+        it('turns the column highlight off and on with set tablecolumnhighlight', async function () {
+            const activeCell = async (): Promise<string[]> =>
+                (await browser.executeObsidian(({ app, obsidian }) => {
+                    const view = app.workspace.getActiveViewOfType(
+                        obsidian.MarkdownView,
+                    );
+                    const cm = (
+                        view?.editor as unknown as { cm?: { dom: HTMLElement } }
+                    )?.cm;
+                    return cm
+                        ? Array.from(
+                              cm.dom.querySelectorAll(
+                                  '.vim-motions-reveal-cell.is-active-cell',
+                              ),
+                          ).map((c) => (c.textContent ?? '').trim())
+                        : [];
+                })) as string[];
+            await moveTo(4, 9);
+            try {
+                const off = await handleEx('set notablecolumnhighlight');
+                await browser.pause(400);
+                const hidden = {
+                    column: (await columnStatus()).activeColumn,
+                    cell: await activeCell(),
+                };
+                const on = await handleEx('set tablecolumnhighlight');
+                await browser.pause(400);
+                const shown = {
+                    column: (await columnStatus()).activeColumn,
+                    cell: await activeCell(),
+                };
+                expect({
+                    unknown: [off.unknownCommand, on.unknownCommand],
+                    hidden,
+                    shown,
+                }).toEqual({
+                    unknown: [false, false],
+                    hidden: { column: [], cell: ['11'] },
+                    shown: { column: ['Value', '11', '22'], cell: ['11'] },
+                });
+            } finally {
+                await setPluginSettingAndReload('tableColumnHighlight', true);
+            }
+        });
+
         it('warns when the row has a different number of cells from the header', async function () {
             await setupEditor(
                 DOC.replace('| bb   | 22    |', '| bb   | 22    | 33 |'),

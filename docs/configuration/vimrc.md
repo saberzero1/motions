@@ -149,6 +149,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`                             | on      |
 | `tablenav`             | `tn`   | Table cell navigation                                          | on      |
 | `tableautorealign`     | —      | Realign an edited table on leaving insert mode (`reveal` mode) | off     |
+| `tablecolumnhighlight` | —      | Highlight every cell of the cursor's column (`reveal` mode)    | on      |
 | `workspacenav`         | `wn`   | Pane/tab/sidebar control                                       | on      |
 | `number`               | `nu`   | Show absolute line numbers                                     | off     |
 | `relativenumber`       | `rnu`  | Show relative line numbers                                     | off     |
