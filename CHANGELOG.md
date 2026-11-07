@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-07
+
 ### Added
 
 - **`set tablecolumnhighlight`, to turn off the highlight on the cursor's column in a revealed table** ([#167](https://github.com/saberzero1/motions/issues/167)). On by default, as before. Off, only the cursor's own cell is highlighted. Also **Settings → Vim Motions → General → Highlight table cursor column**, in both settings implementations, and `vim.opt.tablecolumnhighlight`. A change restyles an open table at once, without the cursor moving.
@@ -20,7 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`tableautorealign` is three-way: `off`, `insertleave` and `typing`.** It was a toggle. A stored `true` moves to `insertleave` and `false` to `off`, saved vimrc and Lua overrides included, and the old forms still work: a bare `set tableautorealign` and `vim.opt.tableautorealign = true` mean `insertleave`, `set notableautorealign` and `false` mean `off`. In settings it is the dropdown **Realign revealed tables on edits**, in both implementations.
     - Plugin: `src/settings.ts`, `src/settings-migration.ts` (`migrateTableAutoRealign`), `src/vim/options.ts` (`tableAutoRealignValue`), `src/vimrc/loader.ts` (`bare`/`negated` for a string option that was boolean)
-
 - **Visual-line mode (`V`) now gives the editor the whole lines it selects** ([#231](https://github.com/saberzero1/motions/issues/231)). It used to give it only a cursor, so `EditorState.selection` and `listSelections()` showed nothing selected, and other plugins could not see the selection. It now works like `v`, like upstream codemirror-vim and like Obsidian's own Vim key bindings.
     - **What you will see:** in Live Preview, links, formatting marks and callouts on the selected lines show as source, as they already do under `v`. A table stays rendered and keeps its highlight.
     - **The cursor keeps its column**, as in Neovim. It was drawn at column 0. Measured in Neovim 0.12.5: `wwVj` reports `col('.') == 12`.
