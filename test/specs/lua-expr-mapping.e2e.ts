@@ -56,6 +56,41 @@ describe('Lua expr mappings', function () {
         expect(pos2.line).toBe(3);
     });
 
+    // #236: the docs recipe for display-line navigation with counted jumps,
+    // with a space leader. Making Space the leader removes the default
+    // `<Space>` motion. The fork's noremap search counted its defaults from the
+    // end of the keymap, so one fewer default put the `j` mapping back in its
+    // own rhs: `3j` re-entered the expression until the stack overflowed, and
+    // every `j` and `k` after it was typed into the note.
+    it('counted j through an expr mapping on j works with a space leader (#236)', async function () {
+        await loadLuaConfig(
+            'vim.g.mapleader = " "\n' +
+                'vim.keymap.set("n", "j", function()\n' +
+                '    if vim.v.count == 0 then return "gj"\n' +
+                '    else return vim.v.count1 .. "j" end\n' +
+                'end, { expr = true, silent = true })\n' +
+                'vim.keymap.set("n", "k", function()\n' +
+                '    if vim.v.count == 0 then return "gk"\n' +
+                '    else return vim.v.count1 .. "k" end\n' +
+                'end, { expr = true, silent = true })\n',
+        );
+        const doc = 'l0\nl1\nl2\nl3\nl4\nl5\nl6\nl7';
+        await setupEditor(doc, { line: 0, ch: 0 });
+        const lines: number[] = [];
+        for (const seq of [['j'], ['3', 'j'], ['k'], ['2', 'k']]) {
+            for (const key of seq) {
+                await browser.keys([key]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            lines.push((await getCursorPos()).line);
+        }
+        expect({ lines, text: await getEditorValue() }).toEqual({
+            lines: [1, 4, 3, 1],
+            text: doc,
+        });
+    });
+
     it('expr mapping returning nil does nothing', async function () {
         await loadLuaConfig(
             'vim.keymap.set("n", "K", function() return nil end, { expr = true })\n',
