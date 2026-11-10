@@ -271,7 +271,7 @@ Additionally, 27 settings that were previously UI-only are now configurable via 
 - **String expr mappings are not supported** — `vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true })` requires Vimscript expression evaluation which is not available. Use a Lua function callback instead.
 - **Async expr callbacks are not supported** — Expr callbacks run synchronously. Calling async APIs (e.g., `vim.ob.fs.read`) inside an expr callback will error. The callback must return a string immediately.
 - **Expr results do not compose with pending operators** — When an expr mapping runs during operator-pending mode (e.g., `d` followed by an expr-mapped key), the returned keys execute independently. The pending operator state is cleared before the callback runs. `vim.v.operator` is still readable inside the callback.
-- **Count is not auto-forwarded to expr results** — Typing `3K` where `K` is expr-mapped and returns `'j'` will execute `j` once, not three times. Include the count in the returned keys: `return vim.v.count1 .. 'j'`.
+- ~~**Count is not auto-forwarded to expr results**~~ (Fixed) — The count and register typed before an expr mapping now apply to the keys it returns, as in Neovim: `3K` with `K` returning `'j'` moves 3 lines, and `"a2K` with `K` returning `'yy'` yanks 2 lines into `a`. A callback that still adds `vim.v.count1` itself now gets the count twice (`3j` becomes `33j`), as it would in Neovim.
 
 ### vim.v limitations
 

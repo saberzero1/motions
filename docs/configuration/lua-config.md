@@ -359,24 +359,16 @@ These are only meaningful within specific evaluation contexts (fold expressions,
 ```lua
 -- Use gj/gk for screen-line movement, j/k for counted movement
 vim.keymap.set('n', 'j', function()
-    if vim.v.count == 0 then
-        return 'gj'
-    else
-        return vim.v.count1 .. 'j'
-    end
+    return vim.v.count == 0 and 'gj' or 'j'
 end, { expr = true, silent = true })
 
 vim.keymap.set('n', 'k', function()
-    if vim.v.count == 0 then
-        return 'gk'
-    else
-        return vim.v.count1 .. 'k'
-    end
+    return vim.v.count == 0 and 'gk' or 'k'
 end, { expr = true, silent = true })
 ```
 
-> [!info] Count is not auto-forwarded to expr mapping results
-> Count is not auto-forwarded to expr mapping results. If you type `3j` and your expr callback returns `'j'`, it executes once. Concatenate the count yourself: `return vim.v.count1 .. 'j'`.
+> [!info] The count and register stay pending for the returned keys
+> As in Neovim, the count and register typed before an expr mapping apply to the keys it returns. Type `3j` with the callback returning `'j'` and the cursor moves 3 lines; type `"a2Y` with `Y` returning `'yy'` and 2 lines are yanked into `a`. Do not add the count yourself: returning `vim.v.count1 .. 'j'` for `3j` gives `33j`, as it does in Neovim. If the callback returns nothing, the count waits for the next key. `vim.v.count` and `vim.v.register` still read what was typed.
 
 ## Supported vim.opt options
 

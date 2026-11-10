@@ -507,6 +507,98 @@ describe('vim.keymap.set with expr', () => {
     });
 });
 
+// Neovim leaves the register and count typed before an expr mapping pending,
+// so the returned keys pick them up (Neovim 0.12.6: `3Q` with Q returning `j`
+// moves 3 lines; `"a2Y` returning `yy` yanks 2 lines into a; `3X` returning
+// "" leaves the 3 for the next key). The fork clears its input state before
+// the action runs, so the callback feeds them back first.
+describe('expr mapping keeps the pending register and count', () => {
+    function feedsFor(
+        body: string,
+        args: Record<string, unknown> | undefined,
+    ): { keys: string; noremap: boolean | undefined }[] {
+        const fed: { keys: string; noremap: boolean | undefined }[] = [];
+        const onKeymap = vi.fn();
+        const cm = { state: {} };
+        const L = setup({
+            onKeymap,
+            getVimApi: () => ({
+                feedKeys: (
+                    _cm: unknown,
+                    keys: string,
+                    opts?: { noremap?: boolean },
+                ) => fed.push({ keys, noremap: opts?.noremap }),
+            }),
+        });
+        const status = lauxlib.luaL_dostring(
+            L,
+            to_luastring(
+                `vim.keymap.set('n', 'Q', function() ${body} end, { expr = true })`,
+            ),
+        );
+        expect(status).toBe(lua.LUA_OK);
+        const map = onKeymap.mock.calls[0]?.[0] as {
+            callback: (cm: unknown, args: unknown) => void;
+        };
+        map.callback(cm, args);
+        destroyState(L);
+        return fed;
+    }
+
+    it('a count typed before the mapping prefixes the returned keys', () => {
+        expect(
+            feedsFor("return 'j'", { repeat: 3, repeatIsExplicit: true }),
+        ).toEqual([
+            { keys: '3', noremap: true },
+            { keys: 'j', noremap: true },
+        ]);
+    });
+
+    it('a returned count adds to the typed one, as in Neovim', () => {
+        expect(
+            feedsFor("return vim.v.count1 .. 'j'", {
+                repeat: 3,
+                repeatIsExplicit: true,
+            }),
+        ).toEqual([
+            { keys: '3', noremap: true },
+            { keys: '3j', noremap: true },
+        ]);
+    });
+
+    it('the register and the count both stay pending', () => {
+        expect(
+            feedsFor("return 'yy'", {
+                repeat: 2,
+                repeatIsExplicit: true,
+                registerName: 'a',
+            }),
+        ).toEqual([
+            { keys: '"a2', noremap: true },
+            { keys: 'yy', noremap: true },
+        ]);
+    });
+
+    it('with nothing returned, the count still waits for the next key', () => {
+        expect(
+            feedsFor("return ''", { repeat: 3, repeatIsExplicit: true }),
+        ).toEqual([{ keys: '3', noremap: true }]);
+    });
+
+    it('without a count or register, only the returned keys are fed', () => {
+        expect(feedsFor("return 'gj'", { repeat: 1 })).toEqual([
+            { keys: 'gj', noremap: true },
+        ]);
+        expect(feedsFor("return ''", { repeat: 1 })).toEqual([]);
+    });
+
+    it('an expression that errors feeds nothing', () => {
+        expect(
+            feedsFor("error('boom')", { repeat: 3, repeatIsExplicit: true }),
+        ).toEqual([]);
+    });
+});
+
 describe('vim.v.hlsearch callback', () => {
     it('reads from getHlSearch callback when provided', () => {
         const getHlSearch = vi.fn().mockReturnValue(1);

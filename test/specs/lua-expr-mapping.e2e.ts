@@ -6,6 +6,7 @@ import {
     vimKeys,
     getEditorValue,
     getCursorPos,
+    getRegisterContent,
     sendVimEscape,
     PAUSE,
 } from '../helpers';
@@ -37,8 +38,7 @@ describe('Lua expr mappings', function () {
     it('expr mapping with count uses vim.v.count', async function () {
         await loadLuaConfig(
             'vim.keymap.set("n", "K", function()\n' +
-                '    if vim.v.count == 0 then return "gj"\n' +
-                '    else return vim.v.count1 .. "j" end\n' +
+                '    if vim.v.count == 0 then return "gj" else return "j" end\n' +
                 'end, { expr = true })\n',
         );
         await setupEditor(
@@ -56,6 +56,61 @@ describe('Lua expr mappings', function () {
         expect(pos2.line).toBe(3);
     });
 
+    // Neovim leaves the register and count typed before an expr mapping
+    // pending, so the keys the expression returns pick them up. Each expected
+    // value below is Neovim 0.12.6's, measured with the same mappings on a
+    // 60-line buffer of `l0`…`l59`.
+    describe('the register and count stay pending, as in Neovim', function () {
+        const doc = Array.from({ length: 60 }, (_, i) => `l${i}`).join('\n');
+
+        before(async function () {
+            await loadLuaConfig(
+                'vim.keymap.set("n", "Q", function() return "j" end, { expr = true })\n' +
+                    'vim.keymap.set("n", "R", function() return vim.v.count1 .. "j" end, { expr = true })\n' +
+                    'vim.keymap.set("n", "Y", function() return "yy" end, { expr = true })\n' +
+                    'vim.keymap.set("n", "X", function() vim.fn.setreg("c", vim.v.count .. "/" .. vim.v.register); return "" end, { expr = true })\n',
+            );
+        });
+
+        async function press(...keys: string[]): Promise<void> {
+            for (const key of keys) {
+                await browser.keys([key]);
+                await browser.pause(PAUSE.KEY_GAP);
+            }
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+        }
+
+        it('3Q, Q returning j, moves 3 lines', async function () {
+            await setupEditor(doc, { line: 0, ch: 0 });
+            await press('3', 'Q');
+            expect((await getCursorPos()).line).toBe(3);
+        });
+
+        it('3R, R returning count1 .. "j", moves 33 lines', async function () {
+            await setupEditor(doc, { line: 0, ch: 0 });
+            await press('3', 'R');
+            expect((await getCursorPos()).line).toBe(33);
+        });
+
+        it('"a2Y, Y returning yy, yanks 2 lines into a', async function () {
+            await setupEditor(doc, { line: 0, ch: 0 });
+            await press('"', 'a', '2', 'Y');
+            expect(await getRegisterContent('a')).toEqual({
+                text: 'l0\nl1\n',
+                linewise: true,
+            });
+        });
+
+        it('"b3X, X returning nothing, sees 3 and b and leaves the 3 for the next j', async function () {
+            await setupEditor(doc, { line: 0, ch: 0 });
+            await press('"', 'b', '3', 'X', 'j');
+            expect({
+                line: (await getCursorPos()).line,
+                seen: (await getRegisterContent('c'))?.text,
+            }).toEqual({ line: 3, seen: '3/b' });
+        });
+    });
+
     // #236: the docs recipe for display-line navigation with counted jumps,
     // with a space leader. Making Space the leader removes the default
     // `<Space>` motion. The fork's noremap search counted its defaults from the
@@ -66,12 +121,10 @@ describe('Lua expr mappings', function () {
         await loadLuaConfig(
             'vim.g.mapleader = " "\n' +
                 'vim.keymap.set("n", "j", function()\n' +
-                '    if vim.v.count == 0 then return "gj"\n' +
-                '    else return vim.v.count1 .. "j" end\n' +
+                '    if vim.v.count == 0 then return "gj" else return "j" end\n' +
                 'end, { expr = true, silent = true })\n' +
                 'vim.keymap.set("n", "k", function()\n' +
-                '    if vim.v.count == 0 then return "gk"\n' +
-                '    else return vim.v.count1 .. "k" end\n' +
+                '    if vim.v.count == 0 then return "gk" else return "k" end\n' +
                 'end, { expr = true, silent = true })\n',
         );
         const doc = 'l0\nl1\nl2\nl3\nl4\nl5\nl6\nl7';
