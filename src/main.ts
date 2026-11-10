@@ -6003,6 +6003,21 @@ export default class VimMotionsPlugin extends Plugin {
         }
     }
 
+    private liftLuaAction(
+        vim: import('./types/vim-api').VimApi,
+        lhs: string,
+        mode: MapContext | undefined,
+        action: string,
+    ): void {
+        for (let guard = 0; guard < 64; guard++) {
+            try {
+                if (!vim.unmap(lhs, mode, { action })) return;
+            } catch {
+                return;
+            }
+        }
+    }
+
     private applyLuaMaps(vim: import('./types/vim-api').VimApi): void {
         for (const op of this.luaMapOperations) {
             if (op.type === 'unmap') {
@@ -6022,6 +6037,11 @@ export default class VimMotionsPlugin extends Plugin {
                 const actionName =
                     map.actionName ?? `lua-action-${this.luaActionCounter++}`;
                 map.actionName = actionName;
+                // The mapping goes back on top exactly once: lift any earlier
+                // copy of this action first, including the one the loader made
+                // while the config ran. Only this action's entries go, so a
+                // vimrc mapping on the same keys stays.
+                this.liftLuaAction(vim, map.lhs, map.mode, actionName);
                 if (!this.luaActionNames.has(actionName)) {
                     this.registration?.defineAction(actionName, map.callback);
                     this.registration?.mapCommand(

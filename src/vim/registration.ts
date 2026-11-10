@@ -26,6 +26,9 @@ interface Registration {
     exFn?: ExCommandFn;
     commandType?: 'motion' | 'action' | 'operator';
     args?: Record<string, unknown>;
+    /** For a `map`: its rhs and whether it is noremap, to remove it exactly. */
+    toKeys?: string;
+    noremap?: boolean;
 }
 
 export interface RegisteredMapCommand {
@@ -135,12 +138,24 @@ export class VimRegistration {
 
     map(lhs: string, rhs: string, context?: MapContext): void {
         this.vim.map(lhs, rhs, context);
-        this.pushReg({ type: 'map', name: lhs, context });
+        this.pushReg({
+            type: 'map',
+            name: lhs,
+            context,
+            toKeys: rhs,
+            noremap: false,
+        });
     }
 
     noremap(lhs: string, rhs: string, context?: MapContext): void {
         this.vim.noremap(lhs, rhs, context);
-        this.pushReg({ type: 'map', name: lhs, context });
+        this.pushReg({
+            type: 'map',
+            name: lhs,
+            context,
+            toKeys: rhs,
+            noremap: true,
+        });
     }
 
     mapCommand(
@@ -252,7 +267,19 @@ export class VimRegistration {
     private removeRegistration(reg: Registration): void {
         switch (reg.type) {
             case 'map':
-                this.vim.unmap(reg.name, reg.context);
+                // Exactly this mapping. By keys alone, unmap takes the newest
+                // user entry, which is the user's own mapping when they map
+                // the same keys: with a Lua mapping on `Q`, every reload
+                // removed it instead of this `Q` -> `@@` and stacked
+                // another `@@` underneath.
+                if (reg.toKeys !== undefined) {
+                    this.vim.unmap(reg.name, reg.context, {
+                        toKeys: reg.toKeys,
+                        noremap: reg.noremap,
+                    });
+                } else {
+                    this.vim.unmap(reg.name, reg.context);
+                }
                 break;
             case 'mapCommand':
                 if (

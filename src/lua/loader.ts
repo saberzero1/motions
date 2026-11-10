@@ -583,7 +583,10 @@ export async function loadInitLua(
         onKeymap: (map) => {
             commandCount++;
             maps.push(map);
-            const taggedMap = map as LuaKeymap & { _applied?: boolean };
+            const taggedMap = map as LuaKeymap & {
+                _applied?: boolean;
+                actionName?: string;
+            };
             mapOperations.push({ type: 'map', map: taggedMap });
 
             if (map.desc) {
@@ -595,6 +598,10 @@ export async function loadInitLua(
                     vim.defineAction(actionName, map.callback);
                     eagerActionNames.add(actionName);
                 }
+                // applyLuaMaps reuses this name, so the mapping made here
+                // and the one it puts back on top are the same entry rather
+                // than two actions on the same keys.
+                taggedMap.actionName = actionName;
                 try {
                     vim.unmap(map.lhs, undefined, {
                         includeDefaults: true,
