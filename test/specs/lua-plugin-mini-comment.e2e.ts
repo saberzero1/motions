@@ -476,6 +476,47 @@ describe('mini.comment plugin integration', function () {
             expect(lines[1]).toBe('%% second line %%');
         });
 
+        // mini.comment comments the lines from '[ to ']. The fork put '] on
+        // the line after a linewise range, so `gcj` with a third line below
+        // commented all three; the two-line test above cannot see that.
+        // Neovim 0.12.6 with this mini.comment: the third line stays as it is.
+        it('gcj leaves the line after the two it comments', async function () {
+            await loadMiniComment(`require('mini.comment').setup({})`);
+            await setupEditor('first line\nsecond line\nthird line', {
+                line: 0,
+                ch: 0,
+            });
+            await vimRawKeys('gcj');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            const value = await getEditorValue();
+            expect(value.split('\n').map((line) => line.trim())).toEqual([
+                '%% first line %%',
+                '%% second line %%',
+                'third line',
+            ]);
+        });
+
+        // `gcc` is an expr mapping returning `g@_`, so `3gcc` reaches it only
+        // because the count stays pending for the returned keys. Neovim 0.12.6
+        // with this mini.comment and `commentstring` `%% %s %%`: the first three
+        // lines are commented and the fourth is not.
+        it('3gcc comments three lines', async function () {
+            await loadMiniComment(`require('mini.comment').setup({})`);
+            await setupEditor('line one\nline two\nline three\nline four', {
+                line: 0,
+                ch: 0,
+            });
+            await vimRawKeys('3gcc');
+            await browser.pause(PAUSE.EDITOR_SETTLE);
+            const value = await getEditorValue();
+            expect(value.split('\n').map((line) => line.trim())).toEqual([
+                '%% line one %%',
+                '%% line two %%',
+                '%% line three %%',
+                'line four',
+            ]);
+        });
+
         it.skip('gcc on empty line adds comment markers', async function () {
             await loadMiniComment(`require('mini.comment').setup({})`);
             await setupEditor('', { line: 0, ch: 0 });

@@ -25,6 +25,7 @@ import { injectObsidianApi } from './obsidian-api';
 import type { DecorationProviderManager } from './decoration-provider';
 import { injectRegex } from './regex';
 import { injectOnKey } from './on-key';
+import { pendingPrefix } from './expr-prefix';
 import { replaceTermcodes, termcodesToNotation } from './termcodes';
 import { createNeovimCoordinateAdapter, MAXCOL } from './coordinates';
 import {
@@ -2258,7 +2259,13 @@ export function injectVimApi(
                     }
                     const returnedKeys = readKeyString(L, -1);
                     lua.lua_pop(L, 1);
-                    if (!returnedKeys || returnedKeys.length === 0) return;
+                    // The register and count stay pending for the returned
+                    // keys, as in Neovim, even when the expression returns
+                    // nothing: the next key typed then gets them.
+                    const prefix = pendingPrefix(
+                        actionArgs as ActionArgs | undefined,
+                    );
+                    if (!returnedKeys && !prefix) return;
                     const adapter =
                         cm &&
                         typeof (cm as Record<string, unknown>).state ===
@@ -2267,9 +2274,16 @@ export function injectVimApi(
                             : callbacks.getCmAdapter?.();
                     const vimApi = callbacks.getVimApi?.();
                     if (adapter && vimApi?.feedKeys) {
-                        vimApi.feedKeys(adapter, returnedKeys, {
-                            noremap,
-                        });
+                        if (prefix) {
+                            vimApi.feedKeys(adapter, prefix, {
+                                noremap: true,
+                            });
+                        }
+                        if (returnedKeys) {
+                            vimApi.feedKeys(adapter, returnedKeys, {
+                                noremap,
+                            });
+                        }
                     }
                 };
             } else {

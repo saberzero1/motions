@@ -31,23 +31,18 @@ Obsidian wraps long lines visually. Remapping `j`/`k` to `gj`/`gk` makes navigat
 
 ```lua
 vim.keymap.set("n", "j", function()
-    if vim.v.count == 0 then
-        return "gj"
-    else
-        return vim.v.count1 .. "j"
-    end
+    return vim.v.count == 0 and "gj" or "j"
 end, { expr = true, silent = true })
 
 vim.keymap.set("n", "k", function()
-    if vim.v.count == 0 then
-        return "gk"
-    else
-        return vim.v.count1 .. "k"
-    end
+    return vim.v.count == 0 and "gk" or "k"
 end, { expr = true, silent = true })
 ```
 
-Without a count, `j`/`k` move by display line. With a count (`5j`), they move by actual lines — so relative line numbers always match. See [[lua-config#Example: expr mapping with count]] for details on count forwarding.
+Without a count, `j`/`k` move by display line. With a count (`5j`), they move by actual lines — so relative line numbers always match. The count you typed applies to the returned `j` by itself, as in Neovim, so the same lines work in a Neovim config. See [[lua-config#Example: expr mapping with count]].
+
+> [!warning] Upgrading from an older version of this recipe
+> Earlier versions of this recipe returned `vim.v.count1 .. "j"`. The count you typed now applies to the returned keys as well, so that version turns `5j` into `55j`. Replace it with the lines above.
 
 ## System clipboard
 
@@ -324,11 +319,11 @@ vim.opt.insertmodeescape = "jk"
 
 -- Display-line navigation with counted jumps
 vim.keymap.set("n", "j", function()
-    if vim.v.count == 0 then return "gj" else return vim.v.count1 .. "j" end
+    return vim.v.count == 0 and "gj" or "j"
 end, { expr = true, silent = true })
 
 vim.keymap.set("n", "k", function()
-    if vim.v.count == 0 then return "gk" else return vim.v.count1 .. "k" end
+    return vim.v.count == 0 and "gk" or "k"
 end, { expr = true, silent = true })
 
 -- Common bindings
