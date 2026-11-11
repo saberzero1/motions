@@ -46,7 +46,9 @@ Without a count, `j`/`k` move by display line. With a count (`5j`), they move by
 
 ## Markdown-aware `I`
 
-`I` inserts at the first non-blank character, which on a list item is the marker: `^Wi` gets past `- ` but stops at a task's `[ ]`. This recipe adds a `<leader>i` that inserts where the line's text starts instead, after its indentation, any blockquote or callout `>` markers, and then a callout's `[!type]`, a list marker or a task checkbox. In insert mode, `<A-y>` moves the cursor to the same place. `I` itself is unchanged.
+`I` inserts at the first non-blank character, which on a list item is the marker: `^Wi` gets past `- ` but stops at a task's `[ ]`. This recipe adds a `<leader>i` that inserts where the line's text starts instead, after its indentation, any blockquote or callout `>` markers, and then a callout's `[!type]`, a list marker or a task checkbox. In insert mode, `<C-q>` moves the cursor to the same place. `I` itself is unchanged.
+
+The insert-mode key is a Control chord because on macOS Option and a letter type a character, so an `<A-…>` mapping never fires there. Obsidian binds no default hotkey to `Ctrl+Q`, and in insert mode Vim only uses it as a second `<C-v>`.
 
 ```lua
 -- A Markdown-aware I: insert where a line's text starts, after its
@@ -82,7 +84,7 @@ vim.keymap.set("n", "<leader>i", function()
     end
 end, { desc = "Insert at start of Markdown text" })
 
-vim.keymap.set("i", "<A-y>", function()
+vim.keymap.set("i", "<C-q>", function()
     local col = text_col(vim.api.nvim_get_current_line())
     vim.api.nvim_win_set_cursor(0, { vim.api.nvim_win_get_cursor(0)[1], col })
 end, { desc = "Go to start of Markdown text" })
