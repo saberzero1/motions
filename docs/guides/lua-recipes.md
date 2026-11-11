@@ -44,6 +44,63 @@ Without a count, `j`/`k` move by display line. With a count (`5j`), they move by
 > [!warning] Upgrading from an older version of this recipe
 > Earlier versions of this recipe returned `vim.v.count1 .. "j"`. The count you typed now applies to the returned keys as well, so that version turns `5j` into `55j`. Replace it with the lines above.
 
+## Markdown-aware `I`
+
+`I` inserts at the first non-blank character, which on a list item is the marker: `^Wi` gets past `- ` but stops at a task's `[ ]`. This recipe adds a `<leader>i` that inserts where the line's text starts instead, after its indentation, any blockquote or callout `>` markers, and then a callout's `[!type]`, a list marker or a task checkbox. In insert mode, `<A-y>` moves the cursor to the same place. `I` itself is unchanged.
+
+```lua
+-- A Markdown-aware I: insert where a line's text starts, after its
+-- indentation, any blockquote or callout markers, and then a callout's
+-- [!type], a list marker or a task checkbox.
+
+-- One checkbox: any single character between brackets, as Obsidian accepts.
+local CHECKBOX = "%[[\1-\127\194-\244][\128-\191]*%]"
+
+local function text_col(line)
+    local lead = line:match("^[%s>]*")
+    local rest = line:sub(#lead + 1)
+    local quoted = lead:find(">", 1, true) ~= nil
+    local marker = (quoted and rest:match("^%[![%w_-]+%][+-]?%s*"))
+        or rest:match("^[-*+]%s+" .. CHECKBOX .. "%s*")
+        or rest:match("^%d+[.)]%s+" .. CHECKBOX .. "%s*")
+        or rest:match("^[-*+]%s+")
+        or rest:match("^%d+[.)]%s+")
+        or rest:match("^[-*+]$")
+        or rest:match("^%d+[.)]$")
+        or ""
+    return #lead + #marker
+end
+
+vim.keymap.set("n", "<leader>i", function()
+    local line = vim.api.nvim_get_current_line()
+    local col = text_col(line)
+    if col >= #line then
+        vim.cmd("startinsert!") -- nothing after the markers: append
+    else
+        vim.api.nvim_win_set_cursor(0, { vim.api.nvim_win_get_cursor(0)[1], col })
+        vim.cmd("startinsert")
+    end
+end, { desc = "Insert at start of Markdown text" })
+
+vim.keymap.set("i", "<A-y>", function()
+    local col = text_col(vim.api.nvim_get_current_line())
+    vim.api.nvim_win_set_cursor(0, { vim.api.nvim_win_get_cursor(0)[1], col })
+end, { desc = "Go to start of Markdown text" })
+```
+
+| Line                       | `<leader>i` inserts at         |
+| -------------------------- | ------------------------------ |
+| `- [ ] Task`               | `- [ ] \|Task`                 |
+| `12. [x] Done`             | `12. [x] \|Done`               |
+| `    - Nested item`        | `    - \|Nested item`          |
+| `> - [ ] Quoted task`      | `> - [ ] \|Quoted task`        |
+| `> [!tip]- Folded callout` | `> [!tip]- \|Folded callout`   |
+| `> plain quote`            | `> \|plain quote`              |
+| `- [ ] `                   | the end of the line            |
+| `  plain text`             | `  \|plain text`, as `I` would |
+
+Any single character counts as a checkbox, as in Obsidian, so `[!]` and `[✓]` are skipped while `[ab]` is not. `[!type]` only counts as a callout after a `>`. The recipe reads only the current line, so a list-shaped line inside a fenced code block is treated as a list item too. The same code works in Neovim, so with the [[neovim-backend|Neovim backend]] put it in your Neovim configuration, or in the file the **Neovim configuration path** setting points to, rather than in the plugin's `init.lua`.
+
 ## System clipboard
 
 ### Sync all yanks and pastes
