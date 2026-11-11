@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **Lua recipes: a Markdown-aware `I`** ([#241](https://github.com/saberzero1/motions/issues/241)). A `<leader>i` that inserts where a line's text starts, after its indentation, any blockquote or callout `>` markers, and a callout's `[!type]`, a list marker or a task checkbox; `<A-y>` does the same in insert mode. `I` itself is unchanged. The same code works in a Neovim config for the Neovim backend.
+- **Lua recipes: a Markdown-aware `I`** ([#241](https://github.com/saberzero1/motions/issues/241)). A `<leader>i` that inserts where a line's text starts, after its indentation, any blockquote or callout `>` markers, and a callout's `[!type]`, a list marker or a task checkbox; `<C-q>` does the same in insert mode, a Control chord because on macOS Option and a letter type a character instead of reaching the mapping. `I` itself is unchanged. The same code works in a Neovim config for the Neovim backend.
 
 ## [1.6.0] - 2026-11-07
 

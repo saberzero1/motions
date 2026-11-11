@@ -92,11 +92,11 @@ describe('Lua recipe: Markdown-aware I (#241)', function () {
             expect({ mode, text }).toEqual({ mode: 'insert', text: want });
         });
 
-        it(`insert-mode <A-y> on ${JSON.stringify(line)}`, async function () {
+        it(`insert-mode <C-q> on ${JSON.stringify(line)}`, async function () {
             await setupEditor(`${line}\nnext`, { line: 0, ch: 0 });
             await press('A');
-            await browser.keys(['Alt', 'y']);
-            await browser.keys(['Alt']);
+            await browser.keys(['Control', 'q']);
+            await browser.keys(['Control']);
             await browser.pause(PAUSE.EDITOR_SETTLE);
             await press('Z');
             await sendVimEscape();
