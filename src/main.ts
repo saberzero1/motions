@@ -2694,6 +2694,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.app,
             this.settings.enableReplaceWithRegister,
             () => this.alternateFilePath,
+            () => this.settings.hoverFocus,
         );
         if (this.settings.enableWorkspaceNav) {
             registerWorkspaceNavigation(
@@ -4003,6 +4004,7 @@ export default class VimMotionsPlugin extends Plugin {
             this.app,
             this.settings.enableReplaceWithRegister,
             () => this.alternateFilePath,
+            () => this.settings.hoverFocus,
         );
         if (this.settings.enableWorkspaceNav && this.leaderRegistry) {
             registerWorkspaceNavigation(

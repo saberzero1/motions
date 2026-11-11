@@ -227,7 +227,43 @@ function focusKeywordPreview(
     return true;
 }
 
-function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
+/** How long `hoverfocus` waits for the preview: Obsidian shows it ~300 ms after `K`. */
+const HOVER_FOCUS_TIMEOUT_MS = 2000;
+
+/**
+ * With `hoverfocus` on (#234), move into the preview `K` just opened once
+ * Obsidian shows it, as a second `K` would. It gives up when another `K`
+ * replaces the preview, when the cursor leaves where `K` was pressed — the
+ * same conditions under which a second `K` starts over — or after
+ * {@link HOVER_FOCUS_TIMEOUT_MS}.
+ */
+function focusPreviewWhenShown(
+    cm: CmAdapter,
+    preview: NonNullable<typeof lastKeywordPreview>,
+): void {
+    const deadline = performance.now() + HOVER_FOCUS_TIMEOUT_MS;
+    const step = (): void => {
+        if (lastKeywordPreview !== preview) return;
+        if (!cm.cm6.dom.isConnected) return;
+        if (cm.indexFromPos(cm.getCursor()) !== preview.offset) return;
+        if (focusKeywordPreview(preview.parent, preview.offset)) return;
+        if (performance.now() < deadline) window.requestAnimationFrame(step);
+    };
+    window.requestAnimationFrame(step);
+}
+
+function createKeywordLookupAction(
+    app: App,
+    charInfoFn: ActionFn,
+    hoverFocus: () => boolean,
+): ActionFn {
+    const openedPreview = (
+        cm: CmAdapter,
+        preview: NonNullable<typeof lastKeywordPreview>,
+    ): void => {
+        lastKeywordPreview = preview;
+        if (hoverFocus()) focusPreviewWhenShown(cm, preview);
+    };
     return (cm, actionArgs, vim) => {
         const context = keywordContext(app, cm);
         if (!context) {
@@ -241,7 +277,6 @@ function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
         const lineText = cm.getLine(cursor.line);
         const footnote = findFootnoteRefAtCursor(lineText, cursor.ch);
         if (footnote) {
-            lastKeywordPreview = { parent: context.parent, offset };
             // Obsidian's own footnote hover sends exactly this (#209).
             app.workspace.trigger('hover-link', {
                 event: hoverEventAtCursor(cm, context.targetEl),
@@ -251,6 +286,7 @@ function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
                 linktext: `#[^${footnote}]`,
                 sourcePath: context.sourcePath,
             });
+            openedPreview(cm, { parent: context.parent, offset });
             return;
         }
         const link = findLinkAtCursor(lineText, cursor.ch);
@@ -258,7 +294,6 @@ function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
             if (link.isExternal) {
                 window.open(link.target);
             } else {
-                lastKeywordPreview = { parent: context.parent, offset };
                 app.workspace.trigger('hover-link', {
                     event: hoverEventAtCursor(cm, context.targetEl),
                     source: 'preview',
@@ -267,6 +302,7 @@ function createKeywordLookupAction(app: App, charInfoFn: ActionFn): ActionFn {
                     linktext: link.target,
                     sourcePath: context.sourcePath,
                 });
+                openedPreview(cm, { parent: context.parent, offset });
             }
         } else {
             charInfoFn(cm, actionArgs, vim);
@@ -670,6 +706,7 @@ export function registerCoreVimActions(
     app: App,
     enableReplaceWithRegister = true,
     getAlternateFilePath: () => string | null = () => null,
+    hoverFocus: () => boolean = () => false,
 ): void {
     const gotoDef = createGotoDefinitionAction(app);
     reg.defineAction('gotoDefinition', gotoDef);
@@ -964,7 +1001,11 @@ export function registerCoreVimActions(
     reg.mapCommand('ga', 'action', 'charInfo', {});
     exCommandFromAction(reg, 'charinfo', 'char', charInfoAction);
 
-    const keywordLookup = createKeywordLookupAction(app, charInfoAction);
+    const keywordLookup = createKeywordLookupAction(
+        app,
+        charInfoAction,
+        hoverFocus,
+    );
     reg.defineAction('keywordLookup', keywordLookup);
     reg.mapCommand('K', 'action', 'keywordLookup', {});
 

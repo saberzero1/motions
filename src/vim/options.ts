@@ -170,6 +170,11 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}tabindent`,
         );
     });
+    vim.defineOption('hoverfocus', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify('hoverFocus', enabled, `set ${enabled ? '' : 'no'}hoverfocus`);
+    });
     vim.defineOption('tablenav', true, 'boolean', ['tn'], (value) => {
         if (value === undefined) return;
         const enabled = !!value;
