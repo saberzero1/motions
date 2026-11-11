@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **With a space leader, a counted `j` through an expr mapping on `j` typed `j` into the note** ([#236](https://github.com/saberzero1/motions/issues/236)). This hit the docs recipe for display-line navigation with counted jumps, which maps `j` to an expression that returns `3j` for `3j`. Making Space the leader removes the default `<Space>` motion. The fork found the defaults by counting from the end of its keymap, so with one default fewer, the user's own `j` mapping fell inside the range a noremap rhs searches. `3j` then re-entered the expression until the stack overflowed, about 700 errors, and every `j` and `k` after it was typed into the note. A noremap rhs now skips user mappings by their flag rather than their position, so removing a default no longer matters. A space leader set in vimrc did the same.
+    - Fork: codemirror-vim 6.4.12 (`commandMatches`)
+
+### Tests
+
+- **`lua-expr-mapping.e2e.ts`: the #236 recipe with a space leader**, pressing `j`, `3j`, `k` and `2k`. With the fork at 6.4.11 the cursor stays on line 1 for all four, where it should reach lines 1, 4, 3 and 1, and the note's second line becomes `jkkl1`.
+- **Fork: `noremap_skips_user_mappings_after_default_removed` and `noremap_feedKeys_from_action_after_default_removed`**, each with the default `<Space>` removed. Before the fix the first stays at `[0,0]` instead of `[2,0]`, and the second throws `RangeError: Maximum call stack size exceeded`.
+
 ## [1.6.0] - 2026-11-07
 
 ### Added
