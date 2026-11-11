@@ -69,7 +69,7 @@
     "dependencies": {
         "@codemirror/autocomplete": "npm:@saberzero1/codemirror-autocomplete@^6.20.3",
         "@leeoniya/ufuzzy": "^1.0.19",
-        "@replit/codemirror-vim": "npm:@saberzero1/codemirror-vim@^6.4.12",
+        "@replit/codemirror-vim": "npm:@saberzero1/codemirror-vim@^6.4.13",
         "fflate": "^0.8.3",
         "web-tree-sitter": "^0.27.0"
     },
