@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`set tabindent`: normal-mode `<Tab>` indents the line and `<S-Tab>` outdents it** ([#237](https://github.com/saberzero1/motions/issues/237)). Off by default: `<Tab>` is `<C-i>`, as in Vim and Neovim, and has walked forward through the jump list since 1.5.0. On, `<Tab>` is `>>` and `<S-Tab>` is `<<`, so a count indents that many lines and `.` repeats it. `<C-i>` keeps walking the jump list. In Obsidian's native table cell editor both keys still move between cells, which a `<Tab>` mapping in a config cannot keep: measured, `vim.keymap.set("n", "<Tab>", ">>")` and the same mapping to `editor:indent-list` both left the cursor in its cell and wrote a tab into the cell text. With the option off, `<S-Tab>` is still Obsidian's outdent, now handed to the editor's keymap rather than falling through. `>>` was chosen over Obsidian's `editor:indent-list` after measuring both, with insert-mode `Tab`, on list items, a parent with a child, ordered and task items, a paragraph and a table row: all three gave the same text in every case, and only `>>` takes a count and repeats with `.`. Also **Settings → Vim Motions → General → Tab indents in normal mode**, in both settings implementations, and `vim.opt.tabindent`. Bundled engine only; with the Neovim backend, `<Tab>` is Neovim's.
+    - Plugin: `src/vim/normal-tab.ts`, `src/main.ts`, `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+
 ### Changed
 
 - **An expr mapping's returned keys now get the count and register you typed, as in Neovim.** Before, the plugin used them up before calling the expression, so `3K` with `K` returning `'j'` moved one line, and the docs told you to add the count yourself with `vim.v.count1 .. 'j'`. Now `3K` moves three lines, and `"a2K` with `K` returning `'yy'` yanks two lines into `a`. If the expression returns nothing, the count waits for the next key. `vim.v.count` and `vim.v.register` still read what you typed. Each case was measured against Neovim 0.12.6.
@@ -38,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`lua-fn-keymap-single-copy.e2e.ts`: Lua function mappings on `j` and `Q` are one entry each**, after the config loads, after three settings reloads and after four note switches, and both keys still work. With the exact removal reverted, `Q` → `@@` is there four times after three reloads. With the Lua lift reverted, `Q` and `j` each have a second Lua action straight after the config loads.
 - **Fork: `unmap_exact_action_leaves_other_mappings` and `unmap_exact_toKeys_with_a_space`.** Without the `action` option, the first removes the wrong `Q` entry. Without the normalization, the second removes nothing.
 - **`lua-recipe-markdown-insert.e2e.ts`: the Markdown-aware `I` recipe, read from the docs page**, on 35 lines in normal and insert mode: the issue's list and task examples, empty items, quoted lists, callout titles, checkboxes holding `!` or `✓`, and lines that are not list items. Neovim 0.12 gives the same 35 results with the same file. With no recipe loaded, all 70 tests fail.
+- **`normal-tab-indent.e2e.ts`: normal-mode `<Tab>` and `<S-Tab>` with `tabindent` off and on**, with real keys: the jump-list walk and Obsidian's outdent when off; `>>`, `2<S-Tab>` as `<<` on two lines, `2<Tab>` then `.`, `<C-i>` and `vim.opt.tabindent` when on; and cell moves in a native table with either. Obsidian's Shift-Tab gives the same text as `<<` on one line, so the count is what tells them apart. With the source changes reverted, the four `tabindent` tests fail: `<Tab>` leaves `- b` unindented, `2<S-Tab>` outdents only `- b` and leaves `\t- c`, and `vim.opt.tabindent` leaves `plain`. With `<S-Tab>` not handed back, the off test leaves `\t- b`. With the cell check skipped, `<Tab>` stays in cell `{1, 1}` instead of moving to `{2, 0}`.
 
 ### Documentation
 

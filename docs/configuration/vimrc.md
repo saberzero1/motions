@@ -147,6 +147,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `navigation`           | `nav`  | Heading, list, and link navigation                             | on      |
 | `hardwrap`             | `hw`   | `gq`/`gw` hard-wrap operators                                  | on      |
 | `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`                             | on      |
+| `tabindent`            | —      | Normal-mode `<Tab>`/`<S-Tab>` indent and outdent (`>>`/`<<`)   | off     |
 | `tablenav`             | `tn`   | Table cell navigation                                          | on      |
 | `tableautorealign`     | —      | Realign every revealed table: `off`, `insertleave` or `typing` | off     |
 | `tablecolumnhighlight` | —      | Highlight every cell of the cursor's column (`reveal` mode)    | on      |
