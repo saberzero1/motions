@@ -112,12 +112,17 @@ The E2E tests use [wdio-obsidian-service](https://github.com/nicholasgasior/wdio
 nix develop
 npm run test:e2e
 
+# The same, on a private virtual display (Linux)
+nix develop
+e2e-headless                      # npm run test:e2e
+e2e-headless npx wdio run ./wdio.conf.mts --spec test/specs/vimrc.e2e.ts
+
 # On other Linux systems
 # Install the required system libraries for Electron (see flake.nix for the list)
 npm run test:e2e
 ```
 
-The tests run in a headless Obsidian instance with Xvfb. The test vault is in `test-vault/`.
+Each spec launches a real Obsidian window. Run directly, those windows open on your desktop and take its focus. `e2e-headless` runs its command on a private Xvfb display with herbstluftwm as the window manager, as the Linux CI image does, so you can keep using the machine. It picks a free display from `:90` to `:99`, clears a lock left by a killed server, keeps Electron off Wayland, and tears the display down when the command exits. The test vault is in `test-vault/`.
 
 **CI infrastructure**: In CI, the e2e workflow shards spec files into 36 groups (matching the GitHub Actions concurrent job limit) and runs each shard inside a custom Docker image (`ghcr.io/<repo>/e2e-runner:latest`) that includes Xvfb, herbstluftwm, Node.js 24, and Electron system dependencies. The discover job distributes specs round-robin; each runner executes 2–3 specs sequentially. This keeps the matrix under the 256-job GitHub Actions cap. The entrypoint starts the virtual display with readiness polling — no manual `apt-get install` or `sleep`-based setup needed per runner. The image is defined in `.github/docker/e2e-runner/Dockerfile` and built by `.github/workflows/docker-e2e-runner.yml` on Dockerfile changes or manual dispatch. The same sharded spec distribution also runs on `macos-latest` (ARM) and `windows-latest` runners via the `e2e-cross-platform` job — no virtual display setup is needed on those platforms since GitHub macOS/Windows runners provide native GUI sessions. `wdio-obsidian-service` handles Obsidian download, ChromeDriver version matching, and platform-specific launch. Windows shards retry up to 3 times on `EPERM` errors (Windows NTFS file locking during `obsidian-launcher`'s atomic rename).
 
