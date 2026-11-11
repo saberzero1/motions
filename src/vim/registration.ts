@@ -158,6 +158,14 @@ export class VimRegistration {
         });
     }
 
+    /**
+     * Registers one of the plugin's own commands. It is marked `builtin`, so
+     * a noremap rhs reaches it as it reaches a Vim built-in: `nnoremap X K`
+     * and `vim.keymap.set("n", "X", "K")` run the plugin's `K` (#234).
+     * A mapping the user defines through this wrapper — a Lua function
+     * mapping or text object — passes `builtin: false`, so a noremap rhs
+     * skips it as Vim skips a user mapping.
+     */
     mapCommand(
         keys: string,
         type: 'motion' | 'action' | 'operator',
@@ -165,7 +173,10 @@ export class VimRegistration {
         args?: Record<string, unknown>,
         extra?: Record<string, unknown>,
     ): void {
-        this.vim.mapCommand(keys, type, name, args, extra);
+        this.vim.mapCommand(keys, type, name, args, {
+            builtin: true,
+            ...extra,
+        });
         const context = extra?.context;
         this.pushReg({
             type: 'mapCommand',
