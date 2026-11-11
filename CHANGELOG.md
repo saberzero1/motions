@@ -11,11 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **With a space leader, a counted `j` through an expr mapping on `j` typed `j` into the note** ([#236](https://github.com/saberzero1/motions/issues/236)). This hit the docs recipe for display-line navigation with counted jumps, which maps `j` to an expression that returns `3j` for `3j`. Making Space the leader removes the default `<Space>` motion. The fork found the defaults by counting from the end of its keymap, so with one default fewer, the user's own `j` mapping fell inside the range a noremap rhs searches. `3j` then re-entered the expression until the stack overflowed, about 700 errors, and every `j` and `k` after it was typed into the note. A noremap rhs now skips user mappings by their flag rather than their position, so removing a default no longer matters. A space leader set in vimrc did the same.
     - Fork: codemirror-vim 6.4.12 (`commandMatches`)
+- **A Lua mapping on a key the plugin also maps, such as `Q`, stacked another copy of the plugin's mapping on every settings reload.** On a reload the plugin removes its own key mappings and adds them again, and it removed them by key alone. That takes the newest mapping on the key, which was the user's: with a Lua function on `Q`, each reload removed the Lua mapping instead of the plugin's `Q` → `@@`. The Lua mapping was put back, and another `@@` was stacked under it, four after three reloads. The plugin now removes exactly its own mapping, by keys, result and noremap.
+    - Fork: codemirror-vim 6.4.13 (an exact `toKeys` is normalized the way the mapping stored it, so a result with a space matches)
+    - Plugin: `src/vim/registration.ts`
+- **A Lua function mapping was in the keymap twice until the next settings reload.** The Lua loader maps a function as soon as `vim.keymap.set` runs, so it works straight away. Loading the config then mapped it again under a second action name. It now keeps the loader's name, and puts the mapping back on top by lifting only that action's earlier entry, so a vimrc mapping on the same keys stays.
+    - Fork: codemirror-vim 6.4.13 (`unmap(lhs, ctx, { action })`)
+    - Plugin: `src/main.ts` (`liftLuaAction`), `src/lua/loader.ts`
 
 ### Tests
 
 - **`lua-expr-mapping.e2e.ts`: the #236 recipe with a space leader**, pressing `j`, `3j`, `k` and `2k`. With the fork at 6.4.11 the cursor stays on line 1 for all four, where it should reach lines 1, 4, 3 and 1, and the note's second line becomes `jkkl1`.
 - **Fork: `noremap_skips_user_mappings_after_default_removed` and `noremap_feedKeys_from_action_after_default_removed`**, each with the default `<Space>` removed. Before the fix the first stays at `[0,0]` instead of `[2,0]`, and the second throws `RangeError: Maximum call stack size exceeded`.
+- **`lua-fn-keymap-single-copy.e2e.ts`: Lua function mappings on `j` and `Q` are one entry each**, after the config loads, after three settings reloads and after four note switches, and both keys still work. With the exact removal reverted, `Q` → `@@` is there four times after three reloads. With the Lua lift reverted, `Q` and `j` each have a second Lua action straight after the config loads.
+- **Fork: `unmap_exact_action_leaves_other_mappings` and `unmap_exact_toKeys_with_a_space`.** Without the `action` option, the first removes the wrong `Q` entry. Without the normalization, the second removes nothing.
 
 ## [1.6.0] - 2026-11-07
 

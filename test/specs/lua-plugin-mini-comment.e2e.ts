@@ -125,12 +125,13 @@ describe('mini.comment plugin integration', function () {
         it('gc mapping is registered after setup', async function () {
             await loadMiniComment(`require('mini.comment').setup({})`);
 
-            // setup() maps `gc` twice over: as `lua-action-eager-N` while the
-            // config loads, and again as `lua-action-N` when applyLuaMaps runs
-            // on the next reloadFeatures or leaf change. Either is the mapping
-            // this scenario is about. It used to accept only the first, read a
-            // fixed 200 ms after the load, and a macOS runner found neither
-            // there while every later scenario that presses `gc` passed.
+            // setup() maps `gc` as `lua-action-eager-N` while the config
+            // loads, and applyLuaMaps keeps that name when it puts the mapping
+            // back on top. A function mapping without a loader name gets a
+            // `lua-action-N` one, so either prefix is accepted. This scenario
+            // used to accept only one, read a fixed 200 ms after the load, and
+            // a macOS runner found neither there while every later scenario
+            // that presses `gc` passed.
             await browser.waitUntil(
                 async () =>
                     (await gcLuaActions()).some((a) =>

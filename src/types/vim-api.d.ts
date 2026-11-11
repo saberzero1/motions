@@ -238,6 +238,11 @@ export interface VimApi {
             includeDefaults?: boolean;
             toKeys?: string;
             noremap?: boolean;
+            /**
+             * (bundled fork only) removes just a user mapping from `lhs` to
+             * this action.
+             */
+            action?: string;
         },
     ): boolean;
 
