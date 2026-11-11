@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fork: `noremap_skips_user_mappings_after_default_removed` and `noremap_feedKeys_from_action_after_default_removed`**, each with the default `<Space>` removed. Before the fix the first stays at `[0,0]` instead of `[2,0]`, and the second throws `RangeError: Maximum call stack size exceeded`.
 - **`lua-fn-keymap-single-copy.e2e.ts`: Lua function mappings on `j` and `Q` are one entry each**, after the config loads, after three settings reloads and after four note switches, and both keys still work. With the exact removal reverted, `Q` → `@@` is there four times after three reloads. With the Lua lift reverted, `Q` and `j` each have a second Lua action straight after the config loads.
 - **Fork: `unmap_exact_action_leaves_other_mappings` and `unmap_exact_toKeys_with_a_space`.** Without the `action` option, the first removes the wrong `Q` entry. Without the normalization, the second removes nothing.
+- **`lua-recipe-markdown-insert.e2e.ts`: the Markdown-aware `I` recipe, read from the docs page**, on 35 lines in normal and insert mode: the issue's list and task examples, empty items, quoted lists, callout titles, checkboxes holding `!` or `✓`, and lines that are not list items. Neovim 0.12 gives the same 35 results with the same file. With no recipe loaded, all 70 tests fail.
+
+### Documentation
+
+- **Lua recipes: a Markdown-aware `I`** ([#241](https://github.com/saberzero1/motions/issues/241)). A `<leader>i` that inserts where a line's text starts, after its indentation, any blockquote or callout `>` markers, and a callout's `[!type]`, a list marker or a task checkbox; `<A-y>` does the same in insert mode. `I` itself is unchanged. The same code works in a Neovim config for the Neovim backend.
 
 ## [1.6.0] - 2026-11-07
 
