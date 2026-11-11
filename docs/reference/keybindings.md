@@ -57,6 +57,16 @@ Jump between document structures. Works with counts (e.g., `3]h` jumps 3 heading
 | `e`  | End of current/next subword | Same                                                                                                                                      |
 | `ge` | End of previous subword     | Same                                                                                                                                      |
 
+## Normal-mode Tab
+
+| Key       | Default                                   | With `tabindent`              |
+| --------- | ----------------------------------------- | ----------------------------- |
+| `<Tab>`   | Forward through the jump list, as `<C-i>` | Indent the line, as `>>`      |
+| `<S-Tab>` | Obsidian's outdent                        | Outdent the line, as `<<`     |
+| `<C-i>`   | Forward through the jump list             | Forward through the jump list |
+
+In Obsidian's native table cell editor, `<Tab>` and `<S-Tab>` move to the next and previous cell either way. See [[quality-of-life#Jump list across notes]].
+
 ## Table navigation
 
 Navigate Markdown table cells without leaving Vim mode.

@@ -190,6 +190,7 @@ export interface VimMotionsSettings {
     enableReplaceWithRegister: boolean;
     enableDial: boolean;
     listContinuationOnOpen: boolean;
+    normalTabIndent: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'auto' | 'native' | 'raw' | 'reveal';
     /**
@@ -381,6 +382,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableReplaceWithRegister: true,
     enableDial: false,
     listContinuationOnOpen: true,
+    normalTabIndent: false,
     enableTableNav: true,
     tableWidgetMode: 'auto',
     // Fresh settings have nothing to move; stored settings without the field
@@ -975,6 +977,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                         this.isOverridden(
                                             'listContinuationOnOpen',
                                         ),
+                                },
+                            },
+                            {
+                                name: 'Tab indents in normal mode',
+                                desc: this.describeOverride(
+                                    'normalTabIndent',
+                                    'In normal mode, Tab indents the line and Shift+Tab outdents it, as >> and << do. Off, Tab walks forward through the jump list, as in Vim and Neovim. Ctrl+I always does. In a table cell, Tab still moves between cells.',
+                                ),
+                                aliases: ['tab', 'indent', 'tabindent'],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'normalTabIndent',
+                                    defaultValue: false,
+                                    disabled: () =>
+                                        this.isOverridden('normalTabIndent'),
                                 },
                             },
                             {
@@ -3649,6 +3666,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         );
                         await this.plugin.saveSettings();
                         this.plugin.reloadFeatures();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Tab indents in normal mode')
+            .setDesc(
+                describeOverride(
+                    'normalTabIndent',
+                    'In normal mode, Tab indents the line and Shift+Tab outdents it, as >> and << do. Off, Tab walks forward through the jump list, as in Vim and Neovim. Ctrl+I always does. In a table cell, Tab still moves between cells.',
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.normalTabIndent)
+                    .setDisabled(isOverridden('normalTabIndent'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.normalTabIndent = value;
+                        this.plugin.clearSettingOverride('normalTabIndent');
+                        await this.plugin.saveSettings();
                     }),
             );
 

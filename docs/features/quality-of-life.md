@@ -67,6 +67,8 @@ Toggle via **Settings → Vim Motions → Vim features → Yank-ring paste cycli
 
 The jumps you make inside a note are in the same list, where they happened among the note switches. Switch to `b`, press `G`, and `<C-o>` first goes back to where `G` started, then to `a`. Their positions move with the text when you edit above them. A move that is not a jump, such as `j`, leaves no entry, and `<C-i>` comes back to wherever you pressed `<C-o>`. Flash and EasyMotion jumps count too.
 
+Normal-mode `<Tab>` is `<C-i>`, as in Vim and Neovim, which is also why it does not indent. To make `<Tab>` indent the line and `<S-Tab>` outdent it, the way `>>` and `<<` do, turn on **Settings → Vim Motions → General → Tab indents in normal mode**, `vim.opt.tabindent = true` or `set tabindent` ([#237](https://github.com/saberzero1/motions/issues/237)). A count indents that many lines, and `.` repeats it. `<C-i>` keeps walking the jump list either way. With the option off, `<S-Tab>` is Obsidian's own outdent, as it has always been. In Obsidian's native table cell editor, `<Tab>` and `<S-Tab>` move between cells with the option on or off. In visual mode both keys are Obsidian's indent and outdent.
+
 `:jumps` lists the history, and `set nojumplist` turns the cross-note part off. With the Neovim backend, the jumps inside a note stay in Neovim's own list and are walked after the previous note. With Obsidian's own Vim key bindings on, the plugin's Vim layer, this list included, is off; see [[recommended-setup#Using built-in vim mode]]. Unlike Neovim, the list keeps an older entry on the same line as a newer one; see [[known-limitations#Cross-note jump list]].
 
 ## Change list navigation

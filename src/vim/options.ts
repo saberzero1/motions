@@ -161,6 +161,15 @@ export function registerVimOptions(
             `set ${enabled ? '' : 'no'}listcontinuation`,
         );
     });
+    vim.defineOption('tabindent', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'normalTabIndent',
+            enabled,
+            `set ${enabled ? '' : 'no'}tabindent`,
+        );
+    });
     vim.defineOption('tablenav', true, 'boolean', ['tn'], (value) => {
         if (value === undefined) return;
         const enabled = !!value;

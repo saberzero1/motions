@@ -303,7 +303,7 @@ import {
     type TableSurfaceBlocker,
 } from './vim/table/gates';
 import { createTableReveal } from './vim/table/reveal/surface';
-import { withTableCellTab } from './vim/normal-tab';
+import { createShiftTabAction, withTableCellTab } from './vim/normal-tab';
 import type { TableColumnInfo } from './vim/table/reveal/column-status';
 import {
     getHighlightChannel,
@@ -2621,6 +2621,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.registration.defineActionOverride('jumpListWalk', (original) =>
             withTableCellTab(
                 createJumpListWalkOverride(original, this.app, this.jumpList),
+                () => this.settings.normalTabIndent,
             ),
         );
         this.registration.mapCommand(
@@ -2647,6 +2648,7 @@ export default class VimMotionsPlugin extends Plugin {
             { forward: true, fromTab: true },
             { context: 'normal' },
         );
+        this.registerNormalShiftTab();
 
         // --- Feature registrations ---
         if (this.settings.enableTextObjects) {
@@ -3925,6 +3927,7 @@ export default class VimMotionsPlugin extends Plugin {
                         this.app,
                         this.jumpList,
                     ),
+                    () => this.settings.normalTabIndent,
                 ),
             );
             this.registration.mapCommand(
@@ -3949,6 +3952,7 @@ export default class VimMotionsPlugin extends Plugin {
                 { context: 'normal' },
             );
         }
+        this.registerNormalShiftTab();
 
         if (this.leaderRegistry) {
             this.registration.unmapDefaultBinding(
@@ -4666,6 +4670,26 @@ export default class VimMotionsPlugin extends Plugin {
         this.textareaVimManager?.updateOptions(
             undefined,
             embeddedWhichKeyConfig,
+        );
+    }
+
+    /**
+     * Normal-mode `<S-Tab>`: Obsidian's outdent, as before, or `<<` with
+     * `tabindent` (#237). Registered outside the jump-list block, so it is
+     * there with the jump list off too.
+     */
+    private registerNormalShiftTab(): void {
+        if (!this.registration) return;
+        this.registration.defineAction(
+            'normalShiftTab',
+            createShiftTabAction(() => this.settings.normalTabIndent),
+        );
+        this.registration.mapCommand(
+            '<S-Tab>',
+            'action',
+            'normalShiftTab',
+            {},
+            { context: 'normal' },
         );
     }
 
