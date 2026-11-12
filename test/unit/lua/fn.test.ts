@@ -723,6 +723,34 @@ describe('vim.fn', () => {
         destroyState(L);
     });
 
+    // Each width is Neovim 0.12.6's strdisplaywidth(). Before, emoji counted
+    // one cell and a combining mark one of its own.
+    it.each([
+        ['中', 2],
+        ['Ａ', 2],
+        ['😀', 2],
+        ['🚀', 2],
+        ['⌚', 2],
+        ['☕', 2],
+        ['✓', 1],
+        ['★', 1],
+        ['→', 1],
+        ['é', 1],
+        ['e\u0301', 1],
+        ['👍🏽', 2],
+        ['🇳🇱', 2],
+        ['😀x中', 5],
+    ])('strdisplaywidth(%j) is %i, as in Neovim', (text, width) => {
+        const L = setupStateWithExtras({});
+        expect(
+            runLuaNumber(
+                L,
+                `return vim.fn.strdisplaywidth(${JSON.stringify(text)})`,
+            ),
+        ).toBe(width);
+        destroyState(L);
+    });
+
     it('should implement strcharpart()', () => {
         const L = setupStateWithExtras({});
         expect(

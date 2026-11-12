@@ -92,7 +92,19 @@ export function byteToCharColumn(text: string, col: ByteCol): CharCol {
     return charColumn(index < 0 ? spans.length : index);
 }
 
-/** Existing wide-codepoint classification, shared with strdisplaywidth. */
+// Emoji Neovim shows two cells wide, alone or among CJK ranges below.
+const WIDE_EMOJI = new Set([
+    0x231a, 0x231b, 0x23f0, 0x23f3, 0x25fd, 0x25fe, 0x2614, 0x2615, 0x267f,
+    0x2693, 0x26a1, 0x26aa, 0x26ab, 0x26bd, 0x26be, 0x26c4, 0x26c5, 0x26ce,
+    0x26d4, 0x26ea, 0x26f2, 0x26f3, 0x26f5, 0x26fa, 0x26fd, 0x2705, 0x270a,
+    0x270b, 0x2728, 0x274c, 0x274e, 0x2757, 0x27b0, 0x27bf, 0x2b1b, 0x2b1c,
+    0x2b50, 0x2b55, 0x1f004, 0x1f0cf, 0x1f18e,
+]);
+
+/**
+ * Wide-codepoint classification, shared with strdisplaywidth: two cells for
+ * CJK and fullwidth forms and for emoji, as Neovim counts them.
+ */
 export function isWideCodePoint(cp: number): boolean {
     return (
         (cp >= 0x1100 && cp <= 0x115f) ||
@@ -103,7 +115,35 @@ export function isWideCodePoint(cp: number): boolean {
         (cp >= 0xff01 && cp <= 0xff60) ||
         (cp >= 0xffe0 && cp <= 0xffe6) ||
         (cp >= 0x20000 && cp <= 0x2fffd) ||
-        (cp >= 0x30000 && cp <= 0x3fffd)
+        (cp >= 0x30000 && cp <= 0x3fffd) ||
+        WIDE_EMOJI.has(cp) ||
+        (cp >= 0x23e9 && cp <= 0x23ec) ||
+        (cp >= 0x2648 && cp <= 0x2653) ||
+        (cp >= 0x2753 && cp <= 0x2755) ||
+        (cp >= 0x2795 && cp <= 0x2797) ||
+        (cp >= 0x1f191 && cp <= 0x1f19a) ||
+        (cp >= 0x1f200 && cp <= 0x1f251) ||
+        (cp >= 0x1f300 && cp <= 0x1f64f) ||
+        (cp >= 0x1f680 && cp <= 0x1f6ff) ||
+        (cp >= 0x1f7e0 && cp <= 0x1f7eb) ||
+        (cp >= 0x1f900 && cp <= 0x1f9ff) ||
+        (cp >= 0x1fa70 && cp <= 0x1faff)
+    );
+}
+
+/**
+ * A character Neovim gives no cell of its own: a combining mark, a
+ * variation selector, a zero-width joiner or a skin-tone modifier, all drawn
+ * with the character before.
+ */
+export function isZeroWidthCodePoint(cp: number): boolean {
+    return (
+        COMBINING_CHAR.test(String.fromCodePoint(cp)) ||
+        cp === 0x200c ||
+        cp === 0x200d ||
+        (cp >= 0xfe00 && cp <= 0xfe0f) ||
+        (cp >= 0x1f3fb && cp <= 0x1f3ff) ||
+        (cp >= 0xe0100 && cp <= 0xe01ef)
     );
 }
 
@@ -120,8 +160,8 @@ interface DisplayContext {
 function cellWidth(text: string): number {
     let width = 0;
     for (const ch of text) {
-        if (!COMBINING_CHAR.test(ch))
-            width += isWideCodePoint(ch.codePointAt(0) ?? 0) ? 2 : 1;
+        const cp = ch.codePointAt(0) ?? 0;
+        if (!isZeroWidthCodePoint(cp)) width += isWideCodePoint(cp) ? 2 : 1;
     }
     return width;
 }
