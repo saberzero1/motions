@@ -1324,10 +1324,10 @@ The replaced text is discarded into the black-hole register; the source register
 
 ## `startofline` and `curswant` are partly modelled
 
-`startofline` is off by default, as in Neovim, and `G`, `gg`, `H`, `M`, `L`, `>` and `<` follow it: with it on they go to the first non-blank, and with it off they keep the cursor's screen column, counting a tab to its last cell, and land on the last character after `$`. Two parts of Neovim's behaviour are not modelled:
+`startofline` is off by default, as in Neovim. `G`, `gg`, `H`, `M`, `L`, `<C-d>`, `<C-u>`, `<C-f>`, `<C-b>`, linewise `d`, `=`, `>` and `<` follow it: with it on they go to the first non-blank, and with it off they keep `curswant`, the screen column `j` and `k` keep. That column counts a tab to its last cell and is kept across shorter lines and through `$`. Two parts of Neovim's behaviour are not modelled:
 
-- **`j` and `k` keep a character index, not a screen column.** Neovim's `curswant` is a screen column, so on lines indented with different tabs a `j` chain can land on another character, and so can a `G` after one. Measured in Neovim 0.12.6 with `tabstop=4`: `jjG` from column 9 of `\tfoo bar baz` over `  x` and `        long line here` lands on column 6 of `\t\tend line`.
-- **`dd`, `<C-d>` and the other commands Neovim also governs by `startofline` do not read it.** In Neovim, `dd` with the option off keeps the screen column: on `  x` from column 2 it stays on column 2 of the next line, where with the option on it goes to the first non-blank.
+- **Screen columns count every character other than a tab as one cell.** Neovim counts a wide character, such as one in Chinese or Japanese, and most emoji as two, so on such lines `j`, `k` and the commands above can land a character away from where Neovim's would.
+- **`{count}%` is not implemented.** `%` with a count matches brackets, as it does without one.
 
 ## Test-discovered behavioral discrepancies
 
