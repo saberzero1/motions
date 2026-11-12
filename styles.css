@@ -194,6 +194,24 @@
     background-color: var(--text-selection, rgba(0, 100, 200, 0.2));
 }
 
+/* --- Visual block mode selection (#249) ---
+   Drawn as marks on the text, over a code block's opaque line background,
+   which covers the editor's selection layer. The layer and the browser's own
+   selection are hidden meanwhile so no range is painted twice. */
+
+.cm-editor .cm-scroller .cm-content .vim-motions-visual-block-selection {
+    background-color: var(--text-selection, rgba(0, 100, 200, 0.2));
+}
+
+.cm-editor > .cm-scroller.vim-motions-visual-block > .cm-selectionLayer {
+    display: none;
+}
+
+.cm-editor .cm-scroller.vim-motions-visual-block .cm-content ::selection,
+.cm-editor .cm-scroller.vim-motions-visual-block .cm-content::selection {
+    background-color: transparent;
+}
+
 /* --- Status bar --- */
 
 .vim-motions-hidden {
