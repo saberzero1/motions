@@ -270,6 +270,9 @@ export class NeovimObsidianFeatureBridge {
     private installedCommands: string[] = [];
     private installedAbbreviations: string[] = [];
     private turn: Promise<void> = Promise.resolve();
+    // Bumped by stop(). An action still awaiting when its connection goes
+    // must not go on to write into the editor the next connection drives.
+    private generation = 0;
 
     constructor(
         private readonly app: App,
@@ -320,6 +323,7 @@ export class NeovimObsidianFeatureBridge {
     }
 
     async stop(): Promise<void> {
+        this.generation++;
         const cleanupNotification = this.cleanupNotification;
         this.cleanupNotification = null;
         const mappings = this.installedMappings;
@@ -416,7 +420,9 @@ export class NeovimObsidianFeatureBridge {
                 // Before the await, so an asynchronous motion cannot hold up
                 // every bridged action behind it.
                 started();
+                const generation = this.generation;
                 const result = await pending;
+                if (generation !== this.generation) return;
                 const target = Array.isArray(result) ? result[1] : result;
                 if (!target) return;
                 const line = cm.getLine(target.line);
@@ -507,8 +513,10 @@ export class NeovimObsidianFeatureBridge {
         actionName: string,
         releaseHostCursor?: () => void,
     ): Promise<void> {
+        const generation = this.generation;
         for (let attempt = 0; attempt < 60; attempt++) {
             await new Promise((resolve) => window.setTimeout(resolve, 25));
+            if (generation !== this.generation) return;
             const view = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) continue;
             const cursor = view.editor.getCursor();
@@ -525,6 +533,7 @@ export class NeovimObsidianFeatureBridge {
             }
             await this.documentSync.waitForActivation();
             await new Promise((resolve) => window.setTimeout(resolve, 25));
+            if (generation !== this.generation) return;
             const currentView =
                 this.app.workspace.getActiveViewOfType(MarkdownView);
             if (!currentView) return;
@@ -599,11 +608,14 @@ export class NeovimObsidianFeatureBridge {
         // Actions start in the order Neovim sent them: one that waits for a
         // loading pane must not be overtaken by the keys typed after it.
         const previous = this.turn;
+        const generation = this.generation;
         let started!: () => void;
         this.turn = new Promise((resolve) => (started = resolve));
         void previous
             .then(() => action.run(payload ?? {}, started))
             .catch((error: unknown) => {
+                // Cut short by stop(): the closed client is expected.
+                if (generation !== this.generation) return;
                 const message =
                     error instanceof Error ? error.message : String(error);
                 new Notice(`Vim Motions: Obsidian action failed: ${message}`);
