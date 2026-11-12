@@ -3,6 +3,7 @@ import { obsidianPage } from 'wdio-obsidian-service';
 import {
     setupEditor,
     getEditorValue,
+    getCursorPos,
     handleEx as observeEx,
     sendVimEscape,
 } from '../../helpers';
@@ -204,5 +205,38 @@ describe('Ex commands — :move, :copy, :normal', function () {
             await browser.pause(100);
             expect(await getEditorValue()).toBe('bbb\nccc');
         });
+    });
+    // :m and :t end on the last line they move or copy, at the 'startofline'
+    // column taken before the command: the cursor's screen column without
+    // it, the first non-blank with it. Each position is Neovim 0.12.6's with
+    // tabstop=4. They used to go to the first non-blank either way.
+    describe('cursor after :m and :t', function () {
+        const DOC = '  one two\n\tthree four\nfive six\n    seven';
+        const cases: [number, number, string, boolean, number, number][] = [
+            [2, 3, 'm 0', false, 0, 3],
+            [0, 6, 'm 2', false, 1, 6],
+            [0, 6, 't 2', false, 2, 6],
+            [2, 3, 'co 0', false, 0, 3],
+            [2, 3, 'm 0', true, 0, 0],
+            [0, 6, 'm 2', true, 1, 2],
+            [0, 6, 't 2', true, 2, 2],
+            [2, 3, 'co 0', true, 0, 0],
+        ];
+        after(async function () {
+            await observeEx('set nosol');
+        });
+        for (const [line, ch, ex, sol, toLine, toCh] of cases) {
+            it(`:${ex} from (${line},${ch})${sol ? ' with startofline' : ''}`, async function () {
+                await observeEx(sol ? 'set sol' : 'set nosol');
+                await setupEditor(DOC, { line, ch });
+                await sendVimEscape();
+                await observeEx(ex);
+                await browser.pause(100);
+                expect(await getCursorPos()).toEqual({
+                    line: toLine,
+                    ch: toCh,
+                });
+            });
+        }
     });
 });
