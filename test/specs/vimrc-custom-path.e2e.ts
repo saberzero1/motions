@@ -52,6 +52,29 @@ async function assertPluginLoaded(): Promise<void> {
     expect(result).toHaveProperty('pluginLoaded', true);
 }
 
+// Each scenario writes a vimrc and reboots Obsidian on the same vault copy.
+// `reloadObsidian({ vault })` would open a fresh copy instead, without the
+// file just written or the path just saved, and every scenario here used to
+// do that: no vimrc was ever read, and the old mappings (`j` to `gj`, `H` to
+// `^`) moved the cursor where the unmapped keys already did. The mappings now
+// land somewhere the unmapped keys cannot: `2j` and `2k` move two lines, and
+// `^` from the second line stays on it where `H` goes to the first.
+async function loadVimrc(file: string | null, content: string, path: string) {
+    if (file) await obsidianPage.write(file, content);
+    await setVimrcPath(path);
+    await browser.reloadObsidian();
+    await obsidianPage.openFile('Welcome.md');
+    await waitForVimrcLoaded();
+}
+
+const FOUR = 'line one\nline two\nline three\nline four';
+
+async function pressFrom(line: number, ch: number, key: string, doc = FOUR) {
+    await setupEditor(doc, { line, ch });
+    await vimKeys(key);
+    return getCursorPos();
+}
+
 describe('Custom vimrc path (issue #34)', function () {
     after(async function () {
         await setVimrcPath('');
@@ -65,112 +88,73 @@ describe('Custom vimrc path (issue #34)', function () {
 
     describe('loading vimrc from a custom path', function () {
         before(async function () {
-            await obsidianPage.write(
+            await loadVimrc(
                 'config/my.vimrc',
-                'nmap j gj\nnmap k gk\n',
+                'nnoremap j 2j\nnnoremap k 2k\n',
+                'config/my.vimrc',
             );
-            await setVimrcPath('config/my.vimrc');
-            await browser.reloadObsidian({ vault: 'test-vault' });
-            await obsidianPage.openFile('Welcome.md');
-            await waitForVimrcLoaded();
+        });
+        after(async function () {
+            await obsidianPage.delete('config/my.vimrc');
         });
 
-        // Removed: 'plugin should load with custom vimrc path', which asserted
-        // only `assertPluginLoaded()`. Measured, nothing distinguishes a
-        // loaded custom path from an ignored one in plugin state --
-        // `vimrcLoaded` is true, `vimrcPath` is '' and `vimrcMapKeys` is empty
-        // for BOTH this describe and the non-existent-path one below. The two
-        // scenarios that follow already prove the custom vimrc was read, by
-        // exercising the `j` and `k` mappings it defines.
-
-        it('j mapping from custom vimrc should move cursor down', async function () {
-            await setupEditor('line one\nline two\nline three', {
-                line: 0,
-                ch: 0,
-            });
-            await vimKeys('j');
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(1);
+        it('j mapping from custom vimrc moves two lines', async function () {
+            expect((await pressFrom(0, 0, 'j')).line).toBe(2);
         });
 
-        it('k mapping from custom vimrc should move cursor up', async function () {
-            await setupEditor('line one\nline two\nline three', {
-                line: 2,
-                ch: 0,
-            });
-            await vimKeys('k');
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(1);
+        it('k mapping from custom vimrc moves two lines', async function () {
+            expect((await pressFrom(3, 0, 'k')).line).toBe(1);
         });
     });
 
     describe('empty vimrcPath uses default .obsidian.vimrc', function () {
         before(async function () {
-            await obsidianPage.write('.obsidian.vimrc', 'nmap H ^\n');
-            await setVimrcPath('');
-            await browser.reloadObsidian({ vault: 'test-vault' });
-            await obsidianPage.openFile('Welcome.md');
-            await waitForVimrcLoaded();
+            await loadVimrc('.obsidian.vimrc', 'nmap H ^\n', '');
+        });
+        after(async function () {
+            await obsidianPage.delete('.obsidian.vimrc');
         });
 
         it('H mapping from default vimrc should work', async function () {
-            await setupEditor('   hello world', { line: 0, ch: 8 });
-            await vimKeys('H');
-            const pos = await getCursorPos();
-            expect(pos.ch).toBe(3);
+            expect(
+                await pressFrom(1, 8, 'H', 'top line\n   hello world'),
+            ).toEqual({ line: 1, ch: 3 });
         });
     });
 
     describe('non-existent custom path does not crash', function () {
         before(async function () {
-            await setVimrcPath('does/not/exist.vimrc');
-            await browser.reloadObsidian({ vault: 'test-vault' });
-            await obsidianPage.openFile('Welcome.md');
-            await waitForVimrcLoaded();
+            await loadVimrc(null, '', 'does/not/exist.vimrc');
         });
 
         it('plugin should still be loaded', async function () {
             await assertPluginLoaded();
             // "does not crash" means the editor still works. A loaded plugin
-            // holds equally with vim wedged, and no plugin-state field
-            // distinguishes a missing vimrc from a loaded one -- measured,
-            // `vimrcLoaded` is true either way.
-            await setupEditor('line one\nline two\nline three', {
-                line: 0,
-                ch: 0,
-            });
-            await vimKeys('j');
-            expect((await getCursorPos()).line).toBe(1);
+            // holds equally with vim wedged.
+            expect((await pressFrom(0, 0, 'j')).line).toBe(1);
         });
     });
 
     describe('non-dotfile vimrc path for Obsidian Sync compatibility', function () {
         before(async function () {
-            await obsidianPage.write(
+            await loadVimrc(
                 'vimrc.md',
-                'nmap j gj\nnmap k gk\nnmap H ^\n',
+                'nnoremap j 2j\nnnoremap k 2k\nnmap H ^\n',
+                'vimrc.md',
             );
-            await setVimrcPath('vimrc.md');
-            await browser.reloadObsidian({ vault: 'test-vault' });
-            await obsidianPage.openFile('Welcome.md');
-            await waitForVimrcLoaded();
+        });
+        after(async function () {
+            await obsidianPage.delete('vimrc.md');
         });
 
         it('j mapping from non-dotfile vimrc should work', async function () {
-            await setupEditor('line one\nline two\nline three', {
-                line: 0,
-                ch: 0,
-            });
-            await vimKeys('j');
-            const pos = await getCursorPos();
-            expect(pos.line).toBe(1);
+            expect((await pressFrom(0, 0, 'j')).line).toBe(2);
         });
 
         it('H mapping from non-dotfile vimrc should work', async function () {
-            await setupEditor('   hello world', { line: 0, ch: 8 });
-            await vimKeys('H');
-            const pos = await getCursorPos();
-            expect(pos.ch).toBe(3);
+            expect(
+                await pressFrom(1, 8, 'H', 'top line\n   hello world'),
+            ).toEqual({ line: 1, ch: 3 });
         });
     });
 });

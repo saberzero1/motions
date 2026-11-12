@@ -111,7 +111,8 @@ describe('Config management commands (#168)', function () {
         before(async function () {
             this.timeout(30000);
             await obsidianPage.write('.obsidian.vimrc', 'nmap L $\n');
-            await browser.reloadObsidian({ vault: 'test-vault' });
+            // In place: `{ vault }` would boot a fresh copy without this file.
+            await browser.reloadObsidian();
             await obsidianPage.openFile('Welcome.md');
             await browser.waitUntil(
                 async () =>
@@ -135,6 +136,12 @@ describe('Config management commands (#168)', function () {
         });
 
         it('should pick up new vimrc content via reload command', async function () {
+            // The vimrc the plugin booted with, so the reload has something
+            // to replace.
+            expect(await getVimrcCommandCount()).toBe(1);
+            expect(await checkUserMappingExists('L', '$')).toBe(true);
+            expect(await checkUserMappingExists('H', '^')).toBe(false);
+
             await obsidianPage.write('.obsidian.vimrc', 'nmap L $\nnmap H ^\n');
             await browser.pause(500);
 
