@@ -112,6 +112,7 @@ export const KNOWN_SET_OPTIONS: Record<string, KnownOpt> = {
     lc: { type: 'boolean', settingsKey: 'listContinuationOnOpen' },
     tabindent: { type: 'boolean', settingsKey: 'normalTabIndent' },
     hoverfocus: { type: 'boolean', settingsKey: 'hoverFocus' },
+    markdownindent: { type: 'boolean', settingsKey: 'markdownIndent' },
     tablenav: { type: 'boolean', settingsKey: 'enableTableNav' },
     tn: { type: 'boolean', settingsKey: 'enableTableNav' },
     // Was boolean; `set tableautorealign` still means realign when insert

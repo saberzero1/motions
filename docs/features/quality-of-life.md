@@ -30,6 +30,15 @@ Works correctly on the first line after YAML frontmatter. Lines inside a fenced 
 
 Pressing `o` on a parent item that has more-indented children inserts the new item at the **parent's** level, not the child's. This matches Obsidian's own Enter key and Neovim; outliner-style child-level insertion is available from Lua if you prefer it.
 
+## Re-indenting with `=`
+
+`=`, `==` and `={motion}` re-indent lines as Neovim's do in a Markdown file, which has no indent rules: each line takes the indent of the nearest non-blank line above it, and a blank line is emptied. That flattens a nested list, so `set markdownindent` (**Settings → Vim Motions → General → Markdown-aware indent**) switches `=` to Markdown's own rules instead:
+
+- a list keeps its nesting, one `shiftwidth` a level, and an item more than one level deeper than the one above comes back to one;
+- a line continuing a list item goes to the item's text;
+- other lines, such as paragraphs, headings and quotes, get no indent, since four columns would make them a code block;
+- fenced code blocks and frontmatter keep theirs.
+
 ## Yank highlight
 
 Yanked text is briefly highlighted to provide visual feedback on what was yanked. Three modes are available in **Settings → Vim Motions → Vim features → Yank highlight**:

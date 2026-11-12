@@ -149,6 +149,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `listcontinuation`     | `lc`   | Smart list continuation on `o`/`O`                             | on      |
 | `tabindent`            | —      | Normal-mode `<Tab>`/`<S-Tab>` indent and outdent (`>>`/`<<`)   | off     |
 | `hoverfocus`           | —      | `K` moves into the preview it opens, as `KK` does              | off     |
+| `markdownindent`       | —      | `=` keeps list nesting; off, Neovim's (flattens lists)         | off     |
 | `tablenav`             | `tn`   | Table cell navigation                                          | on      |
 | `tableautorealign`     | —      | Realign every revealed table: `off`, `insertleave` or `typing` | off     |
 | `tablecolumnhighlight` | —      | Highlight every cell of the cursor's column (`reveal` mode)    | on      |

@@ -192,6 +192,7 @@ export interface VimMotionsSettings {
     listContinuationOnOpen: boolean;
     normalTabIndent: boolean;
     hoverFocus: boolean;
+    markdownIndent: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'auto' | 'native' | 'raw' | 'reveal';
     /**
@@ -385,6 +386,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     listContinuationOnOpen: true,
     normalTabIndent: false,
     hoverFocus: false,
+    markdownIndent: false,
     enableTableNav: true,
     tableWidgetMode: 'auto',
     // Fresh settings have nothing to move; stored settings without the field
@@ -1009,6 +1011,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     defaultValue: false,
                                     disabled: () =>
                                         this.isOverridden('hoverFocus'),
+                                },
+                            },
+                            {
+                                name: 'Markdown-aware indent',
+                                desc: this.describeOverride(
+                                    'markdownIndent',
+                                    "= keeps a list's nesting, takes a list item's continuation lines to its text and other lines to no indent, and leaves code blocks and frontmatter alone. Off, = gives each line the indent of the line above, as Neovim's does in Markdown, which flattens a nested list.",
+                                ),
+                                aliases: ['indent', 'markdownindent', '='],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'markdownIndent',
+                                    defaultValue: false,
+                                    disabled: () =>
+                                        this.isOverridden('markdownIndent'),
                                 },
                             },
                             {
@@ -3720,6 +3737,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.hoverFocus = value;
                         this.plugin.clearSettingOverride('hoverFocus');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Markdown-aware indent')
+            .setDesc(
+                describeOverride(
+                    'markdownIndent',
+                    "= keeps a list's nesting, takes a list item's continuation lines to its text and other lines to no indent, and leaves code blocks and frontmatter alone. Off, = gives each line the indent of the line above, as Neovim's does in Markdown, which flattens a nested list.",
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.markdownIndent)
+                    .setDisabled(isOverridden('markdownIndent'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.markdownIndent = value;
+                        this.plugin.clearSettingOverride('markdownIndent');
                         await this.plugin.saveSettings();
                     }),
             );
