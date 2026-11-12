@@ -1322,6 +1322,13 @@ The replaced text is discarded into the black-hole register; the source register
 
 **Test coverage**: `test/specs/operators.e2e.ts` — 26 passing tests: `grr` (single, multi-line, count), `griw`, `gr$`, `grl`, `gri'`, `gr}`, named registers (`"agriw`, `"a3grr`), visual `gr` (charwise, linewise `V`, blockwise `<C-V>`), register type coercion (linewise↔charwise), cursor positioning, dot-repeat (`griw`, `grr`, `3grr`+`.`), multi-line register expansion, text object at line boundary.
 
+## `startofline` and `curswant` are partly modelled
+
+`startofline` is off by default, as in Neovim, and `G`, `gg`, `H`, `M`, `L`, `>` and `<` follow it: with it on they go to the first non-blank, and with it off they keep the cursor's screen column, counting a tab to its last cell, and land on the last character after `$`. Two parts of Neovim's behaviour are not modelled:
+
+- **`j` and `k` keep a character index, not a screen column.** Neovim's `curswant` is a screen column, so on lines indented with different tabs a `j` chain can land on another character, and so can a `G` after one. Measured in Neovim 0.12.6 with `tabstop=4`: `jjG` from column 9 of `\tfoo bar baz` over `  x` and `        long line here` lands on column 6 of `\t\tend line`.
+- **`dd`, `<C-d>` and the other commands Neovim also governs by `startofline` do not read it.** In Neovim, `dd` with the option off keeps the screen column: on `  x` from column 2 it stays on column 2 of the next line, where with the option on it goes to the first non-blank.
+
 ## Test-discovered behavioral discrepancies
 
 These were found by translating edge-case tests from Neovim's legacy test suite and replit/codemirror-vim. Each has a corresponding `it.skip()` test with a `// BUG:` comment.
