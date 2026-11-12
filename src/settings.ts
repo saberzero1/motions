@@ -191,6 +191,7 @@ export interface VimMotionsSettings {
     enableDial: boolean;
     listContinuationOnOpen: boolean;
     normalTabIndent: boolean;
+    hoverFocus: boolean;
     enableTableNav: boolean;
     tableWidgetMode: 'auto' | 'native' | 'raw' | 'reveal';
     /**
@@ -383,6 +384,7 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     enableDial: false,
     listContinuationOnOpen: true,
     normalTabIndent: false,
+    hoverFocus: false,
     enableTableNav: true,
     tableWidgetMode: 'auto',
     // Fresh settings have nothing to move; stored settings without the field
@@ -992,6 +994,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                     defaultValue: false,
                                     disabled: () =>
                                         this.isOverridden('normalTabIndent'),
+                                },
+                            },
+                            {
+                                name: 'Focus hover previews',
+                                desc: this.describeOverride(
+                                    'hoverFocus',
+                                    "K moves into the note or footnote preview it opens, as a second K does. Off, the preview opens and the cursor stays in the note, as Neovim's hover does.",
+                                ),
+                                aliases: ['hover', 'preview', 'hoverfocus'],
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'hoverFocus',
+                                    defaultValue: false,
+                                    disabled: () =>
+                                        this.isOverridden('hoverFocus'),
                                 },
                             },
                             {
@@ -3684,6 +3701,25 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.normalTabIndent = value;
                         this.plugin.clearSettingOverride('normalTabIndent');
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName('Focus hover previews')
+            .setDesc(
+                describeOverride(
+                    'hoverFocus',
+                    "K moves into the note or footnote preview it opens, as a second K does. Off, the preview opens and the cursor stays in the note, as Neovim's hover does.",
+                ),
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.hoverFocus)
+                    .setDisabled(isOverridden('hoverFocus'))
+                    .onChange(async (value) => {
+                        this.plugin.settings.hoverFocus = value;
+                        this.plugin.clearSettingOverride('hoverFocus');
                         await this.plugin.saveSettings();
                     }),
             );
