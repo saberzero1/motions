@@ -99,6 +99,10 @@
                 #     with no process behind it, and the next Xvfb refuses that
                 #     display, so a stale lock is removed and the teardown runs
                 #     from a trap.
+                #   * `-dpi 96`: at Xvfb's default resolution Chromium reports
+                #     a device pixel ratio of 1.046875, so glyph edges fall on
+                #     fractional pixels and measurements that are exact at 1
+                #     land a column off.
                 e2eHeadless =
                     if pkgs.stdenv.isLinux then
                         [
@@ -134,7 +138,7 @@
                                 export ELECTRON_OZONE_PLATFORM_HINT=x11
 
                                 ${pkgs.xvfb}/bin/Xvfb "''${DISPLAY}" \
-                                    -screen 0 1280x1024x24 +extension GLX -noreset >/dev/null 2>&1 &
+                                    -screen 0 1280x1024x24 -dpi 96 +extension GLX -noreset >/dev/null 2>&1 &
                                 XVFB_PID=$!
                                 for _ in $(${pkgs.coreutils}/bin/seq 1 80); do
                                     ${pkgs.xdpyinfo}/bin/xdpyinfo -display "''${DISPLAY}" \
