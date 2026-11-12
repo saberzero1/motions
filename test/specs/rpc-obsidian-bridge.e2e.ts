@@ -1764,6 +1764,28 @@ return out`,
         expect(await getCursorPos()).toEqual({ line: 1, ch: 0 });
     });
 
+    // The same <C-o>, with the key typed after the bridge has stopped holding
+    // the cursor (300 ms) but while it still waits for the jump (1.5 s). The
+    // wait took the key's cursor move for the jump landing and put the
+    // cursor back on the jump list's entry, in CodeMirror and in Neovim; on a
+    // slow runner the test above types its key that late too.
+    it('keeps a key typed after a <C-o> that went nowhere', async () => {
+        await prepareRpcNotes();
+        await openRpcNote(RPC_NOTES[2].path, { line: 0, ch: 0 });
+        await seedJumpList([{ filePath: RPC_NOTES[2].path, line: 0, ch: 0 }]);
+        await request('nvim_win_set_cursor', [0, [1, 0]]);
+        await browser.keys([Key.Control, 'o']);
+        await browser.keys([Key.Control]);
+        await browser.pause(600);
+        await browser.keys(['j']);
+        // Past the bridge's 1.5 s wait, so a late write would have landed.
+        await browser.pause(1500);
+        expect({
+            host: await getCursorPos(),
+            neovim: await request('nvim_win_get_cursor', [0]),
+        }).toEqual({ host: { line: 1, ch: 0 }, neovim: [2, 0] });
+    });
+
     // A <C-o> waits up to 1.5 s for its jump to land. Disconnecting in that
     // window used to leave the wait running against the next connection's
     // editor: once the cursor moved, it wrote the jump list's current entry

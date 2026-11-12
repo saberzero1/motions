@@ -514,21 +514,30 @@ export class NeovimObsidianFeatureBridge {
         releaseHostCursor?: () => void,
     ): Promise<void> {
         const generation = this.generation;
+        let released = false;
         for (let attempt = 0; attempt < 60; attempt++) {
             await new Promise((resolve) => window.setTimeout(resolve, 25));
             if (generation !== this.generation) return;
             const view = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (!view) continue;
             const cursor = view.editor.getCursor();
+            const sameNote = view.file?.path === initialFile;
+            // Once released, a move within the note is the keys typed since,
+            // not the jump landing: taken for it, the cursor went back to the
+            // jump list's entry, undoing them. Only another note still lands.
+            if (released && sameNote) continue;
             if (
-                view.file?.path === initialFile &&
+                sameNote &&
                 cursor.line === initialCursor.line &&
                 cursor.ch === initialCursor.ch
             ) {
                 // Nothing moved within 300 ms, such as <C-o> with no older
                 // entry: stop holding the cursor, so keys typed meanwhile
                 // keep moving it, rather than stalling for the loop's 1.5 s.
-                if (attempt === 11) releaseHostCursor?.();
+                if (attempt === 11) {
+                    releaseHostCursor?.();
+                    released = true;
+                }
                 continue;
             }
             await this.documentSync.waitForActivation();
