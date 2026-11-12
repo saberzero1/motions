@@ -5643,7 +5643,10 @@ export default class VimMotionsPlugin extends Plugin {
                     'action',
                     actionName,
                     undefined,
-                    map.mode ? { context: map.mode } : undefined,
+                    {
+                        builtin: false,
+                        ...(map.mode ? { context: map.mode } : {}),
+                    },
                 );
                 this.luaActionNames.add(actionName);
             } else {
@@ -5943,9 +5946,13 @@ export default class VimMotionsPlugin extends Plugin {
             this.settings.multilineScanLimit,
         );
         this.registration.defineMotion(motionName, motionFn);
-        this.registration.mapCommand(keys, 'motion', motionName, {
-            textObjectInner: spec.inner,
-        });
+        this.registration.mapCommand(
+            keys,
+            'motion',
+            motionName,
+            { textObjectInner: spec.inner },
+            { builtin: false },
+        );
     }
 
     private reregisterLuaTextObjects(): void {
@@ -6077,7 +6084,10 @@ export default class VimMotionsPlugin extends Plugin {
                         'action',
                         actionName,
                         undefined,
-                        map.mode ? { context: map.mode } : undefined,
+                        {
+                            builtin: false,
+                            ...(map.mode ? { context: map.mode } : {}),
+                        },
                     );
                     this.luaActionNames.add(actionName);
                 } else {
