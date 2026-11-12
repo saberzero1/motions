@@ -265,8 +265,7 @@ describe('Harpoon', function () {
     });
 
     describe('persistence', function () {
-        // reloadObsidian may reset plugin data — persistence verified manually
-        it.skip('should persist pins across reload', async function () {
+        it('should persist pins across reload', async function () {
             await clearHarpoonPins();
             await setupEditor('persist test\n', { line: 0, ch: 0 });
             await sendVimEscape();
@@ -297,7 +296,9 @@ describe('Harpoon', function () {
             });
             await browser.pause(1000);
 
-            await browser.reloadObsidian({ vault: 'test-vault' });
+            // In place: `{ vault }` boots a fresh copy of the vault, which
+            // drops the saved pins. That is why this test was skipped.
+            await browser.reloadObsidian();
             await obsidianPage.openFile('Welcome.md');
             await browser.pause(PAUSE.OBSIDIAN_LOAD);
 
@@ -329,7 +330,8 @@ describe('Harpoon', function () {
                 storeAll: unknown[];
             };
 
-            expect(debugInfo.count).toBeGreaterThanOrEqual(1);
+            expect(debugInfo.count).toBe(1);
+            await clearHarpoonPins();
         });
     });
 });
