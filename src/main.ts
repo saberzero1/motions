@@ -177,6 +177,7 @@ import { createHarpoonSource } from './picker/sources/harpoon';
 import type { VimYankEvent, CmAdapter, MapContext } from './types/vim-api';
 
 import { linewiseWidgetHighlightExtension } from './vim/linewise-widget-highlight';
+import { visualBlockHighlightExtension } from './vim/visual-block-highlight';
 import { createAnimatedCursorExtension } from './vim/animated-cursor/controller';
 import {
     installEscapeGuard,
@@ -3031,6 +3032,7 @@ export default class VimMotionsPlugin extends Plugin {
         this.installTokenClassifier();
 
         this.vimExtensionSlot.push(linewiseWidgetHighlightExtension());
+        this.vimExtensionSlot.push(visualBlockHighlightExtension());
 
         this.initializing = false;
     }

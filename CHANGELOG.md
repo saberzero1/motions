@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: codemirror-vim 6.4.13
 - **`g@` marked one line too many after a linewise motion, and one character too many after a charwise one**, so mini.comment's `gcj` commented three lines and `3gcc` two. `'[` and `']` were the edges of the range handed to the operator, which ends past the text. They now mark where the text starts and ends, as in Neovim 0.12.6: `g@j` gives lines 0 to 1, `g@_` stops at the first non-blank, and `g@w` ends on the character before the next word. Blockwise marks are unchanged.
     - Fork: codemirror-vim 6.4.13 (`operatorfuncMarks`)
+- **A visual-block selection inside a code block showed only the cursor** ([#249](https://github.com/saberzero1/motions/issues/249)). The editor draws a `<C-v>` selection on a layer behind the text, and Obsidian paints each code block line with an opaque background, which covered it. The selection is now painted on the text itself, as the browser paints `v`'s, in Live Preview and source mode, and the layer is hidden while it is so no line is painted twice. `v` and `V` were not affected.
+    - Plugin: `src/vim/visual-block-highlight.ts`, `styles.css`
 
 ### Tests
 
@@ -47,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fork: `unmap_exact_action_leaves_other_mappings` and `unmap_exact_toKeys_with_a_space`.** Without the `action` option, the first removes the wrong `Q` entry. Without the normalization, the second removes nothing.
 - **`lua-recipe-markdown-insert.e2e.ts`: the Markdown-aware `I` recipe, read from the docs page**, on 35 lines in normal and insert mode: the issue's list and task examples, empty items, quoted lists, callout titles, checkboxes holding `!` or `✓`, and lines that are not list items. Neovim 0.12 gives the same 35 results with the same file. With no recipe loaded, all 70 tests fail.
 - **`normal-tab-indent.e2e.ts`: normal-mode `<Tab>` and `<S-Tab>` with `tabindent` off and on**, with real keys: the jump-list walk and Obsidian's outdent when off; `>>`, `2<S-Tab>` as `<<` on two lines, `2<Tab>` then `.`, `<C-i>` and `vim.opt.tabindent` when on; and cell moves in a native table with either. Obsidian's Shift-Tab gives the same text as `<<` on one line, so the count is what tells them apart. With the source changes reverted, the four `tabindent` tests fail: `<Tab>` leaves `- b` unindented, `2<S-Tab>` outdents only `- b` and leaves `\t- c`, and `vim.opt.tabindent` leaves `plain`. With `<S-Tab>` not handed back, the off test leaves `\t- b`. With the cell check skipped, `<Tab>` stays in cell `{1, 1}` instead of moving to `{2, 0}`.
+- **`visual-block-codeblock.e2e.ts`: `<C-v>` on the #249 note in Live Preview and source mode**, reading the background painted under each selected character. Without the fix, the four code block lines read the code block's `rgb(35, 35, 35)` instead of the selection colour. Also checks a column outside the block keeps the code background, `<Esc>`, and switching between `v` and `<C-v>` without moving.
 
 ### Documentation
 
