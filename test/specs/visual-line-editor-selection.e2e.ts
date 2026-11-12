@@ -62,8 +62,12 @@ async function read(): Promise<Reading> {
         let drawnAt: Pos | null = null;
         if (cursor) {
             const r = cursor.getBoundingClientRect();
+            // A quarter of the way in, not the middle: the middle of a glyph
+            // is equally far from both of its edges, so posAtCoords can name
+            // either column. At a device pixel ratio of 1.046875 the middle
+            // of `d` in `third` was 0.01 px nearer column 5 than column 4.
             const at = cmView.posAtCoords({
-                x: r.left + r.width / 2,
+                x: r.left + r.width / 4,
                 y: r.top + r.height / 2,
             });
             if (at !== null) drawnAt = pos(at);
