@@ -1322,13 +1322,6 @@ The replaced text is discarded into the black-hole register; the source register
 
 **Test coverage**: `test/specs/operators.e2e.ts` — 26 passing tests: `grr` (single, multi-line, count), `griw`, `gr$`, `grl`, `gri'`, `gr}`, named registers (`"agriw`, `"a3grr`), visual `gr` (charwise, linewise `V`, blockwise `<C-V>`), register type coercion (linewise↔charwise), cursor positioning, dot-repeat (`griw`, `grr`, `3grr`+`.`), multi-line register expansion, text object at line boundary.
 
-## `startofline` and `curswant` are partly modelled
-
-`startofline` is off by default, as in Neovim. `G`, `gg`, `H`, `M`, `L`, `<C-d>`, `<C-u>`, `<C-f>`, `<C-b>`, linewise `d`, `=`, `>` and `<` follow it: with it on they go to the first non-blank, and with it off they keep `curswant`, the screen column `j` and `k` keep. That column counts a tab to its last cell and is kept across shorter lines and through `$`. Two parts of Neovim's behaviour are not modelled:
-
-- **Screen columns count every character other than a tab as one cell.** Neovim counts a wide character, such as one in Chinese or Japanese, and most emoji as two, so on such lines `j`, `k` and the commands above can land a character away from where Neovim's would.
-- **`{count}%` is not implemented.** `%` with a count matches brackets, as it does without one.
-
 ## Test-discovered behavioral discrepancies
 
 These were found by translating edge-case tests from Neovim's legacy test suite and replit/codemirror-vim. Each has a corresponding `it.skip()` test with a `// BUG:` comment.
@@ -2316,6 +2309,13 @@ Investigation found that Obsidian 1.13+'s `SettingDefinitionList` (`type: 'list'
 The current `render` callback approach is the correct pattern for these complex settings. The imperative path works identically on pre-1.13. No migration planned.
 
 ## Resolved Issues
+
+## ~~`startofline` and `curswant` are partly modelled~~ (Fixed)
+
+`startofline` is off by default, as in Neovim. `G`, `gg`, `H`, `M`, `L`, `<C-d>`, `<C-u>`, `<C-f>`, `<C-b>`, `{count}%`, linewise `d`, `=`, `>`, `<`, `:m` and `:t` follow it: with it on they go to the first non-blank, and with it off they keep `curswant`, the screen column `j` and `k` keep. Two gaps this section listed are closed in codemirror-vim 6.4.17 and 6.4.18:
+
+- **Screen columns count a wide character or an emoji as two cells**, and a combining mark as none, as Neovim does. They counted every character other than a tab as one.
+- **`{count}%` goes to that percentage of the file.** It matched brackets, as `%` does without a count.
 
 ## ~~Cross-document jump history (`Ctrl-o` / `Ctrl-i`)~~ (Fixed)
 

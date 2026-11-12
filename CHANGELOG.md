@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`set hoverfocus`: `K` moves into the preview it opens** ([#234](https://github.com/saberzero1/motions/issues/234)). Off by default, as Neovim's hover window does not take the cursor. On, `K` on a link or footnote waits for Obsidian to show the preview, about 300 ms after the key, and moves into it as a second `K` does; it gives up if the cursor moves first or another `K` replaces the preview. `K` on plain text or an external link is unchanged, so character info shows once and a URL opens once, which a mapping pressing `K` twice could not manage. A quickly typed `KK` could not focus the preview either: measured on 1.13.7, the second `K` arrived before the preview existed. Both settings implementations, `set hoverfocus` and `vim.opt.hoverfocus`.
 - **`set tabindent`: normal-mode `<Tab>` indents the line and `<S-Tab>` outdents it** ([#237](https://github.com/saberzero1/motions/issues/237)). Off by default: `<Tab>` is `<C-i>`, as in Vim and Neovim, and has walked forward through the jump list since 1.5.0. On, `<Tab>` is `>>` and `<S-Tab>` is `<<`, so a count indents that many lines and `.` repeats it. `<C-i>` keeps walking the jump list. In Obsidian's native table cell editor both keys still move between cells, which a `<Tab>` mapping in a config cannot keep: measured, `vim.keymap.set("n", "<Tab>", ">>")` and the same mapping to `editor:indent-list` both left the cursor in its cell and wrote a tab into the cell text. With the option off, `<S-Tab>` is still Obsidian's outdent, now handed to the editor's keymap rather than falling through. `>>` was chosen over Obsidian's `editor:indent-list` after measuring both, with insert-mode `Tab`, on list items, a parent with a child, ordered and task items, a paragraph and a table row: all three gave the same text in every case, and only `>>` takes a count and repeats with `.`. Also **Settings → Vim Motions → General → Tab indents in normal mode**, in both settings implementations, and `vim.opt.tabindent`. Bundled engine only; with the Neovim backend, `<Tab>` is Neovim's.
     - Plugin: `src/vim/normal-tab.ts`, `src/main.ts`, `src/settings.ts`, `src/vim/options.ts`, `src/vimrc/loader.ts`
+- **`{count}%` goes to that percentage of the file, as in Vim.** `50%` goes to the line halfway down, `(count × lines + 99) / 100`, at the `startofline` column. As an operator target it is charwise exclusive, which is what Neovim 0.12.6 does, although its help says linewise. A count over 100 fails. `%` with a count used to match brackets.
+    - Fork: codemirror-vim 6.4.17
+- **`:>` and `:<` shift lines, as Vim's do.** `:[range]>` shifts the range one `shiftwidth`, each further `>` once more (`:>>>`), and a count shifts that many lines from the range's last line. The cursor ends on the last line's first non-blank.
+    - Fork: codemirror-vim 6.4.18
 
 ### Changed
 
@@ -44,6 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fork: codemirror-vim 6.4.16 (`moveByLines`, `moveToColumn`, `curswant`)
 - **Linewise `d`, `=`, `<C-d>`, `<C-u>`, `<C-f>` and `<C-b>` follow `startofline`, as they do in Neovim.** Off, the cursor keeps the screen column on the line it ends on; on, it goes to the first non-blank. Linewise `d` kept the character index, `=` always went to the first non-blank, and the scroll and page keys kept the cursor's pixel position.
     - Fork: codemirror-vim 6.4.16 (`operators.delete`, `operators.indentAuto`, `moveByScroll`, `moveByPage`)
+- **Operators across lines follow Vim's range rules.** An exclusive motion that ends in column 0 of a later line ends on the line before, and the operation is linewise if it starts in the indent: `d}` from the start of a paragraph deletes whole lines. A charwise `d` across lines with only blanks around it is linewise too. `w` stops at the end of its last word's line only for word motions, where it was applied to every forward motion. Text objects are exempt from both rules, as in Vim. After a linewise `d`, `<` or `>`, the cursor keeps its screen column only when the end was not moved back.
+    - Fork: codemirror-vim 6.4.17
+- **A yank leaves the cursor at the start of what it yanked.** `yb`, `yk`, `ygg` and `yiw` move the cursor back to where the yanked text starts, and `yj` and `yw` leave it where it is, as in Neovim. It always stayed put. A visual-line yank keeps the head's column only when the head is above the anchor.
+    - Fork: codemirror-vim 6.4.18
+- **`;` and `,` after `t` or `T` stop where Vim's do.** Whether they included the character came from whether the last search was a `t`, where it comes from the direction they search, as `f`/`t` and `F`/`T` do.
+    - Fork: codemirror-vim 6.4.18
+- **Screen columns count a wide character or an emoji as two cells, and a combining mark as none**, as Neovim does. `j`, `k`, `G`, `gg`, `H`, `M`, `L`, `|`, `>` and `<` counted every UTF-16 unit as one cell, so on a line with Chinese, Japanese or emoji they landed a character away from where Neovim's do.
+    - Fork: codemirror-vim 6.4.18
+- **`:j` leaves the cursor on the joined line's first non-blank**, not column 0, as in Neovim.
+    - Fork: codemirror-vim 6.4.18
+- **`:m` and `:t` follow `startofline`, as Neovim's do.** Off, the cursor keeps the screen column it had before the command; on, it goes to the first non-blank. They went to the first non-blank either way.
+    - Fork: codemirror-vim 6.4.18 (`Vim.curswant`, `Vim.startOfLineColumn`)
+    - Plugin: `src/workspace/commands.ts`
 
 ### Tests
 
@@ -68,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fork: 18 `>`/`<` cursor tests and 8 `G`/`gg` `startofline` tests**, each expected position measured in Neovim 0.12.6 with `tabstop=4 shiftwidth=4 noexpandtab`, and `HML` split into `startofline` on and off. With the shift returning column 0 again, 19 tests fail. With `G` and `gg` keeping the character index, 4 fail. With `startofline` on by default again, 17 fail.
 - **`vimrc-custom-path.e2e.ts` reads the vimrc it writes.** Each scenario wrote a vimrc and then rebooted Obsidian with `reloadObsidian({ vault })`, which opens a fresh copy of the vault without that file or the vimrc path just saved, so no scenario ever loaded a vimrc. Its mappings could not show that either: `j` to `gj` and `k` to `gk` move like `j` and `k` on lines that do not wrap, and `H` to `^` landed where `H` did with `startofline` on. It now reboots on the same vault, and the mappings land where unmapped keys cannot: `2j` and `2k`, and `^` from the second line, where `H` goes to the first. With the fresh copy put back, 5 of its 6 tests fail, `j` reading line 1 for 2.
 - **Fork: 22 `j`/`k` screen-column tests, 6 `{count}|` tests, 28 linewise `d` and `=` tests and 14 scroll and page tests**, each expected position measured in Neovim 0.12.6 with `tabstop=4`. Against the previous code, 16 of the `j`/`k` tests, 4 of the `|` tests and 26 of the others fail. The scroll tests with `startofline` off pass either way, as the test editor's monospace font puts the pixel position and the screen column on the same character.
+- **`ex-move-copy-normal.e2e.ts`: the cursor after `:m`, `:t` and `:co`**, with `startofline` off and on, each expected position measured in Neovim 0.12.6 with `tabstop=4`. With the cursor sent to the first non-blank again, the four `startofline`-off tests fail.
+- **Fork: `{count}%`, the range rules, yank cursor, `;`/`,`, wide-character and `:>`/`:<` tests**, each expected value measured in Neovim 0.12.6.
 
 ### Documentation
 
