@@ -112,6 +112,106 @@ async function readLuaState(): Promise<{
     };
 }
 
+type PluginSettings = Record<string, unknown>;
+
+/**
+ * Boots the plugin with `vimrcContent` as its vimrc, checks the vimrc set
+ * `key` to `vimrcValue`, then loads `luaContent` on top.
+ *
+ * The reboot is in place. `reloadObsidian({ vault })` boots a fresh copy of
+ * the vault, without the vimrc just written, so these tests used to compare
+ * Lua against no vimrc at all. The check is what shows the vimrc was read.
+ */
+async function loadDualConfig(
+    vimrcContent: string,
+    luaContent: string,
+    key: string,
+    vimrcValue: unknown,
+): Promise<void> {
+    await browser.executeObsidian(async ({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        {
+                            settings: { configMode: string };
+                            saveSettings: () => Promise<void>;
+                        }
+                    >;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        if (plugin) {
+            plugin.settings.configMode = 'lua-vimrc';
+            await plugin.saveSettings();
+        }
+        const lua = `${app.vault.configDir}.init.lua`;
+        if (await app.vault.adapter.exists(lua)) {
+            await app.vault.adapter.remove(lua);
+        }
+    });
+    await obsidianPage.write('.obsidian.vimrc', vimrcContent);
+    await browser.reloadObsidian();
+    await obsidianPage.openFile('Welcome.md');
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<string, { vimrcLoaded?: boolean }>;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.vimrcLoaded === true;
+            })) as boolean,
+        { timeout: 10000, interval: 200 },
+    );
+    const fromVimrc = await browser.executeObsidian(({ app }, k: string) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<string, { settings: PluginSettings }>;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        return plugin?.settings?.[k];
+    }, key);
+    expect(fromVimrc).toBe(vimrcValue);
+    await browser.executeObsidian(async ({ app }, lua: string) => {
+        const configPath = `${app.vault.configDir}.init.lua`;
+        await app.vault.adapter.write(configPath, lua);
+    }, luaContent);
+    await browser.executeObsidian(async ({ app }) => {
+        const plugin = (
+            app as unknown as {
+                plugins: {
+                    plugins: Record<
+                        string,
+                        { loadLuaConfigForTest?: () => Promise<void> }
+                    >;
+                };
+            }
+        ).plugins.plugins['vim-motions'];
+        await plugin?.loadLuaConfigForTest?.();
+    });
+    await browser.waitUntil(
+        async () =>
+            (await browser.executeObsidian(({ app }) => {
+                const plugin = (
+                    app as unknown as {
+                        plugins: {
+                            plugins: Record<string, { luaLoaded?: boolean }>;
+                        };
+                    }
+                ).plugins.plugins['vim-motions'];
+                return plugin?.luaLoaded === true;
+            })) as boolean,
+        { timeout: 10000, interval: 200 },
+    );
+}
+
 describe('Lua config support', function () {
     before(async function () {
         await browser.reloadObsidian({ vault: 'test-vault' });
@@ -264,7 +364,9 @@ describe('Lua config support', function () {
                 await plugin.saveSettings();
             }
         });
-        await browser.reloadObsidian({ vault: 'test-vault' });
+        // In place: `{ vault }` boots a fresh copy without the init.lua and
+        // the configMode just saved, where scrolloff is never 99 anyway.
+        await browser.reloadObsidian();
         await obsidianPage.openFile('Welcome.md');
         await browser.waitUntil(
             async () =>
@@ -301,12 +403,57 @@ describe('Lua config support', function () {
             ).plugins.plugins['vim-motions'];
             return plugin?.settings?.scrolloffLines;
         });
+        const state = await browser.executeObsidian(async ({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            { settings: { configMode: string } }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            return {
+                configMode: plugin?.settings?.configMode,
+                initLua: await app.vault.adapter.exists(
+                    `${app.vault.configDir}.init.lua`,
+                ),
+            };
+        });
+        expect(state).toEqual({ configMode: 'settings', initLua: true });
         expect(scrolloff).not.toBe(99);
+
+        await browser.executeObsidian(async ({ app }) => {
+            const plugin = (
+                app as unknown as {
+                    plugins: {
+                        plugins: Record<
+                            string,
+                            {
+                                settings: { configMode: string };
+                                saveSettings: () => Promise<void>;
+                            }
+                        >;
+                    };
+                }
+            ).plugins.plugins['vim-motions'];
+            if (plugin) {
+                plugin.settings.configMode = 'lua-vimrc';
+                await plugin.saveSettings();
+            }
+            await app.vault.adapter.remove(`${app.vault.configDir}.init.lua`);
+        });
     });
 
     it('should override vimrc settings when both are present', async function () {
-        await obsidianPage.write('.obsidian.vimrc', 'set scrolloff=5\n');
-        await loadLuaConfig('vim.opt.scrolloff = 12\n');
+        // Not 5: the test vault's own settings already hold scrolloff 5.
+        await loadDualConfig(
+            'set scrolloff=6\n',
+            'vim.opt.scrolloff = 12\n',
+            'scrolloffLines',
+            6,
+        );
         const scrolloff = await browser.executeObsidian(({ app }) => {
             const plugin = (
                 app as unknown as {
@@ -846,91 +993,12 @@ describe('Lua config support', function () {
     });
 
     describe('vimrc + Lua override precedence (lua-vimrc mode)', function () {
-        async function loadDualConfig(
-            vimrcContent: string,
-            luaContent: string,
-        ): Promise<void> {
-            await browser.executeObsidian(async ({ app }) => {
-                const plugin = (
-                    app as unknown as {
-                        plugins: {
-                            plugins: Record<
-                                string,
-                                {
-                                    settings: { configMode: string };
-                                    saveSettings: () => Promise<void>;
-                                }
-                            >;
-                        };
-                    }
-                ).plugins.plugins['vim-motions'];
-                if (plugin) {
-                    plugin.settings.configMode = 'lua-vimrc';
-                    await plugin.saveSettings();
-                }
-            });
-            await obsidianPage.write('.obsidian.vimrc', vimrcContent);
-            await browser.reloadObsidian({ vault: 'test-vault' });
-            await obsidianPage.openFile('Welcome.md');
-            await browser.waitUntil(
-                async () =>
-                    (await browser.executeObsidian(({ app }) => {
-                        const plugin = (
-                            app as unknown as {
-                                plugins: {
-                                    plugins: Record<
-                                        string,
-                                        { vimrcLoaded?: boolean }
-                                    >;
-                                };
-                            }
-                        ).plugins.plugins['vim-motions'];
-                        return plugin?.vimrcLoaded === true;
-                    })) as boolean,
-                { timeout: 10000, interval: 200 },
-            );
-            await browser.executeObsidian(async ({ app }, lua: string) => {
-                const configPath = `${app.vault.configDir}.init.lua`;
-                await app.vault.adapter.write(configPath, lua);
-            }, luaContent);
-            await browser.executeObsidian(async ({ app }) => {
-                const plugin = (
-                    app as unknown as {
-                        plugins: {
-                            plugins: Record<
-                                string,
-                                {
-                                    loadLuaConfigForTest?: () => Promise<void>;
-                                }
-                            >;
-                        };
-                    }
-                ).plugins.plugins['vim-motions'];
-                await plugin?.loadLuaConfigForTest?.();
-            });
-            await browser.waitUntil(
-                async () =>
-                    (await browser.executeObsidian(({ app }) => {
-                        const plugin = (
-                            app as unknown as {
-                                plugins: {
-                                    plugins: Record<
-                                        string,
-                                        { luaLoaded?: boolean }
-                                    >;
-                                };
-                            }
-                        ).plugins.plugins['vim-motions'];
-                        return plugin?.luaLoaded === true;
-                    })) as boolean,
-                { timeout: 10000, interval: 200 },
-            );
-        }
-
         it('Lua clipboard should override vimrc clipboard', async function () {
             await loadDualConfig(
                 'set clipboard=unnamed\n',
                 'vim.opt.clipboard = "unnamedplus"\n',
+                'clipboard',
+                'unnamed',
             );
             const clip = await browser.executeObsidian(({ app }) => {
                 const plugin = (
@@ -952,6 +1020,8 @@ describe('Lua config support', function () {
             await loadDualConfig(
                 'set textwidth=100\n',
                 'vim.opt.textwidth = 72\n',
+                'textwidth',
+                100,
             );
             const tw = await browser.executeObsidian(({ app }) => {
                 const plugin = (
@@ -973,6 +1043,8 @@ describe('Lua config support', function () {
             await loadDualConfig(
                 'set scrolloff=3\n',
                 'vim.opt.scrolloff = 15\n',
+                'scrolloffLines',
+                3,
             );
             const so = await browser.executeObsidian(({ app }) => {
                 const plugin = (
