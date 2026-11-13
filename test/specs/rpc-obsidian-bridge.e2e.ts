@@ -1764,6 +1764,67 @@ return out`,
         expect(await getCursorPos()).toEqual({ line: 1, ch: 0 });
     });
 
+    // The same <C-o>, with the key typed after the bridge has stopped holding
+    // the cursor (300 ms) but while it still waits for the jump (1.5 s). The
+    // wait took the key's cursor move for the jump landing and put the
+    // cursor back on the jump list's entry, in CodeMirror and in Neovim; on a
+    // slow runner the test above types its key that late too.
+    it('keeps a key typed after a <C-o> that went nowhere', async () => {
+        await prepareRpcNotes();
+        await openRpcNote(RPC_NOTES[2].path, { line: 0, ch: 0 });
+        await seedJumpList([{ filePath: RPC_NOTES[2].path, line: 0, ch: 0 }]);
+        await request('nvim_win_set_cursor', [0, [1, 0]]);
+        await browser.keys([Key.Control, 'o']);
+        await browser.keys([Key.Control]);
+        await browser.pause(600);
+        await browser.keys(['j']);
+        // Past the bridge's 1.5 s wait, so a late write would have landed.
+        await browser.pause(1500);
+        expect({
+            host: await getCursorPos(),
+            neovim: await request('nvim_win_get_cursor', [0]),
+        }).toEqual({ host: { line: 1, ch: 0 }, neovim: [2, 0] });
+    });
+
+    // A <C-o> waits up to 1.5 s for its jump to land. Disconnecting in that
+    // window used to leave the wait running against the next connection's
+    // editor: once the cursor moved, it wrote the jump list's current entry
+    // there and then failed on the closed client, showing "Obsidian action
+    // failed: RPC client closed". That is how the test above failed in CI
+    // whenever the next test's setup finished inside the previous wait.
+    it('drops a waiting <C-o> when Neovim disconnects', async () => {
+        await prepareRpcNotes();
+        await openRpcNote(RPC_NOTES[2].path, { line: 0, ch: 0 });
+        await seedJumpList([{ filePath: RPC_NOTES[2].path, line: 0, ch: 0 }]);
+        await browser.keys([Key.Control, 'o']);
+        await browser.keys([Key.Control]);
+        // Long enough for Neovim's notification to start the action, well
+        // inside its 1.5 s wait.
+        await browser.pause(150);
+        await setRpcEnabled(false);
+        await browser.waitUntil(async () => !(await getRpcState()).connected, {
+            timeout: 5000,
+            interval: 50,
+        });
+
+        // What the stale wait would write, and a cursor move to set it off.
+        await seedJumpList([{ filePath: RPC_NOTES[2].path, line: 1, ch: 4 }]);
+        await browser.executeObsidian(({ app, obsidian }) => {
+            const view = app.workspace.getActiveViewOfType(
+                obsidian.MarkdownView,
+            );
+            view?.editor.setCursor(1, 1);
+        });
+        await browser.pause(1800);
+
+        expect({
+            cursor: await getCursorPos(),
+            failed: (await getNotices()).filter((n) =>
+                n.includes('Obsidian action failed'),
+            ),
+        }).toEqual({ cursor: { line: 1, ch: 1 }, failed: [] });
+    });
+
     it('forwards the count from 2<C-o> to the host jumplist', async () => {
         await prepareRpcNotes();
         await openRpcNote(RPC_NOTES[2].path, { line: 1, ch: 4 });
