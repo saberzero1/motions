@@ -52,6 +52,8 @@ export interface OperatorArgs {
     linewise?: boolean;
     registerName?: string;
     indentRight?: boolean;
+    /** Vim's curswant when the operator started. (codemirror-vim 6.4.15) */
+    curswant?: number;
 }
 
 /** Range used by operators. */
@@ -222,6 +224,8 @@ export interface VimApi {
         args: { forward?: boolean; selectedCharacter?: string },
     ): void;
     defineOperator(name: string, fn: OperatorFn): void;
+    /** The operator defined under `name`. (codemirror-vim 6.4.19) */
+    getOperator?(name: string): OperatorFn | undefined;
     defineEx(name: string, shortName: string, fn: ExCommandFn): void;
     undefineEx(name: string): boolean;
 
@@ -277,6 +281,11 @@ export interface VimApi {
 
     setOption(name: string, value: unknown): void;
     getOption(name: string): unknown;
+
+    /** Vim's curswant for the cursor of `cm`; take it before an edit. (6.4.18) */
+    curswant?(cm: CmAdapter): number;
+    /** Where 'startofline' puts the cursor on `line` for curswant `want`. (6.4.18) */
+    startOfLineColumn?(cm: CmAdapter, line: number, want: number): number;
 
     setOperatorfunc?(fn: ((cm: CmAdapter, type: string) => void) | null): void;
     getOperatorfunc?(): ((cm: CmAdapter, type: string) => void) | null;

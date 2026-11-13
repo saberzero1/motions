@@ -29,6 +29,7 @@ import {
     registerOperators,
     registerReplaceWithRegister,
 } from './operators/register';
+import { registerMarkdownIndent } from './vim/markdown-indent';
 import { createSmartOpenLineAction } from './actions/open-line';
 import { registerDial } from './actions/register-dial';
 import { registerTextObjects } from './text-objects/register';
@@ -2675,6 +2676,10 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
         }
+        registerMarkdownIndent(
+            this.registration,
+            () => this.settings.markdownIndent,
+        );
         registerFoldEnableCommands(this.registration);
         registerFoldCommands(this.registration);
         // Obsidian's own Vim already defines :image.
@@ -3986,6 +3991,10 @@ export default class VimMotionsPlugin extends Plugin {
         if (this.settings.enableHardWrap) {
             registerOperators(this.registration);
         }
+        registerMarkdownIndent(
+            this.registration,
+            () => this.settings.markdownIndent,
+        );
         registerFoldEnableCommands(this.registration);
         registerFoldCommands(this.registration);
         // Obsidian's own Vim already defines :image.
