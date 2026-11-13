@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`:m` and `:t` follow `startofline`, as Neovim's do.** Off, the cursor keeps the screen column it had before the command; on, it goes to the first non-blank. They went to the first non-blank either way.
     - Fork: codemirror-vim 6.4.18 (`Vim.curswant`, `Vim.startOfLineColumn`)
     - Plugin: `src/workspace/commands.ts`
+- **With the Neovim backend, `]h` and `[h` after an operator, and a yank of a Markdown text object, end where Neovim's own motions and text objects do.** The companion imitated the bundled engine's old handling. It ran `]h` as `{n}G`, so `d]h` from mid-line deleted whole lines, and it ran `c]h` as `d]h`, so the empty line Vim's linewise `c` leaves was gone. After `yi*` and the other Markdown text objects, it put the cursor back where it was, where Neovim's `y` leaves it at the start of the yanked text. The companion now moves the cursor and lets Neovim apply its own rules, with the bundled engine's `.` repeating them the same way.
+    - Fork: codemirror-vim 6.4.20 (`.` works the range rules out again where it repeats)
+    - Plugin: `src/rpc/companion.lua`
 
 ### Tests
 
@@ -87,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fork: 22 `j`/`k` screen-column tests, 6 `{count}|` tests, 28 linewise `d` and `=` tests and 14 scroll and page tests**, each expected position measured in Neovim 0.12.6 with `tabstop=4`. Against the previous code, 16 of the `j`/`k` tests, 4 of the `|` tests and 26 of the others fail. The scroll tests with `startofline` off pass either way, as the test editor's monospace font puts the pixel position and the screen column on the same character.
 - **`ex-move-copy-normal.e2e.ts`: the cursor after `:m`, `:t` and `:co`**, with `startofline` off and on, each expected position measured in Neovim 0.12.6 with `tabstop=4`. With the cursor sent to the first non-blank again, the four `startofline`-off tests fail.
 - **Fork: `{count}%`, the range rules, yank cursor, `;`/`,`, wide-character and `:>`/`:<` tests**, each expected value measured in Neovim 0.12.6.
+- **`rpc-structural-nav.e2e.ts`: `d]h` from mid-line, `d]h` `j` `.`, and `d]h` with no heading ahead**, each compared with the bundled engine. With the companion's old `{n}G` operator motion, `c]h` loses its empty line and `d]h` from column 2 deletes `first\nsecond\n` whole where the fork leaves `fi`. With codemirror-vim 6.4.19, the fork's `.` deletes `two` and `# C` where Neovim deletes `two` alone, and three fork tests measured in Neovim 0.12.6 cover the same repeat; two of them fail on 6.4.19.
 
 ### Documentation
 

@@ -535,6 +535,34 @@ describe('Neovim RPC structural navigation and hard-wrap', function () {
         });
     });
 
+    // Vim's exclusive rules: from mid-line the range ends on the line before
+    // the heading and stays charwise, `.` finds the next heading again, and
+    // with no heading ahead the operator is cancelled.
+    it('matches a heading operator from mid-line', async () => {
+        await expectOperatorParity({
+            content: '# A\nfirst\nsecond\n## B\nthird',
+            cursor: { line: 1, ch: 2 },
+            steps: ['d]h'],
+            compareRegister: true,
+        });
+    });
+
+    it('matches a repeated heading operator', async () => {
+        await expectOperatorParity({
+            content: '# A\none\n## B\ntwo\n# C\nthree',
+            cursor: { line: 1, ch: 0 },
+            steps: ['d]h', 'j', '.'],
+        });
+    });
+
+    it('matches a heading operator with no heading ahead', async () => {
+        await expectOperatorParity({
+            content: '# A\nfirst\n## B\nthird',
+            cursor: { line: 3, ch: 2 },
+            steps: ['d]h'],
+        });
+    });
+
     it('matches operator-pending list motion edits', async () => {
         await expectOperatorParity({
             content: '- one\n  continuation\n- two\n- three',
