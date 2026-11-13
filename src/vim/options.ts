@@ -175,6 +175,15 @@ export function registerVimOptions(
         const enabled = !!value;
         notify('hoverFocus', enabled, `set ${enabled ? '' : 'no'}hoverfocus`);
     });
+    vim.defineOption('markdownindent', false, 'boolean', [], (value) => {
+        if (value === undefined) return;
+        const enabled = !!value;
+        notify(
+            'markdownIndent',
+            enabled,
+            `set ${enabled ? '' : 'no'}markdownindent`,
+        );
+    });
     vim.defineOption('tablenav', true, 'boolean', ['tn'], (value) => {
         if (value === undefined) return;
         const enabled = !!value;
