@@ -407,10 +407,12 @@ src/
       dataview.ts          #   Dataview integration
       ripgrep-process.ts   #   External grep/ripgrep binary execution
   im/
-    im-switcher.ts         # Input method auto-switching on mode change (async OS query on save)
+    input-method-manager.ts # Focus-scoped input method state, serialized queries/switches, and stale-operation guards
+    types.ts                # Input method area identities, modes, and stable key helpers
+    im-switcher.ts         # Compatibility export for the InputMethodManager public surface
     im-process.ts          # External IM binary process management
     composition-tracker.ts   # Per-view IME composition tracking (CM6 ViewPlugin)
-    im-mode-watcher.ts       # Per-view vim mode change detection for IM switching (CM6 ViewPlugin)
+    im-mode-watcher.ts       # Per-view vim mode change detection and EditorView lookup for IM switching (CM6 ViewPlugin)
   snippets/
     commands.ts            # :snippet/:snippets ex commands — visual selection recovery via vim '</'> marks and lastSelection flags for $TM_SELECTED_TEXT/$VISUAL support in visual mode
     registry.ts            # SnippetRegistry — entry storage, prefix indexing, priority-based override (user > lua > bundled), orphan cleanup for multi-prefix entries

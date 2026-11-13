@@ -280,6 +280,8 @@ export interface VimMotionsSettings {
     imDefaultNormalIm: string;
     imRestoreBehavior: 'restore' | 'default';
     imDefaultInsertIm: string;
+    imFindDefaultIm: string;
+    imCrossAppStateMemory: boolean;
     persistedImState: Record<string, string>;
 
     enableSnippets: boolean;
@@ -466,6 +468,8 @@ export const DEFAULT_SETTINGS: VimMotionsSettings = {
     imDefaultNormalIm: '',
     imRestoreBehavior: 'restore' as const,
     imDefaultInsertIm: '',
+    imFindDefaultIm: '1033',
+    imCrossAppStateMemory: true,
     persistedImState: {},
 
     enableSnippets: true,
@@ -629,6 +633,8 @@ export class VimMotionsSettingTab extends PluginSettingTab {
         'imDefaultNormalIm',
         'imRestoreBehavior',
         'imDefaultInsertIm',
+        'imFindDefaultIm',
+        'imCrossAppStateMemory',
         'pickerOmnisearch',
         'pickerTasks',
         'pickerDataview',
@@ -3084,6 +3090,15 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                                 control: {
                                     type: 'toggle' as const,
                                     key: 'imEnabled',
+                                },
+                            },
+                            {
+                                name: 'System remembers IM state across apps',
+                                desc: 'When enabled, returning to the same editing area after another app leaves the system-managed input method unchanged. When disabled, Obsidian actively restores the area input method every time it regains focus.',
+                                visible: () => this.plugin.settings.imEnabled,
+                                control: {
+                                    type: 'toggle' as const,
+                                    key: 'imCrossAppStateMemory',
                                 },
                             },
                             {
@@ -6456,6 +6471,21 @@ export class VimMotionsSettingTab extends PluginSettingTab {
 
         if (!this.plugin.settings.imEnabled) return;
 
+        new Setting(container)
+            .setName('System remembers IM state across apps')
+            .setDesc(
+                'When enabled, returning to the same editing area after another app leaves the system-managed input method unchanged. When disabled, Obsidian actively restores the area input method every time it regains focus.',
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.imCrossAppStateMemory)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imCrossAppStateMemory = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
+
         const IM_PRESETS: Record<
             string,
             {
@@ -6633,6 +6663,22 @@ export class VimMotionsSettingTab extends PluginSettingTab {
                         }),
                 );
         }
+
+        new Setting(container)
+            .setName('Search box default IM')
+            .setDesc(
+                'IM identifier used the first time a current-note or global search box receives focus. Existing search boxes restore their own saved IM. Defaults to 1033 on windows.',
+            )
+            .addText((text) =>
+                text
+                    .setPlaceholder('1033')
+                    .setValue(this.plugin.settings.imFindDefaultIm)
+                    .onChange(async (value) => {
+                        this.plugin.settings.imFindDefaultIm = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.reloadFeatures();
+                    }),
+            );
     }
 
     private renderGroupLabels(container: HTMLElement): void {

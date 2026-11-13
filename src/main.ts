@@ -5,6 +5,7 @@ import {
     Platform,
     Plugin,
     apiVersion,
+    type WorkspaceLeaf,
 } from 'obsidian';
 import {
     DEFAULT_SETTINGS,
@@ -258,6 +259,12 @@ import { OilManager } from './oil/manager';
 import { OilView, createOilViewFactory } from './oil/oil-view';
 import { TextareaVimManager } from './vim/textarea-vim-manager';
 import { ImSwitcher } from './im/im-switcher';
+import {
+    noteInputMethodKey,
+    searchInputMethodKey,
+    type InputMethodArea,
+    type InputMethodMode,
+} from './im/types';
 import { parseImArgs } from './im/im-process';
 import {
     createCompositionTrackerExtension,
@@ -267,6 +274,7 @@ import {
     createImModeWatcherExtension,
     setImModeCallbacks,
     clearImModeCallbacks,
+    getImEditorView,
 } from './im/im-mode-watcher';
 import {
     createAutocmdModeWatcherExtension,
@@ -935,6 +943,8 @@ export default class VimMotionsPlugin extends Plugin {
                 defaultNormalIm: this.settings.imDefaultNormalIm,
                 restoreBehavior: this.settings.imRestoreBehavior,
                 defaultInsertIm: this.settings.imDefaultInsertIm,
+                findDefaultIm: this.settings.imFindDefaultIm,
+                crossAppStateMemory: this.settings.imCrossAppStateMemory,
                 obtainConfig: {
                     binary: resolvedBinary,
                     args: parseImArgs(this.settings.imObtainArgs),
@@ -957,6 +967,15 @@ export default class VimMotionsPlugin extends Plugin {
                 (viewId) => this.imSwitcher?.onInsertLeave(viewId),
                 (viewId) => this.imSwitcher?.cleanupView(viewId),
             );
+            this.imSwitcher.setResolvers({
+                resolveViewArea: (viewId) =>
+                    this.resolveInputMethodViewArea(viewId),
+                resolveTargetArea: (target) =>
+                    this.resolveInputMethodArea(target),
+                resolveFocusedArea: () =>
+                    this.resolveInputMethodArea(document.activeElement),
+            });
+            this.register(this.imSwitcher.installFocusTracking());
         }
 
         // Refresh when any window, the main one or a pop-out, gets focus or
@@ -1122,6 +1141,17 @@ export default class VimMotionsPlugin extends Plugin {
         );
 
         this.registerEvent(
+            this.app.workspace.on('file-open', () => {
+                if (!this.settings.vimEnabled) return;
+                // A file opened into the current leaf keeps CodeMirror focus,
+                // so no focusin event identifies the new note. Let Obsidian
+                // finish replacing the document, then reconcile its area and
+                // current Vim mode immediately.
+                queueMicrotask(() => this.imSwitcher?.onFocusedAreaChanged());
+            }),
+        );
+
+        this.registerEvent(
             this.app.workspace.on('active-leaf-change', (newLeaf) => {
                 if (!this.settings.vimEnabled) return;
                 if (!this.settings.enableWorkspaceNav) return;
@@ -1180,16 +1210,6 @@ export default class VimMotionsPlugin extends Plugin {
                 }
             }),
         );
-
-        if (this.imSwitcher) {
-            this.registerEvent(
-                this.app.workspace.on('active-leaf-change', (leaf) => {
-                    if (!this.settings.vimEnabled) return;
-                    const leafId = leaf ? getLeafId(leaf) : '';
-                    this.imSwitcher?.onLeafChange(leafId);
-                }),
-            );
-        }
 
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (newLeaf) => {
@@ -5266,6 +5286,149 @@ export default class VimMotionsPlugin extends Plugin {
                 );
             });
         });
+    }
+
+    private resolveInputMethodViewArea(viewId: string): InputMethodArea | null {
+        const editorView = getImEditorView(viewId);
+        if (!editorView) return null;
+
+        let area: InputMethodArea | null = null;
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            if (area) return;
+            if (!(leaf.view instanceof MarkdownView) || !leaf.view.file) {
+                return;
+            }
+            if (getEditorView(leaf.view) !== editorView) return;
+            area = {
+                key: noteInputMethodKey(
+                    this.app.vault.getName(),
+                    leaf.view.file.path,
+                ),
+                kind: 'note',
+                viewId,
+                mode: this.getInputMethodMode(leaf.view),
+            };
+        });
+        return area;
+    }
+
+    private resolveInputMethodArea(
+        target: EventTarget | null,
+    ): InputMethodArea | null {
+        if (!target) return null;
+        const node = target as Node;
+        const element =
+            node.nodeType === Node.ELEMENT_NODE
+                ? (node as Element)
+                : node.parentElement;
+        if (!element) return null;
+
+        const input = element.closest<HTMLElement>(
+            'input, textarea, [contenteditable="true"]',
+        );
+        if (!input) return null;
+
+        const descriptor = [
+            input.getAttribute('aria-label'),
+            input.getAttribute('placeholder'),
+            input.getAttribute('name'),
+            input.id,
+            input.className,
+            input.closest<HTMLElement>(
+                '.mod-global-search, .global-search, [data-type="search"]',
+            )?.className,
+        ]
+            .filter(Boolean)
+            .join(' ');
+        if (/search|find|搜索|查找/i.test(descriptor)) {
+            const isGlobal = /global|全局/i.test(descriptor);
+            return {
+                key: searchInputMethodKey(
+                    isGlobal ? 'global' : 'note',
+                    isGlobal
+                        ? undefined
+                        : this.app.workspace.getActiveFile()?.path,
+                ),
+                kind: 'search',
+                mode: 'insert',
+            };
+        }
+
+        let noteArea: InputMethodArea | null = null;
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            if (noteArea || !(leaf.view instanceof MarkdownView)) return;
+            const editorView = getEditorView(leaf.view);
+            if (!editorView || !editorView.dom.contains(element)) return;
+            if (!leaf.view.file) return;
+            noteArea = {
+                key: noteInputMethodKey(
+                    this.app.vault.getName(),
+                    leaf.view.file.path,
+                ),
+                kind: 'note',
+                mode: this.getInputMethodMode(leaf.view),
+            };
+        });
+        if (noteArea) return noteArea;
+
+        const owner = this.findInputMethodLeaf(input);
+        const ownerType = owner
+            ? ((
+                  owner.view as unknown as {
+                      getViewType?: () => string;
+                  }
+              ).getViewType?.() ?? 'view')
+            : 'document';
+        const ownerId = owner ? getLeafId(owner) : 'global';
+
+        const purpose =
+            input.dataset.vimMotionsImPurpose ||
+            input.getAttribute('aria-label') ||
+            input.getAttribute('placeholder') ||
+            input.getAttribute('name') ||
+            input.id ||
+            'input';
+        const inputIndex = owner
+            ? Array.from(
+                  owner.view.containerEl.querySelectorAll<HTMLElement>(
+                      'input, textarea, [contenteditable="true"]',
+                  ),
+              ).indexOf(input) + 1
+            : 1;
+
+        return {
+            key: `input:${ownerType}:${ownerId}:${purpose}:${inputIndex}`,
+            kind: 'input',
+            mode: 'insert',
+        };
+    }
+
+    private findInputMethodLeaf(input: HTMLElement): WorkspaceLeaf | null {
+        let owner: WorkspaceLeaf | null = null;
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            if (owner) return;
+            if (leaf.view.containerEl.contains(input)) owner = leaf;
+        });
+        return owner;
+    }
+
+    private getInputMethodMode(view: MarkdownView): InputMethodMode {
+        const adapter = getCmAdapter(view);
+        const vim = adapter?.state.vim;
+        if (vim?.insertMode === true || vim?.mode === 'replace') {
+            return vim.mode === 'replace' ? 'replace' : 'insert';
+        }
+        if (vim?.visualBlock) return 'visual';
+        if (vim?.visualLine || vim?.visualMode) return 'visual';
+        if (
+            vim?.inputState &&
+            typeof vim.inputState === 'object' &&
+            'operator' in vim.inputState &&
+            Boolean((vim.inputState as { operator?: string | null }).operator)
+        ) {
+            return 'operatorPending';
+        }
+        return 'normal';
     }
 
     private registerHarpoonLeaderMappings(): void {

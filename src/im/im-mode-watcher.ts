@@ -17,6 +17,7 @@ let onEnterInsert: ImModeCallback | null = null;
 let onLeaveInsert: ImModeCallback | null = null;
 let cleanupCallback: ((viewId: string) => void) | null = null;
 let nextId = 0;
+const viewsById = new Map<string, EditorView>();
 
 class ImModeWatcher implements PluginValue {
     private adapter: CmAdapter | null = null;
@@ -28,6 +29,7 @@ class ImModeWatcher implements PluginValue {
 
     constructor(private view: EditorView) {
         this.viewId = `imw_${nextId++}`;
+        viewsById.set(this.viewId, view);
         this.tryBind();
         // A backend that owns keys reports its mode here instead of through
         // the fork's event, which never fires while the fork is stood down.
@@ -67,6 +69,7 @@ class ImModeWatcher implements PluginValue {
         this.externalCleanup?.();
         this.externalCleanup = null;
         this.unbind();
+        viewsById.delete(this.viewId);
         cleanupCallback?.(this.viewId);
     }
 
@@ -120,6 +123,11 @@ export function clearImModeCallbacks(): void {
     cleanupCallback = null;
 }
 
+/** Resolve a watcher id back to its live CM6 view for host area mapping. */
+export function getImEditorView(viewId: string): EditorView | null {
+    return viewsById.get(viewId) ?? null;
+}
+
 export function createImModeWatcherExtension(): Extension {
     return ViewPlugin.fromClass(ImModeWatcher);
 }
@@ -130,4 +138,5 @@ export function _resetWatchers(): void {
     onLeaveInsert = null;
     cleanupCallback = null;
     nextId = 0;
+    viewsById.clear();
 }
