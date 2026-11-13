@@ -203,7 +203,7 @@ Use `set <option>` to enable, `set no<option>` to disable.
 | `incsearch`            | `is`   | Incremental search while typing                                | on      |
 | `wrapscan`             | `ws`   | Search wraps around document                                   | on      |
 | `gdefault`             | `gd`   | `:s` defaults to global replace                                | off     |
-| `startofline`          | `sol`  | `G`, `gg`, `H`, `M`, `L`, `>>`, `<<` go to first non-blank     | off     |
+| `startofline`          | `sol`  | `G`, `gg`, `<C-d>`, `dd`, `>>` and more go to first non-blank  | off     |
 | `joinspaces`           | `js`   | `J` inserts two spaces after `.!?`                             | off     |
 | `shiftround`           | `sr`   | `>>`/`<<` round to shiftwidth multiple                         | off     |
 
