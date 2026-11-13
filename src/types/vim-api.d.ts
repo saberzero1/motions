@@ -52,6 +52,8 @@ export interface OperatorArgs {
     linewise?: boolean;
     registerName?: string;
     indentRight?: boolean;
+    /** Vim's curswant when the operator started. (codemirror-vim 6.4.15) */
+    curswant?: number;
 }
 
 /** Range used by operators. */
@@ -222,6 +224,8 @@ export interface VimApi {
         args: { forward?: boolean; selectedCharacter?: string },
     ): void;
     defineOperator(name: string, fn: OperatorFn): void;
+    /** The operator defined under `name`. (codemirror-vim 6.4.19) */
+    getOperator?(name: string): OperatorFn | undefined;
     defineEx(name: string, shortName: string, fn: ExCommandFn): void;
     undefineEx(name: string): boolean;
 

@@ -13,6 +13,7 @@ interface Registration {
         | 'action'
         | 'actionOverride'
         | 'operator'
+        | 'operatorOverride'
         | 'ex'
         | 'map'
         | 'mapCommand';
@@ -21,6 +22,7 @@ interface Registration {
     keys?: string;
     leaderScoped?: boolean;
     originalFn?: ActionFn;
+    originalOperator?: OperatorFn;
     actionFn?: ActionFn;
     motionFn?: MotionFn;
     exFn?: ExCommandFn;
@@ -120,6 +122,27 @@ export class VimRegistration {
     defineOperator(name: string, fn: OperatorFn): void {
         this.vim.defineOperator(name, fn);
         this.pushReg({ type: 'operator', name });
+    }
+
+    /**
+     * Replaces a defined operator with one built from it, restoring the
+     * original on teardown, as defineActionOverride does for an action.
+     * Without codemirror-vim's getOperator there is nothing to build from,
+     * and the operator is left alone.
+     */
+    defineOperatorOverride(
+        name: string,
+        factory: (original: OperatorFn) => OperatorFn,
+    ): boolean {
+        const original = this.vim.getOperator?.(name);
+        if (!original) return false;
+        this.vim.defineOperator(name, factory(original));
+        this.pushReg({
+            type: 'operatorOverride',
+            name,
+            originalOperator: original,
+        });
+        return true;
     }
 
     defineEx(name: string, shortName: string, fn: ExCommandFn): void {
@@ -313,6 +336,11 @@ export class VimRegistration {
                 break;
             case 'operator':
                 this.vim.defineOperator(reg.name, noopOperator);
+                break;
+            case 'operatorOverride':
+                if (reg.originalOperator) {
+                    this.vim.defineOperator(reg.name, reg.originalOperator);
+                }
                 break;
             case 'ex':
                 this.vim.undefineEx(reg.name);
