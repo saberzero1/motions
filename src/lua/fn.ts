@@ -12,6 +12,7 @@ import {
     utf8Length,
     createNeovimCoordinateAdapter,
     isWideCodePoint,
+    isZeroWidthCodePoint,
 } from './coordinates';
 import {
     readCoordinateArgument,
@@ -1456,7 +1457,9 @@ export function injectVimFn(L: lua_State, callbacks: VimFnCallbacks): void {
         let width = 0;
         for (const ch of s) {
             const cp = ch.codePointAt(0) ?? 0;
-            if (isWideCodePoint(cp)) {
+            if (isZeroWidthCodePoint(cp)) {
+                continue;
+            } else if (isWideCodePoint(cp)) {
                 width += 2;
             } else if (ch === '\t') {
                 const tabstop =
