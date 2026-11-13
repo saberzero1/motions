@@ -21,6 +21,14 @@ interface Position {
 const lastCursor = new Map<string, Position>();
 
 /**
+ * A note's last cursor in its own editor, as Vim's `"` mark keeps a buffer's,
+ * for `<C-^>` to return to.
+ */
+export function getLastNoteCursor(path: string): Position | undefined {
+    return lastCursor.get(path);
+}
+
+/**
  * Keeps each note's cursor, for a switch away from a tab that has since been
  * given another note: by then its editor shows the new one.
  */

@@ -37,6 +37,7 @@ import { createContextActionsAction } from '../ui/context-actions';
 import { OutlineModal, getDocumentHeadings } from '../ui/outline-modal';
 import { getCmAdapter } from '../vim/vim-api';
 import { getEditorView } from '../util/editor';
+import { getLastNoteCursor } from './note-switch-jumps';
 import { executeCommand } from '../util/commands';
 import { whenActiveLeafSettled } from './leaf-settle';
 
@@ -310,6 +311,30 @@ function createKeywordLookupAction(
     };
 }
 
+/**
+ * Opens the alternate note at the cursor it was left with, as Neovim's
+ * `<C-^>` returns to a buffer's `"` mark: the same column without
+ * 'startofline', the line's first non-blank with it. Obsidian opens a note
+ * at its start, so `<C-^>` used to land on line 1.
+ */
+async function openAlternateFile(app: App, target: string): Promise<void> {
+    const sourcePath = app.workspace.getActiveFile()?.path ?? '';
+    const last = getLastNoteCursor(target);
+    await app.workspace.openLinkText(target, sourcePath, false);
+    if (!last) return;
+    const view = app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view || view.file?.path !== target) return;
+    const editor = view.editor;
+    const line = Math.min(last.line, editor.lineCount() - 1);
+    const text = editor.getLine(line);
+    const sol =
+        window.CodeMirrorAdapter?.Vim?.getOption?.('startofline') === true;
+    const ch = sol
+        ? Math.max(0, text.search(/\S|$/))
+        : Math.min(last.ch, Math.max(0, text.length - 1));
+    editor.setCursor(line, ch);
+}
+
 function createAlternateFileAction(
     app: App,
     getAlternateFilePath: () => string | null,
@@ -317,8 +342,7 @@ function createAlternateFileAction(
     return () => {
         const target = getAlternateFilePath();
         if (!target) return;
-        const sourcePath = app.workspace.getActiveFile()?.path ?? '';
-        void app.workspace.openLinkText(target, sourcePath, false);
+        void openAlternateFile(app, target);
     };
 }
 
@@ -1213,8 +1237,9 @@ export function registerWorkspaceNavigation(
         executeCommand(app, 'workspace:split-horizontal');
         const target = getAlternateFilePath();
         if (!target) return;
-        const sourcePath = app.workspace.getActiveFile()?.path ?? '';
-        void app.workspace.openLinkText(target, sourcePath, false);
+        // After the new pane has loaded the note it was split with: opened
+        // before, the alternate note was replaced by that deferred load.
+        whenActiveLeafSettled(app, () => void openAlternateFile(app, target));
     };
     reg.defineAction('splitAlternateFile', settled(app, splitAlternateFile));
     reg.mapCommand('<C-w><C-^>', 'action', 'splitAlternateFile', {});
