@@ -111,19 +111,9 @@ end
 
 local function heading_operator_motion(forward)
     local target = heading_target(forward)
-    if not target then
-        return vim.keycode("<Esc>")
+    if target then
+        vim.api.nvim_win_set_cursor(0, { target.row + 1, target.col })
     end
-    local register = vim.v.register
-    local register_prefix = register == '"' and "" or '"' .. register
-    local operator = vim.v.operator == "c" and "d" or vim.v.operator
-    local motion = forward
-            and tostring(target.row) .. "G"
-        or "v" .. tostring(target.row + 1) .. "G0"
-    return vim.keycode("<Esc>")
-        .. register_prefix
-        .. operator
-        .. motion
 end
 
 local function list_indent(line)
@@ -252,24 +242,31 @@ end, { "n", "x" })
 map_motion("[h", function()
     heading_motion(false)
 end, { "n", "x" })
-vim.keymap.set("o", "]h", function()
-    return heading_operator_motion(true)
-end, {
-    buffer = mirror_buf,
-    desc = structural_desc("]h"),
-    expr = true,
-    nowait = true,
-    silent = true,
-})
-vim.keymap.set("o", "[h", function()
-    return heading_operator_motion(false)
-end, {
-    buffer = mirror_buf,
-    desc = structural_desc("[h"),
-    expr = true,
-    nowait = true,
-    silent = true,
-})
+-- An operator takes the cursor move of the <Plug> callback as its motion, so
+-- Neovim applies its own rules for exclusive motions (a range ending in column
+-- 0 ends on the line before, linewise when it starts in the indent), and `.`
+-- and a count recompute the target. The expr mapping only cancels the operator, as a
+-- failed motion does, when there is no heading to go to.
+for _, spec in ipairs({ { "]h", true }, { "[h", false } }) do
+    local lhs, forward = spec[1], spec[2]
+    local plug = "<Plug>(vim-motions-heading-" .. (forward and "next" or "prev") .. ")"
+    vim.keymap.set("o", plug, function()
+        heading_operator_motion(forward)
+    end, { buffer = mirror_buf, silent = true })
+    vim.keymap.set("o", lhs, function()
+        if not heading_target(forward) then
+            return vim.keycode("<Esc>")
+        end
+        return plug
+    end, {
+        buffer = mirror_buf,
+        desc = structural_desc(lhs),
+        expr = true,
+        remap = true,
+        nowait = true,
+        silent = true,
+    })
+end
 for level = 1, 6 do
     map_motion("]h" .. level, function()
         heading_motion(true, level)
@@ -706,7 +703,6 @@ local function select_textobject_range(range, apply_operator)
     local operator = vim.v.operator
     local register = vim.v.register
     local count = vim.v.count1
-    local original_cursor = vim.api.nvim_win_get_cursor(0)
     vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
     if apply_operator then
         local ending = previous_character_position(range[3], range[4])
@@ -733,12 +729,6 @@ local function select_textobject_range(range, apply_operator)
         end, debug.traceback)
         if not ok then
             error(err)
-        end
-        if operator == "y" then
-            local restored = previous_character_position(original_cursor[1] - 1, original_cursor[2])
-            if restored then
-                vim.api.nvim_win_set_cursor(0, { restored[1] + 1, restored[2] })
-            end
         end
         return
     end

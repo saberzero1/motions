@@ -777,6 +777,10 @@ function createMoveCopyCommand(mode: 'move' | 'copy'): ExCommandFn {
 
         const { startLine, endLine, lineCount } = getLineRange(cm, params);
         if (lineCount === 0) return;
+        // Taken before the edit moves the cursor's line: :m and :t end at the
+        // 'startofline' column, as Neovim's do.
+        const vim = window.CodeMirrorAdapter?.Vim;
+        const want = vim?.curswant?.(cm);
 
         const baseLine = params.lineEnd ?? params.line ?? startLine;
         const insertionLine = parseLineTarget(arg, baseLine, lineCount);
@@ -833,7 +837,10 @@ function createMoveCopyCommand(mode: 'move' | 'copy'): ExCommandFn {
         const newEndLine = newStartLine + movedLineCount - 1;
         const cursorLine = newEndLine;
         const lineText = cm.getLine(cursorLine) ?? '';
-        const ch = getFirstNonBlankCh(lineText);
+        const ch =
+            want !== undefined && vim?.startOfLineColumn
+                ? vim.startOfLineColumn(cm, cursorLine, want)
+                : getFirstNonBlankCh(lineText);
         cm.setCursor(cursorLine, ch);
     };
 }

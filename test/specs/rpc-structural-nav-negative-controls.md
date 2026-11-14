@@ -9,5 +9,7 @@ Observed against `test/specs/rpc-structural-nav.e2e.ts`; every sabotage was rest
 | Matched heading level `level + 1`                                   | RPC `]2` landed on row 2 (`### C`) instead of the fork's row 1 (`## B`).                                                                  |
 | Used a plain operator-pending callback without a well-formed motion | RPC `d]h` produced the empty document; the fork produced `# A\n## B\nthird`.                                                              |
 | Replaced `vim.v.count1` with `1`                                    | RPC `d2]h` left `## B\ntwo`; the fork deleted through the second heading and began the remainder at `### C`.                              |
+| Reissued the operator as `d{n}G` / `v{n}G0`, with `c` as `d`        | RPC `c]h` left `# A\n## B\nthird`; the fork kept the empty line Vim's linewise `c` leaves, `# A\n\n## B\nthird`.                          |
+| The same, from mid-line                                             | RPC `d]h` from column 2 deleted `first\nsecond\n` whole; the fork left `fi` and yanked `rst\nsecond`.                                     |
 
 Restored result: all 14 parity scenarios pass.
