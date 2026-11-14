@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-14
+
 ### Added
 
 - **`set markdownindent`: `=` re-indents by Markdown's rules.** Off by default. On, a list keeps its nesting, normalized to one `shiftwidth` a level, a line continuing a list item goes to the item's text, other lines get no indent, and fenced code blocks and frontmatter keep theirs. Off, `=` is Neovim's, which flattens a nested list.
